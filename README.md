@@ -1,8 +1,7 @@
 ## VDA5050 Visualizer
 The purpose of this package is to view and visualize vda5050 messages more quickly without looking at the json data. After running the application, you need to press the start button.
 
-![alt text](docs/1.png)
-
+[![Watch the video](docs/1.png)](docs/1.webm)
 
 - Displaying the real-time position of multiple robots
 - Displaying the vda5050 actions that robots perform
