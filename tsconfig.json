@@ -2,13 +2,43 @@
   "files": [],
   "references": [
     {
-      "path": "./tsconfig.config.json"
+      "path": {
+        "extends": "@vue/tsconfig/tsconfig.node.json",
+        "include": ["vite.config.*", "vitest.config.*", "cypress.config.*"],
+        "compilerOptions": {
+          "composite": true,
+          "types": ["node"]
+        }
+      }
     },
     {
-      "path": "./tsconfig.app.json"
+      "path": {
+        "extends": "@vue/tsconfig/tsconfig.web.json",
+        "include": ["env.d.ts", "src/**/*", "src/**/*.vue", "src/**/*.json"],
+        "exclude": ["src/**/__tests__/*"],
+        "compilerOptions": {
+          "composite": true,
+          "baseUrl": ".",
+          "resolveJsonModule": true,
+          "esModuleInterop": true,
+          "paths": {
+            "@/*": ["./src/*"]
+          },
+          "ignoreDeprecations": "5.0"
+        }
+      }
     },
     {
-      "path": "./tsconfig.vitest.json"
+      "path": {
+        "extends": "./tsconfig.app.json",
+        "exclude": [],
+        "compilerOptions": {
+          "composite": true,
+          "lib": [],
+          "types": ["node", "jsdom"],
+          "ignoreDeprecations": "5.0"
+        }
+      }
     }
   ]
 }
