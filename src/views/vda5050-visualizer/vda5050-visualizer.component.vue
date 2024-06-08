@@ -37,35 +37,42 @@ const options = [
 <template>
   <div style="padding: 10px" :key="version">
     <div class="mb">
-      <ui-textfield class="mr" outlined style="width: 40%" v-model="brokerIp">
-        Broker IP
-      </ui-textfield>
-      <ui-textfield class="mr" outlined style="width: 15%" v-model="brokerPort">
-        Broker PORT
-      </ui-textfield>
-      <ui-textfield
-        class="mr"
-        outlined
-        style="width: 15%"
-        v-model="interfaceName"
-      >
-        Interface Name
-      </ui-textfield>
-      <ui-select
-        class="mr"
-        style="width: calc(15% - 40px)"
-        v-model="vdaVersion"
-        :options="options"
-        outlined
-      >
-        VDA Version
-      </ui-select>
-      <ui-button
-        style="height: 55px; width: 15%"
-        outlined
-        @click="updateBroker()"
-        >Start</ui-button
-      >
+      <ui-grid class="demo-grid">
+        <ui-grid-cell class="demo-cell" columns="5">
+          <ui-textfield class="mr w100" outlined v-model="brokerIp">
+            Broker IP
+          </ui-textfield>
+        </ui-grid-cell>
+        <ui-grid-cell class="demo-cell" columns="2">
+          <ui-textfield class="mr w100" outlined v-model="brokerPort">
+            Broker PORT
+          </ui-textfield>
+        </ui-grid-cell>
+        <ui-grid-cell class="demo-cell" columns="2">
+          <ui-textfield class="mr w100" outlined v-model="interfaceName">
+            Interface Name
+          </ui-textfield>
+        </ui-grid-cell>
+        <ui-grid-cell class="demo-cell" columns="2">
+          <ui-select
+            class="mr w100"
+            v-model="vdaVersion"
+            :options="options"
+            outlined
+          >
+            VDA Version
+          </ui-select>
+        </ui-grid-cell>
+        <ui-grid-cell class="demo-cell" :columns="{ default: 1, phone: 2 }">
+          <ui-button
+            class="w100"
+            style="height: 55px"
+            outlined
+            @click="updateBroker()"
+            >Start</ui-button
+          >
+        </ui-grid-cell>
+      </ui-grid>
     </div>
 
     <div
@@ -86,5 +93,8 @@ const options = [
 }
 .mb {
   margin-bottom: 10px;
+}
+.w100 {
+  width: 100%;
 }
 </style>
