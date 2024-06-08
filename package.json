@@ -2,8 +2,9 @@
   "name": "vda_visualizer",
   "version": "0.0.0",
   "scripts": {
-    "dev": "vite --host --port 8080" ,
+    "dev": "vite --host --port 8080",
     "build:bundle": "vite build",
+    "preview": "vite preview",
     "test:unit": "vitest --environment jsdom",
     "type-check": "vue-tsc --noEmit -p tsconfig.vitest.json --composite false",
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .eslintignore"
