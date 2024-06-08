@@ -5,12 +5,15 @@ The purpose of this package is to view and visualize vda5050 messages more quick
 https://github.com/bekirbostanci/vda5050_visualizer/assets/26343575/06f22e56-1547-451b-97b9-870a715d525e
 
 
-
-
 - Displaying the real-time position of multiple robots
 - Displaying the vda5050 actions that robots perform
 - Displaying data from the master controller to the robot and from the robot to the master controller 
 - Display of raw json data 
+
+## Live Demo
+
+Check out the live demo of this project [here](https://vda5050-visualizer.vercel.app/).
+
 
 ## Install
 Before than run app, please go to folder and install npm packages 
