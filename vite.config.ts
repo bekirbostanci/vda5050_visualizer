@@ -7,13 +7,14 @@ import commonjs from "@rollup/plugin-commonjs";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
-  const isDevelopment = mode === 'development';
+  const isDevelopment = mode === "development";
 
   return {
     plugins: [
       vue(),
       isDevelopment && commonjs(),
-      isDevelopment && inject({ Buffer: ["buffer", "Buffer"], process: "process" }),
+      isDevelopment &&
+        inject({ Buffer: ["buffer", "Buffer"], process: "process" }),
     ].filter(Boolean),
     resolve: {
       alias: {
@@ -34,7 +35,7 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         plugins: [
           // Conditionally include inject plugin during build if needed
-          inject({ Buffer: ["buffer", "Buffer"], process: "process" })
+          inject({ Buffer: ["buffer", "Buffer"], process: "process" }),
         ],
       },
     },
