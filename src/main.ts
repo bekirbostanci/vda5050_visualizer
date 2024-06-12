@@ -20,7 +20,6 @@ import "balm-ui/components/textfield/textfield.css";
 import "./assets/main.scss";
 
 import BalmUI from "balm-ui";
-import BalmUIPlus from "balm-ui/dist/balm-ui-plus";
 
 import VNetworkGraph from "v-network-graph";
 import "v-network-graph/lib/style.css";
@@ -34,7 +33,6 @@ const app = createApp({
 });
 
 app.use(router);
-app.use(BalmUIPlus);
 app.use(BalmUI, {
   $theme: {},
 });
