@@ -42,4 +42,25 @@ protocol websockets
 allow_anonymous true
 ```
 
+## Docker 
+### Development
+Building docker container for development.
+```
+docker build -t vda-visualizer:dev -f Dockerfile.dev .
+```
 
+Run docker container 
+```
+docker run -p 8080:8080 -v $(pwd):/app -v /app/node_modules --rm vda-visualizer:dev
+```
+
+### Production 
+Building docker container for production 
+```
+docker build -t vda-visualizer:prod -f Dockerfile.prod .
+```
+
+Run docker container 
+```
+docker run -p 4173:4173 --rm vda-visualizer:prod
+```
