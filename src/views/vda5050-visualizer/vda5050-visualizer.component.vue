@@ -7,6 +7,7 @@ import { masterController } from "@/controllers/vda5050.controller";
 
 const brokerIp = ref(import.meta.env.VITE_MQTT_HOST);
 const brokerPort = ref(import.meta.env.VITE_MQTT_PORT);
+const basepath = ref(import.meta.env.VITE_BASEPATH);
 const interfaceName = ref(import.meta.env.VITE_VDA_INTERFACE);
 const vdaVersion: Ref<VdaVersion> = ref(import.meta.env.VITE_VDA_VERSION);
 let vda5050Visualizer: VDA5050Visualizer | undefined;
@@ -17,6 +18,7 @@ function updateBroker() {
   masterController(
     brokerIp.value,
     brokerPort.value,
+    basepath.value,
     interfaceName.value,
     vdaVersion.value
   );
@@ -43,9 +45,14 @@ const options = [
             Broker IP
           </ui-textfield>
         </ui-grid-cell>
-        <ui-grid-cell class="demo-cell" columns="2">
+        <ui-grid-cell class="demo-cell" columns="1">
           <ui-textfield class="mr w100" outlined v-model="brokerPort">
             Broker PORT
+          </ui-textfield>
+        </ui-grid-cell>
+        <ui-grid-cell class="demo-cell" columns="1">
+          <ui-textfield class="mr w100" outlined v-model="basepath">
+            Basepath
           </ui-textfield>
         </ui-grid-cell>
         <ui-grid-cell class="demo-cell" columns="2">

@@ -15,6 +15,7 @@ const agvs: VirtualAgvAdapter[] = [];
 export async function masterController(
   mqttIp: string,
   mqttPort: string,
+  basepath: string,
   interfaceName: string,
   vdaVersion: VdaVersion
 ) {
@@ -22,12 +23,12 @@ export async function masterController(
     mc.stop();
     client.end();
   }
-  client = mqtt.connect("ws://" + mqttIp + ":" + mqttPort);
+  client = mqtt.connect("ws://" + mqttIp + ":" + mqttPort + "/" + basepath);
   mc = new MasterController(
     {
       interfaceName: interfaceName,
       transport: {
-        brokerUrl: "ws://" + mqttIp + ":" + mqttPort,
+        brokerUrl: "ws://" + mqttIp + ":" + mqttPort + "/" + basepath,
       },
       vdaVersion: vdaVersion,
     },
