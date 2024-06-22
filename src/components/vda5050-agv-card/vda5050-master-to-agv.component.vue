@@ -34,7 +34,7 @@ const configs = defineConfigs({
     gap: 12,
     normal: {
       width: 3,
-      color: "gray",
+      color: (edge) => edge.color,
       dasharray: "20 16",
       animate: true,
       animationSpeed: -20,
@@ -123,18 +123,7 @@ const configs = defineConfigs({
         v-bind="slotProps"
       />
     </template>
-    <template
-      #override-node-label="{
-        nodeId,
-        scale,
-        text,
-        x,
-        y,
-        config,
-        textAnchor,
-        dominantBaseline,
-      }"
-    >
+    <template #override-node-label="{ scale, text }">
       <text
         x="0"
         y="0"
