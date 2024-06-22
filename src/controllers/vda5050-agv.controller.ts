@@ -19,6 +19,7 @@ import {
 } from "vda-5050-lib";
 import { ref } from "vue";
 import type mqtt from "mqtt";
+import { colors } from "@/utils/colors";
 
 export class VDA5050Agv {
   public mc: MasterController;
@@ -102,14 +103,32 @@ export class VDA5050Agv {
           name:
             this.nodes.value[node.nodeId].name +
             ", " +
-            node.sequenceId.toString(),
-          color: "grey",
+            node.sequenceId.toString() +
+            (node.actions.length > 0
+              ? " -> " +
+                Object.values(node.actions).map(
+                  (nodeAction) => nodeAction.actionType
+                )
+              : ""),
+          color:
+            this.nodes.value[node.nodeId].color == colors.edgeAction ||
+            node.actions.length > 0
+              ? colors.nodeAction
+              : colors.nodeStandard,
           zIndex: 1,
         };
       } else {
         this.nodes.value[node.nodeId] = {
-          name: node.sequenceId.toString(),
-          color: "grey",
+          name:
+            node.sequenceId.toString() +
+            (node.actions.length > 0
+              ? " -> " +
+                Object.values(node.actions).map(
+                  (nodeAction) => nodeAction.actionType
+                )
+              : ""),
+          color:
+            node.actions.length > 0 ? colors.nodeAction : colors.nodeStandard,
           zIndex: 1,
         };
       }
@@ -123,12 +142,20 @@ export class VDA5050Agv {
       this.edges.value[edge.edgeId] = {
         source: edge.endNodeId,
         target: edge.startNodeId,
-        label: edge.sequenceId,
+        color: edge.actions.length > 0 ? "#1abc9c" : "#bdc3c7",
+        label:
+          edge.sequenceId +
+          (edge.actions.length > 0
+            ? " -> " +
+              Object.values(edge.actions).map(
+                (nodeAction) => nodeAction.actionType
+              )
+            : ""),
       };
     });
     this.nodes.value["robot"] = {
       name: this.agvId.serialNumber,
-      color: "red",
+      color: colors.robot,
       zIndex: 2,
     };
   }
