@@ -11,12 +11,12 @@ export default {
     <div
       data-v-70bfaedc=""
       class="mdc-card mdc-theme--on-surface mdc-card--outlined"
-      style="padding: 10px; margin-bottom: 20px"
+      style="margin-bottom: 20px"
     >
-      <div>
+      <div style="margin: 10px">
         <div class="col-12 card-board">
           <div class="card-header-div">
-            <div style="display: flex">
+            <div class="flex-row">
               <div class="card-font-bold flex-left">Manufacturer:</div>
               <div class="card-font-bold flex-left" style="margin-left: 10px">
                 <SkeletonLoader height="20px" width="50" pill />
@@ -112,11 +112,9 @@ export default {
           </div>
           <div
             class="mdc-divider mdc-divider--horizontal mdc-divider--no-text mb-2 mt-2 card-divider"
-          >
-            
-          </div>
+          ></div>
           <div class="card-header-div">
-            <div style="display: flex">
+            <div class="flex-row">
               <div class="card-font-bold">AGV -&gt; Master Controller</div>
               <div style="margin-left: 20px; display: flex">
                 Header :
@@ -140,26 +138,10 @@ export default {
                   ></span
                 >
               </div>
-              <div
-                class="mdc-chip mdc-ripple-upgraded"
-                role="row"
-                id="mdc-chip-8"
-              >
-                <div class="mdc-chip__ripple"></div>
-                <i class="material-icons mdc-chip__icon mdc-chip__icon--leading"
-                  >av_timer</i
-                ><span role="gridcell"
-                  ><span role="button" class="mdc-chip__primary-action"
-                    ><span class="mdc-chip__text"
-                      >0000-00-00T00:00:00.000Z</span
-                    ></span
-                  ></span
-                >
-              </div>
             </div>
           </div>
           <div class="card-header-div">
-            <div style="display: flex">
+            <div class="flex-row">
               Order :
               <div
                 style="margin-left: 10px; margin-right: 10px"
@@ -258,11 +240,9 @@ export default {
           <!--v-if--><!--v-if--><!--v-if-->
           <div
             class="mdc-divider mdc-divider--horizontal mdc-divider--no-text mb-2 mt-2 card-divider"
-          >
-            
-          </div>
+          ></div>
           <div class="card-header-div">
-            <div style="display: flex">
+            <div class="flex-row">
               <div class="card-font-bold" style="margin-right: 20px">
                 Master Controller -&gt; AGV
               </div>
@@ -319,7 +299,7 @@ export default {
             </div>
           </div>
           <div class="card-header-div">
-            <div style="display: flex">
+            <div class="flex-row">
               Order :
               <div
                 style="margin-left: 10px; margin-right: 10px"
@@ -344,3 +324,11 @@ export default {
     </div>
   </div>
 </template>
+<style>
+.flex-row {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  row-gap: 7px;
+}
+</style>
