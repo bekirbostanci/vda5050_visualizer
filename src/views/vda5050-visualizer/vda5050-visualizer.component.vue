@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { ref, Ref } from "vue";
-import { VdaVersion } from "vda-5050-lib";
+import { ref } from "vue";
 import { VDA5050Visualizer } from "@/controllers/vda5050-visualizer.controller";
 import VDA5050Card from "@/components/vda5050-agv-card/vda5050-agv-card.component.vue";
 import { masterController } from "@/controllers/vda5050.controller";
@@ -9,7 +8,7 @@ const brokerIp = ref(import.meta.env.VITE_MQTT_HOST);
 const brokerPort = ref(import.meta.env.VITE_MQTT_PORT);
 const basepath = ref(import.meta.env.VITE_BASEPATH);
 const interfaceName = ref(import.meta.env.VITE_VDA_INTERFACE);
-const vdaVersion: Ref<VdaVersion> = ref(import.meta.env.VITE_VDA_VERSION);
+const vdaVersion = ref(import.meta.env.VITE_VDA_VERSION);
 let vda5050Visualizer: VDA5050Visualizer | undefined;
 const version = ref(0);
 
