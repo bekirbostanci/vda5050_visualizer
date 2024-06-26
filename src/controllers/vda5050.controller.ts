@@ -8,9 +8,17 @@ import {
   type VirtualAgvAdapterOptions,
 } from "vda-5050-lib";
 import mqtt from "mqtt";
+import { ref } from "vue";
 let mc: MasterController;
 let client: mqtt.MqttClient;
 const agvs: VirtualAgvAdapter[] = [];
+
+export enum MqttClientState {
+  OFFLINE = "offline",
+  CONNECTED = "connected",
+  RECONNECTING = "reconnecting",
+}
+const clientState = ref<MqttClientState>(MqttClientState.OFFLINE);
 
 export async function masterController(
   mqttIp: string,
@@ -24,6 +32,7 @@ export async function masterController(
     client.end();
   }
   client = mqtt.connect("ws://" + mqttIp + ":" + mqttPort + "/" + basepath);
+  clientStateHandlers();
   mc = new MasterController(
     {
       interfaceName: interfaceName,
@@ -37,7 +46,21 @@ export async function masterController(
 
   await mc.start();
 }
+function clientStateHandlers() {
+  client.on("connect", () => {
+    clientState.value = MqttClientState.CONNECTED;
+  });
+  client.on("reconnect", () => {
+    clientState.value = MqttClientState.RECONNECTING;
+  });
+  client.on("offline", () => {
+    clientState.value = MqttClientState.OFFLINE;
+  });
+}
 
+export function getMqttClientState(): MqttClientState {
+  return clientState.value;
+}
 export function getMasterController(): MasterController {
   return mc;
 }

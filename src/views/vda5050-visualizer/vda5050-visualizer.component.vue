@@ -3,7 +3,11 @@ import { ref } from "vue";
 import { VDA5050Visualizer } from "@/controllers/vda5050-visualizer.controller";
 import VDA5050Card from "@/components/vda5050-agv-card/vda5050-agv-card.component.vue";
 import SkeletonCard from "@/components/skeleton-card.vue";
-import { masterController } from "@/controllers/vda5050.controller";
+import {
+  MqttClientState,
+  getMqttClientState,
+  masterController,
+} from "@/controllers/vda5050.controller";
 
 const brokerIp = ref(import.meta.env.VITE_MQTT_HOST);
 const brokerPort = ref(import.meta.env.VITE_MQTT_PORT);
@@ -40,7 +44,7 @@ const options = [
   <div style="padding: 10px" :key="version">
     <div class="mb">
       <ui-grid>
-        <ui-grid-cell columns="5">
+        <ui-grid-cell columns="3">
           <ui-textfield class="mr w100" outlined v-model="brokerIp">
             Broker IP
           </ui-textfield>
@@ -55,7 +59,7 @@ const options = [
             Basepath
           </ui-textfield>
         </ui-grid-cell>
-        <ui-grid-cell columns="2">
+        <ui-grid-cell columns="1">
           <ui-textfield class="mr w100" outlined v-model="interfaceName">
             Interface Name
           </ui-textfield>
@@ -70,7 +74,42 @@ const options = [
             VDA Version
           </ui-select>
         </ui-grid-cell>
-        <ui-grid-cell :columns="{ default: 1, phone: 2 }">
+        <ui-grid-cell
+          columns="2"
+          v-if="getMqttClientState() == MqttClientState.CONNECTED"
+        >
+          <ui-button
+            class="w100 not-clickable"
+            style="height: 55px"
+            outlined
+            icon="wifi_tethering"
+          >
+            {{ getMqttClientState() }}</ui-button
+          >
+        </ui-grid-cell>
+        <ui-grid-cell
+          columns="2"
+          v-else-if="getMqttClientState() == MqttClientState.OFFLINE"
+        >
+          <ui-button
+            disabled
+            class="w100 not-clickable"
+            style="height: 55px"
+            outlined
+            icon="wifi_tethering_off"
+          >
+            {{ getMqttClientState() }}</ui-button
+          >
+        </ui-grid-cell>
+        <ui-grid-cell
+          columns="2"
+          v-else-if="getMqttClientState() == MqttClientState.RECONNECTING"
+        >
+          <ui-button class="w100 not-clickable" style="height: 55px" outlined>
+            {{ getMqttClientState() }}</ui-button
+          >
+        </ui-grid-cell>
+        <ui-grid-cell columns="2">
           <ui-button
             class="w100"
             style="height: 55px"
@@ -112,5 +151,9 @@ const options = [
 
 .w100 {
   width: 100%;
+}
+
+.not-clickable {
+  pointer-events: none;
 }
 </style>
