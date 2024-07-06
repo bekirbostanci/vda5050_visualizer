@@ -10,12 +10,15 @@ import {
 } from "@/controllers/vda5050.controller";
 
 const brokerIp = ref(import.meta.env.VITE_MQTT_HOST);
+const username = ref("");
+const password = ref("");
 const brokerPort = ref(import.meta.env.VITE_MQTT_PORT);
 const basepath = ref(import.meta.env.VITE_BASEPATH);
 const interfaceName = ref(import.meta.env.VITE_VDA_INTERFACE);
 const vdaVersion = ref(import.meta.env.VITE_VDA_VERSION);
 let vda5050Visualizer: VDA5050Visualizer | undefined;
 const version = ref(0);
+const settings = ref(false);
 
 function updateBroker() {
   version.value += 1;
@@ -24,7 +27,9 @@ function updateBroker() {
     brokerPort.value,
     basepath.value,
     interfaceName.value,
-    vdaVersion.value
+    vdaVersion.value,
+    username.value,
+    password.value
   );
   vda5050Visualizer = new VDA5050Visualizer();
 }
@@ -109,14 +114,34 @@ const options = [
             {{ getMqttClientState() }}</ui-button
           >
         </ui-grid-cell>
-        <ui-grid-cell columns="2">
+        <ui-grid-cell columns="1">
           <ui-button
             class="w100"
-            style="height: 55px"
+            style="height: 55px;"
+            outlined
+            icon="settings"
+            @click="settings = !settings"
+            >Settings</ui-button
+          >
+        </ui-grid-cell>
+        <ui-grid-cell columns="1">
+          <ui-button
+            class="w100"
+            style="height: 55px;"
             outlined
             @click="updateBroker()"
             >Start</ui-button
           >
+        </ui-grid-cell>
+        <ui-grid-cell columns="6" v-if="settings">
+          <ui-textfield class="mr w100" outlined v-model="username">
+            Username
+          </ui-textfield>
+        </ui-grid-cell>
+        <ui-grid-cell columns="6" v-if="settings">
+          <ui-textfield class="mr w100" outlined v-model="password">
+            Password
+          </ui-textfield>
         </ui-grid-cell>
       </ui-grid>
     </div>
