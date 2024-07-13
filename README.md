@@ -2,8 +2,9 @@
 The purpose of this package is to view and visualize vda5050 messages more quickly without looking at the json data. After running the application, you need to press the start button.
 
 https://github.com/bekirbostanci/vda5050_visualizer/assets/26343575/06f22e56-1547-451b-97b9-870a715d525e
+![alt text](docs/1.png)
 
-
+- Display all robots on the one graph
 - Displaying the real-time position of multiple robots
 - Displaying the vda5050 actions that robots perform
 - Displaying data from the master controller to the robot and from the robot to the master controller 
