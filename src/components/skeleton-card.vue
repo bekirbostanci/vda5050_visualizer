@@ -95,7 +95,7 @@ export default {
                 class="mdc-chip mdc-ripple-upgraded"
                 role="row"
                 id="mdc-chip-3"
-                style="width: 220px"
+                style="width: 250px"
               >
                 <div class="mdc-chip__ripple"></div>
                 <i class="material-icons mdc-chip__icon mdc-chip__icon--leading"
