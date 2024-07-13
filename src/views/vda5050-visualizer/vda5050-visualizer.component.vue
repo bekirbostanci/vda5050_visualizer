@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, toRaw } from "vue";
+import config from "@/utils/configs";
 import { VDA5050Visualizer } from "@/controllers/vda5050-visualizer.controller";
 import VDA5050Card from "@/components/vda5050-agv-card/vda5050-agv-card.component.vue";
 import SkeletonCard from "@/components/skeleton-card.vue";
@@ -44,6 +45,43 @@ const options = [
     value: "1.1.0",
   },
 ];
+
+function convertToNestedObject<T extends { [key: string]: any }>(
+  array: T[]
+): any {
+  const result: any = {};
+
+  for (const item of array) {
+    for (const key in item) {
+      result[key] = item[key];
+    }
+  }
+
+  return result;
+}
+
+var agvs = ref({});
+var skipUnwrap = { itemRefs: agvs };
+
+// Computed properties to combine all nodes, edges, and layouts from all AGVs
+const total_nodes = ref();
+const total_edges = ref();
+const total_layouts = ref();
+
+setInterval(() => {
+  if (agvs.value.length > 0) {
+    total_nodes.value = agvs.value.map((agv) => toRaw(agv.agv.nodes.value));
+    total_nodes.value = convertToNestedObject(toRaw(total_nodes.value));
+    total_edges.value = agvs.value.map((agv) => toRaw(agv.agv.edges.value));
+    total_edges.value = convertToNestedObject(toRaw(total_edges.value));
+    total_layouts.value = agvs.value.map((agv) =>
+      toRaw(agv.agv.layouts.value["nodes"])
+    );
+    total_layouts.value = {
+      nodes: convertToNestedObject(toRaw(total_layouts.value)),
+    };
+  }
+}, 200);
 </script>
 <template>
   <div style="padding: 10px" :key="version">
@@ -117,7 +155,7 @@ const options = [
         <ui-grid-cell columns="1">
           <ui-button
             class="w100"
-            style="height: 55px;"
+            style="height: 55px"
             outlined
             icon="settings"
             @click="settings = !settings"
@@ -127,7 +165,7 @@ const options = [
         <ui-grid-cell columns="1">
           <ui-button
             class="w100"
-            style="height: 55px;"
+            style="height: 55px"
             outlined
             @click="updateBroker()"
             >Start</ui-button
@@ -145,6 +183,21 @@ const options = [
         </ui-grid-cell>
       </ui-grid>
     </div>
+    <ui-card
+      outlined
+      style="padding: 10px; margin-bottom: 20px"
+      v-if="agvs.length > 0"
+    >
+      <v-network-graph
+        style="height: 750px"
+        zoom-level="100"
+        :nodes="total_nodes"
+        :edges="total_edges"
+        :layouts="total_layouts"
+        :configs="config"
+      >
+      </v-network-graph>
+    </ui-card>
     <div
       v-if="
         vda5050Visualizer !== undefined &&
@@ -158,6 +211,7 @@ const options = [
         <VDA5050Card
           :manufacturer="agv.manufacturer"
           :serialNumber="agv.serialNumber"
+          :ref="skipUnwrap.itemRefs"
         />
       </div>
     </div>

@@ -14,6 +14,9 @@ let agvId: AgvId = {
 };
 
 let agv: VDA5050Agv = new VDA5050Agv(agvId);
+defineExpose({
+  agv,
+});
 </script>
 
 <template>

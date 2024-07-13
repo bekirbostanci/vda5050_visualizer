@@ -27,13 +27,16 @@ export async function masterController(
   interfaceName: string,
   vdaVersion: VdaVersion,
   username: string = "",
-  password: string = "",
+  password: string = ""
 ) {
   if (mc) {
     mc.stop();
     client.end();
   }
-  client = mqtt.connect("ws://" + mqttIp + ":" + mqttPort + "/" + basepath, {username:username, password:password});
+  client = mqtt.connect("ws://" + mqttIp + ":" + mqttPort + "/" + basepath, {
+    username: username,
+    password: password,
+  });
   clientStateHandlers();
   mc = new MasterController(
     {
