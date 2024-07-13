@@ -86,7 +86,7 @@ defineExpose({
             <ui-chip icon="map" v-if="agv.stateInfo.value">
               {{ agv.stateInfo.value?.agvPosition?.mapId }}
             </ui-chip>
-            <ui-chip icon="av_timer" style="width: 220px">
+            <ui-chip icon="av_timer" style="width: 250px">
               {{ agv.visualizationInfo.value?.timestamp }}
             </ui-chip>
           </ui-chips>
