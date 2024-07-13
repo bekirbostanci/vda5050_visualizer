@@ -118,7 +118,7 @@ setInterval(() => {
           </ui-select>
         </ui-grid-cell>
         <ui-grid-cell
-          columns="2"
+          :columns="{ default: 2, tablet: 2, phone: 2 }"
           v-if="getMqttClientState() == MqttClientState.CONNECTED"
         >
           <ui-button
@@ -131,7 +131,7 @@ setInterval(() => {
           >
         </ui-grid-cell>
         <ui-grid-cell
-          columns="2"
+          :columns="{ default: 2, tablet: 2, phone: 2 }"
           v-else-if="getMqttClientState() == MqttClientState.OFFLINE"
         >
           <ui-button
@@ -145,14 +145,14 @@ setInterval(() => {
           >
         </ui-grid-cell>
         <ui-grid-cell
-          columns="2"
+          :columns="{ default: 2, tablet: 2, phone: 2 }"
           v-else-if="getMqttClientState() == MqttClientState.RECONNECTING"
         >
           <ui-button class="w100 not-clickable" style="height: 55px" outlined>
             {{ getMqttClientState() }}</ui-button
           >
         </ui-grid-cell>
-        <ui-grid-cell columns="1">
+        <ui-grid-cell :columns="{ default: 1, tablet: 2, phone: 2 }">
           <ui-button
             class="w100"
             style="height: 55px"
@@ -162,7 +162,7 @@ setInterval(() => {
             >Settings</ui-button
           >
         </ui-grid-cell>
-        <ui-grid-cell columns="1">
+        <ui-grid-cell :columns="{ default: 1, tablet: 4, phone: 4 }">
           <ui-button
             class="w100"
             style="height: 55px"

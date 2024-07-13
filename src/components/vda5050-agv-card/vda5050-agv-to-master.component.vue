@@ -15,13 +15,13 @@ const actionsStateShow = ref(false);
 <template>
   <ui-divider class="mb-2 mt-2 card-divider"></ui-divider>
   <div class="card-header-div">
-    <div style="display: flex">
+    <div class="flex-right">
       <div class="card-font-bold">AGV -> Master Controller</div>
       <div class="card-font" style="margin-left: 20px">
         Header : {{ props.agv.stateInfo.value?.headerId }}
       </div>
     </div>
-    <ui-chips>
+    <ui-chips class="flex-right">
       <ui-chip icon="raw_on" @click="stateShow = !stateShow"> State </ui-chip>
       <ui-chip icon="av_timer">
         {{ props.agv.stateInfo.value?.timestamp }}
@@ -29,7 +29,7 @@ const actionsStateShow = ref(false);
     </ui-chips>
   </div>
   <div class="card-header-div">
-    <div v-if="props.agv.stateInfo.value?.orderId" style="display: flex">
+    <div class="flex-right" v-if="props.agv.stateInfo.value?.orderId">
       <div class="card-font">
         Order : {{ props.agv.stateInfo.value?.orderId }}
       </div>
