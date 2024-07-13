@@ -63,12 +63,23 @@ export class VDA5050Agv {
 
     this.subscribeAGV();
     this.subscribeMaster();
-    this.colors = {
-      nodeStandard: randomColor(),
-      nodeAction: randomColor(),
-      edgeStandard: randomColor(),
-      edgeAction: randomColor(),
-      robot: randomColor(),
+    this.colors = this.generateColors();
+  }
+
+  private generateColors() {
+    const templateColor = randomColor();
+    const colorType = {
+      count: 5,
+      hue: templateColor,
+    };
+    const generatedColors = randomColor(colorType);
+
+    return {
+      nodeStandard: generatedColors[0],
+      nodeAction: generatedColors[1],
+      edgeStandard: generatedColors[2],
+      edgeAction: generatedColors[3],
+      robot: generatedColors[4],
     };
   }
 
@@ -135,6 +146,8 @@ export class VDA5050Agv {
       } else {
         this.nodes.value[this.agvId.serialNumber + node.nodeId] = {
           name:
+            this.agvClient.agvId.serialNumber +
+            " - " +
             node.sequenceId.toString() +
             (node.actions.length > 0
               ? " -> " +
@@ -161,6 +174,8 @@ export class VDA5050Agv {
         target: this.agvId.serialNumber + edge.startNodeId,
         color: edge.actions.length > 0 ? "#1abc9c" : "#bdc3c7",
         label:
+          this.agvClient.agvId +
+          " " +
           edge.sequenceId +
           (edge.actions.length > 0
             ? " -> " +
