@@ -8,7 +8,7 @@ const props = defineProps({
   manufacturer: { type: String, required: true },
   serialNumber: { type: String, required: true },
 });
-let agvId: AgvId = {
+const agvId: AgvId = {
   manufacturer: props.manufacturer,
   serialNumber: props.serialNumber,
 };
