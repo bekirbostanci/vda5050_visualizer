@@ -176,8 +176,8 @@ export class VDA5050Agv {
         target: this.agvId.serialNumber + edge.startNodeId,
         color: edge.actions.length > 0 ? "#1abc9c" : "#bdc3c7",
         label:
-        this.agvClient.agvId.serialNumber +
-        " - " +
+          this.agvClient.agvId.serialNumber +
+          " - " +
           edge.sequenceId +
           (edge.actions.length > 0
             ? " -> " +
