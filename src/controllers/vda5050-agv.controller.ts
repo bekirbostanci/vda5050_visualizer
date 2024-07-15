@@ -67,7 +67,9 @@ export class VDA5050Agv {
   }
 
   private generateColors() {
-    const templateColor = randomColor();
+    const templateColor = randomColor({
+      hue: Math.random() * 200,
+    });
     const colorType = {
       count: 5,
       hue: templateColor,
@@ -174,8 +176,8 @@ export class VDA5050Agv {
         target: this.agvId.serialNumber + edge.startNodeId,
         color: edge.actions.length > 0 ? "#1abc9c" : "#bdc3c7",
         label:
-          this.agvClient.agvId +
-          " " +
+        this.agvClient.agvId +
+        " " +
           edge.sequenceId +
           (edge.actions.length > 0
             ? " -> " +
