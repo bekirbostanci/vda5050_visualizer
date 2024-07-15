@@ -8,6 +8,7 @@ const props = defineProps({
   agv: { type: VDA5050Agv, required: true },
 });
 const orderShow = ref(false);
+const orderGraphShow = ref(true);
 const instantActionsShow = ref(false);
 </script>
 
@@ -22,6 +23,20 @@ const instantActionsShow = ref(false);
     </div>
     <ui-chips class="flex-right">
       <ui-chip icon="raw_on" @click="orderShow = !orderShow"> Order </ui-chip>
+      <ui-chip
+        icon="disabled_visible"
+        @click="orderGraphShow = !orderGraphShow"
+        v-if="!orderGraphShow"
+      >
+        Hide
+      </ui-chip>
+      <ui-chip
+        icon="remove_red_eye"
+        @click="orderGraphShow = !orderGraphShow"
+        v-else
+      >
+        Show
+      </ui-chip>
       <ui-chip icon="raw_on" @click="instantActionsShow = !instantActionsShow">
         Instant Actions
       </ui-chip>
@@ -48,7 +63,7 @@ const instantActionsShow = ref(false);
     :edges="props.agv.edges.value"
     :layouts="props.agv.layouts.value"
     :configs="configs"
-    v-if="props.agv.orderInfo.value"
+    v-if="props.agv.orderInfo.value && orderGraphShow"
   >
     <template #edge-label="{ edge, ...slotProps }">
       <v-edge-label
