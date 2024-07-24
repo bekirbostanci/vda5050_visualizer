@@ -123,7 +123,7 @@ setInterval(() => {
         >
           <ui-button
             class="w100 not-clickable"
-            style="height: 55px; color: green"
+            style="height: 56px; color: green"
             outlined
             icon="wifi_tethering"
           >
@@ -164,7 +164,14 @@ setInterval(() => {
             >Start</ui-button
           >
           <ui-fab
-            style="min-width: 55px; background-color: grey; box-shadow: none"
+            style="
+              min-width: 55px;
+              background-color: white;
+              border-style: solid;
+              border-width: 1px;
+              border-color: gray;
+              box-shadow: none;
+            "
             @click="settings = !settings"
             icon="settings"
           ></ui-fab>
@@ -217,7 +224,7 @@ setInterval(() => {
   </div>
 </template>
 
-<style lang="scss" scoped>
+<style lang="scss">
 .mr {
   margin-right: 10px;
 }
@@ -232,5 +239,9 @@ setInterval(() => {
 
 .not-clickable {
   pointer-events: none;
+}
+
+.material-icons.mdc-fab__icon {
+  color: black !important;
 }
 </style>
