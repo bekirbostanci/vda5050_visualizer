@@ -201,6 +201,14 @@ export class VDA5050Agv {
   private async subscribeState() {
     await this.mc.subscribe(Topic.State, this.agvId, (state) => {
       this.stateInfo.value = state;
+
+      if (!state.agvPosition || !state.agvPosition.x || !state.agvPosition.y) {
+        return;
+      }
+      this.layouts.value.nodes["robot_" + this.agvId.serialNumber] = {
+        x: state.agvPosition.x,
+        y: -state.agvPosition.y,
+      };
     });
   }
 
