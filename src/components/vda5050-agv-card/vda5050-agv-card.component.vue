@@ -28,13 +28,13 @@ defineExpose({
             {{ agvId.manufacturer }} -> {{ agvId.serialNumber }}
           </div>
           <ui-chips class="flex-right">
-            <ui-chip icon="gps_fixed">
+            <ui-chip icon="gps_fixed" v-if="agv.visualizationInfo.value">
               x: {{ agv.visualizationInfo.value?.agvPosition?.x.toFixed(2) }},
               y: {{ agv.visualizationInfo.value?.agvPosition?.y.toFixed(2) }},
               θ:
               {{ agv.visualizationInfo.value?.agvPosition?.theta.toFixed(2) }}
             </ui-chip>
-            <ui-chip icon="speed">
+            <ui-chip icon="speed" v-if="agv.visualizationInfo.value">
               x:
               {{
                 (
@@ -86,7 +86,11 @@ defineExpose({
             <ui-chip icon="map" v-if="agv.stateInfo.value">
               {{ agv.stateInfo.value?.agvPosition?.mapId }}
             </ui-chip>
-            <ui-chip icon="av_timer" style="width: 250px">
+            <ui-chip
+              icon="av_timer"
+              style="width: 250px"
+              v-if="agv.visualizationInfo.value"
+            >
               {{ agv.visualizationInfo.value?.timestamp }}
             </ui-chip>
           </ui-chips>
