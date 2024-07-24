@@ -17,6 +17,7 @@ import "balm-ui/components/card/card.css";
 import "balm-ui/components/select/select.css";
 import "balm-ui/components/menu/menu.css";
 import "balm-ui/components/textfield/textfield.css";
+import "balm-ui/components/fab/fab.css";
 import "./assets/main.scss";
 
 import BalmUI from "balm-ui";

@@ -123,7 +123,7 @@ setInterval(() => {
         >
           <ui-button
             class="w100 not-clickable"
-            style="height: 55px"
+            style="height: 55px; color: green"
             outlined
             icon="wifi_tethering"
           >
@@ -152,24 +152,22 @@ setInterval(() => {
             {{ getMqttClientState() }}</ui-button
           >
         </ui-grid-cell>
-        <ui-grid-cell :columns="{ default: 1, tablet: 2, phone: 2 }">
+        <ui-grid-cell
+          style="display: flex"
+          :columns="{ default: 2, tablet: 6, phone: 2 }"
+        >
           <ui-button
             class="w100"
-            style="height: 55px"
-            outlined
-            icon="settings"
-            @click="settings = !settings"
-            >Settings</ui-button
-          >
-        </ui-grid-cell>
-        <ui-grid-cell :columns="{ default: 1, tablet: 4, phone: 4 }">
-          <ui-button
-            class="w100"
-            style="height: 55px"
+            style="color: black; height: 55px; margin-right: 20px"
             outlined
             @click="updateBroker()"
             >Start</ui-button
           >
+          <ui-fab
+            style="min-width: 55px; background-color: grey; box-shadow: none"
+            @click="settings = !settings"
+            icon="settings"
+          ></ui-fab>
         </ui-grid-cell>
         <ui-grid-cell columns="6" v-if="settings">
           <ui-textfield class="mr w100" outlined v-model="username">
