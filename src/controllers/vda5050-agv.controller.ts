@@ -60,9 +60,10 @@ export class VDA5050Agv {
       "/" +
       this.agvId.serialNumber +
       "/";
-
-    this.subscribeAGV();
-    this.subscribeMaster();
+    setInterval(() => {
+      this.subscribeAGV();
+      this.subscribeMaster();
+    }, 1000);
     this.colors = this.generateColors();
   }
 
