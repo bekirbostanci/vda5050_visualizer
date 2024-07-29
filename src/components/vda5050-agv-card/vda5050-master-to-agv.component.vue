@@ -8,7 +8,7 @@ const props = defineProps({
   agv: { type: VDA5050Agv, required: true },
 });
 const orderShow = ref(false);
-const orderGraphShow = ref(true);
+const orderGraphShow = ref(false);
 const instantActionsShow = ref(false);
 </script>
 
@@ -26,7 +26,7 @@ const instantActionsShow = ref(false);
       <ui-chip
         icon="disabled_visible"
         @click="orderGraphShow = !orderGraphShow"
-        v-if="!orderGraphShow"
+        v-if="orderGraphShow"
       >
         Hide
       </ui-chip>
