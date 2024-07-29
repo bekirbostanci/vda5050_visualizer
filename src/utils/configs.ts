@@ -26,7 +26,7 @@ const configs = defineConfigs({
       width: 3,
       color: (edge) => edge.color,
       dasharray: "20 16",
-      animate: true,
+      animate: false,
       animationSpeed: -20,
     },
     label: {
