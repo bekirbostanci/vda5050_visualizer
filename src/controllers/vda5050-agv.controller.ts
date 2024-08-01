@@ -127,10 +127,10 @@ export class VDA5050Agv {
     this.layouts.value = { nodes: {} };
 
     order.nodes.map((node: Node) => {
-      if (this.nodes.value[this.agvId.serialNumber + node.nodeId]) {
-        this.nodes.value[this.agvId.serialNumber + node.nodeId] = {
+      if (this.nodes.value[node.nodeId]) {
+        this.nodes.value[node.nodeId] = {
           name:
-            this.nodes.value[this.agvId.serialNumber + node.nodeId].name +
+            this.nodes.value[node.nodeId].name +
             ", " +
             node.sequenceId.toString() +
             (node.actions.length > 0
@@ -140,14 +140,14 @@ export class VDA5050Agv {
                 )
               : ""),
           color:
-            this.nodes.value[this.agvId.serialNumber + node.nodeId].color ==
+            this.nodes.value[node.nodeId].color ==
               this.colors.edgeAction || node.actions.length > 0
               ? this.colors.nodeAction
               : this.colors.nodeStandard,
           zIndex: 1,
         };
       } else {
-        this.nodes.value[this.agvId.serialNumber + node.nodeId] = {
+        this.nodes.value[node.nodeId] = {
           name:
             this.agvClient.agvId.serialNumber +
             " - " +
@@ -165,7 +165,7 @@ export class VDA5050Agv {
           zIndex: 1,
         };
       }
-      this.layouts.value!.nodes[this.agvId.serialNumber + node.nodeId] = {
+      this.layouts.value!.nodes[node.nodeId] = {
         fixed: true,
         x: node.nodePosition!.x,
         y: -node.nodePosition!.y,
@@ -173,8 +173,8 @@ export class VDA5050Agv {
     });
     order.edges.map((edge: Edge) => {
       this.edges.value[edge.edgeId] = {
-        source: this.agvId.serialNumber + edge.endNodeId,
-        target: this.agvId.serialNumber + edge.startNodeId,
+        source: edge.endNodeId,
+        target: edge.startNodeId,
         color: edge.actions.length > 0 ? "#1abc9c" : "#bdc3c7",
         label:
           this.agvClient.agvId.serialNumber +
@@ -190,7 +190,7 @@ export class VDA5050Agv {
     });
     this.nodes.value["robot_" + this.agvId.serialNumber] = {
       name: this.agvId.serialNumber,
-      color: this.colors.robot,
+      color: "#000",
       zIndex: 100,
     };
   }
