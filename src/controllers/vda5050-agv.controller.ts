@@ -167,8 +167,8 @@ export class VDA5050Agv {
       }
       this.layouts.value!.nodes[node.nodeId] = {
         fixed: true,
-        x: node.nodePosition!.x,
-        y: -node.nodePosition!.y,
+        x: node.nodePosition ? node.nodePosition.x : 0,
+        y: node.nodePosition ? -node.nodePosition.y : 0,
       };
     });
     order.edges.map((edge: Edge) => {
