@@ -140,8 +140,8 @@ export class VDA5050Agv {
                 )
               : ""),
           color:
-            this.nodes.value[node.nodeId].color ==
-              this.colors.edgeAction || node.actions.length > 0
+            this.nodes.value[node.nodeId].color == this.colors.edgeAction ||
+            node.actions.length > 0
               ? this.colors.nodeAction
               : this.colors.nodeStandard,
           zIndex: 1,

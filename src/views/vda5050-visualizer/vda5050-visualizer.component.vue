@@ -60,25 +60,25 @@ function convertToNestedObject<T extends { [key: string]: any }>(
   return result;
 }
 
-var agvs = ref({});
+var agvs = ref([]);
 var skipUnwrap = { itemRefs: agvs };
 
 // Computed properties to combine all nodes, edges, and layouts from all AGVs
-const total_nodes = ref();
-const total_edges = ref();
-const total_layouts = ref();
+const totalNodes = ref();
+const totalEdges = ref();
+const totalLayouts = ref();
 
 setInterval(() => {
   if (agvs.value.length > 0) {
-    total_nodes.value = agvs.value.map((agv) => toRaw(agv.agv.nodes.value));
-    total_nodes.value = convertToNestedObject(toRaw(total_nodes.value));
-    total_edges.value = agvs.value.map((agv) => toRaw(agv.agv.edges.value));
-    total_edges.value = convertToNestedObject(toRaw(total_edges.value));
-    total_layouts.value = agvs.value.map((agv) =>
+    totalNodes.value = agvs.value.map((agv: any) => toRaw(agv.agv.nodes.value));
+    totalNodes.value = convertToNestedObject(toRaw(totalNodes.value));
+    totalEdges.value = agvs.value.map((agv: any) => toRaw(agv.agv.edges.value));
+    totalEdges.value = convertToNestedObject(toRaw(totalEdges.value));
+    totalLayouts.value = agvs.value.map((agv: any) =>
       toRaw(agv.agv.layouts.value["nodes"])
     );
-    total_layouts.value = {
-      nodes: convertToNestedObject(toRaw(total_layouts.value)),
+    totalLayouts.value = {
+      nodes: convertToNestedObject(toRaw(totalLayouts.value)),
     };
   }
 }, 200);
@@ -196,9 +196,9 @@ setInterval(() => {
       <v-network-graph
         style="height: 750px"
         zoom-level="100"
-        :nodes="total_nodes"
-        :edges="total_edges"
-        :layouts="total_layouts"
+        :nodes="totalNodes"
+        :edges="totalEdges"
+        :layouts="totalLayouts"
         :configs="config"
       >
       </v-network-graph>

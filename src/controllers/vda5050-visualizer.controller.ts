@@ -18,7 +18,7 @@ export class VDA5050Visualizer {
     const mqttClient = getMqttClient();
     mqttClient.subscribe(mqttTopic + "/#");
 
-    mqttClient.on("message", (topic: string, message) => {
+    mqttClient.on("message", (topic: string) => {
       if (topic.indexOf(mqttTopic) != -1) {
         const topic_split = topic.split("/");
 
