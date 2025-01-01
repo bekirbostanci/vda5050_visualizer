@@ -12,6 +12,7 @@
   "dependencies": {
     "@rollup/plugin-commonjs": "^25.0.7",
     "@rollup/plugin-inject": "^5.0.3",
+    "@vercel/analytics": "^1.4.1",
     "balm-ui": "^10.22.0",
     "bootstrap-icons": "^1.9.1",
     "buffer": "^6.0.3",

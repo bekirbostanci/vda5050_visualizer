@@ -1,6 +1,7 @@
 import { createApp, h } from "vue";
 import App from "./App.vue";
 import { router } from "./router";
+import { Analytics } from "@vercel/analytics/vue"
 
 // BalmUI
 import "balm-ui/components/core.css";
@@ -33,6 +34,7 @@ const app = createApp({
   render: () => h(App),
 });
 
+app.use(Analytics);
 app.use(router);
 app.use(BalmUI, {
   $theme: {},
