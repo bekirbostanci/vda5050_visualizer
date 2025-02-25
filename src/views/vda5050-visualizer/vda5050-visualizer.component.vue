@@ -9,13 +9,15 @@ import {
   MqttClientState,
 } from "@/controllers/vda5050.controller";
 import { throttle } from "lodash";
+import { MqttConfig, loadSavedConfig, saveConfig } from "@/types/mqtt-config";
 
-const brokerIp = ref(import.meta.env.VITE_MQTT_HOST);
-const username = ref("");
-const password = ref("");
-const brokerPort = ref(import.meta.env.VITE_MQTT_PORT);
-const basepath = ref(import.meta.env.VITE_BASEPATH);
-const interfaceName = ref(import.meta.env.VITE_VDA_INTERFACE);
+// Initialize refs with saved values or defaults
+const brokerIp = ref(loadSavedConfig().brokerIp || import.meta.env.VITE_MQTT_HOST);
+const brokerPort = ref(loadSavedConfig().brokerPort || import.meta.env.VITE_MQTT_PORT);
+const basepath = ref(loadSavedConfig().basepath || import.meta.env.VITE_BASEPATH);
+const interfaceName = ref(loadSavedConfig().interfaceName || import.meta.env.VITE_VDA_INTERFACE);
+const username = ref(loadSavedConfig().username || "");
+const password = ref(loadSavedConfig().password || "");
 const vdaVersion = ref(import.meta.env.VITE_VDA_VERSION);
 let vda5050Visualizer: VDA5050Visualizer | undefined;
 const version = ref(0);
@@ -27,6 +29,16 @@ const mqttMessages = ref<any[]>([]);
 
 function updateBroker() {
   version.value += 1;
+  
+  // Save current configuration
+  saveConfig({
+    brokerIp: brokerIp.value,
+    brokerPort: brokerPort.value,
+    basepath: basepath.value,
+    interfaceName: interfaceName.value,
+    username: username.value,
+    password: password.value,
+  });
 
   console.log("Connecting to MQTT broker:", {
     host: brokerIp.value,
