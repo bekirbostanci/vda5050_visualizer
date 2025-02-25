@@ -18,6 +18,7 @@
     "balm-ui": "^10.22.0",
     "bootstrap-icons": "^1.9.1",
     "buffer": "^6.0.3",
+    "mqtt": "^5.3.5",
     "process": "^0.11.10",
     "randomcolor": "^0.6.2",
     "url": "^0.11.1",
@@ -30,13 +31,13 @@
     "vue-json-pretty": "^2.2.4",
     "vue-router": "^4.1.5",
     "vue3-loading-skeleton": "^0.0.13",
-    "webpack": "^5.88.2",
-    "mqtt": "^5.3.5"
+    "webpack": "^5.88.2"
   },
   "devDependencies": {
     "@babel/core": "^7.19.1",
     "@rushstack/eslint-patch": "^1.1.4",
     "@types/jsdom": "^20.0.0",
+    "@types/lodash": "^4.17.15",
     "@types/node": "^16.11.56",
     "@types/pngjs": "^6.0.1",
     "@types/randomcolor": "^0.5.9",

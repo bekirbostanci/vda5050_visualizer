@@ -10,4 +10,4 @@ declare global {
       ipcRenderer: IpcRenderer;
     };
   }
-} 
+}

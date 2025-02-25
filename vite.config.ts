@@ -22,6 +22,7 @@ export default defineConfig(({ mode }) => {
         "balm-ui-plus": "balm-ui/dist/balm-ui-plus.esm.js",
         "balm-ui-css": "balm-ui/dist/balm-ui.css",
         process: "process/browser",
+        mqtt: "mqtt/dist/mqtt.js",
       },
     },
     optimizeDeps: {
@@ -38,6 +39,9 @@ export default defineConfig(({ mode }) => {
           inject({ Buffer: ["buffer", "Buffer"], process: "process" }),
         ],
       },
+    },
+    define: {
+      __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: true,
     },
   };
 });

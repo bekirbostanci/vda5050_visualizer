@@ -7,8 +7,8 @@ import SkeletonCard from "@/components/skeleton-card.vue";
 import {
   getMqttClientState,
   MqttClientState,
-  connectMqtt
 } from "@/controllers/vda5050.controller";
+import { throttle } from "lodash";
 
 const brokerIp = ref(import.meta.env.VITE_MQTT_HOST);
 const username = ref("");
@@ -27,19 +27,16 @@ const mqttMessages = ref<any[]>([]);
 
 function updateBroker() {
   version.value += 1;
-  
-  console.log('Connecting to MQTT broker:', {
+
+  console.log("Connecting to MQTT broker:", {
     host: brokerIp.value,
-    port: brokerPort.value
+    port: brokerPort.value,
   });
-  
+
   vda5050Visualizer = new VDA5050Visualizer();
-  
-  vda5050Visualizer.connect(
-    brokerIp.value,
-    brokerPort.value
-  ).catch(error => {
-    console.error('Failed to connect to MQTT:', error);
+
+  vda5050Visualizer.connect(brokerIp.value, brokerPort.value).catch((error) => {
+    console.error("Failed to connect to MQTT:", error);
   });
 }
 
@@ -48,18 +45,18 @@ onMounted(() => {
   // Register the handleMqttMessage function globally so the controller can access it
   window.handleMqttMessage = handleMqttMessage;
 
-  window.electron.ipcRenderer.on('mqtt-connected', () => {
-    console.log('MQTT Connected in component');
+  window.electron.ipcRenderer.on("mqtt-connected", () => {
+    console.log("MQTT Connected in component");
     mqttStatus.value = MqttClientState.CONNECTED;
   });
 
-  window.electron.ipcRenderer.on('mqtt-message', (data) => {
+  window.electron.ipcRenderer.on("mqtt-message", (data) => {
     mqttMessages.value.push(data);
     handleMqttMessage(data.topic, data.message);
   });
 
-  window.electron.ipcRenderer.on('mqtt-error', (error) => {
-    console.error('MQTT Error in component:', error);
+  window.electron.ipcRenderer.on("mqtt-error", (error) => {
+    console.error("MQTT Error in component:", error);
     mqttStatus.value = MqttClientState.OFFLINE;
   });
 });
@@ -68,25 +65,30 @@ onMounted(() => {
 onUnmounted(() => {
   // Remove the global handler when component is unmounted
   delete window.handleMqttMessage;
-  
-  window.electron.ipcRenderer.removeAllListeners('mqtt-connected');
-  window.electron.ipcRenderer.removeAllListeners('mqtt-message');
-  window.electron.ipcRenderer.removeAllListeners('mqtt-error');
+
+  window.electron.ipcRenderer.removeAllListeners("mqtt-connected");
+  window.electron.ipcRenderer.removeAllListeners("mqtt-message");
+  window.electron.ipcRenderer.removeAllListeners("mqtt-error");
+
+  // Clear graph data
+  totalNodes.value = {};
+  totalEdges.value = {};
+  totalLayouts.value = { nodes: {} };
 });
 
 // Handle incoming MQTT messages
 function handleMqttMessage(topic: string, message: any) {
   try {
     // Check if message is already an object
-    const payload = typeof message === 'string' ? JSON.parse(message) : message;
-    
+    const payload = typeof message === "string" ? JSON.parse(message) : message;
+
     // Update visualizer based on message type
-    if (topic.includes('/state')) {
+    if (topic.includes("/state")) {
       // Handle state updates
       if (vda5050Visualizer) {
         vda5050Visualizer.updateState(payload);
       }
-    } else if (topic.includes('/visualization')) {
+    } else if (topic.includes("/visualization")) {
       // Handle visualization updates
       if (vda5050Visualizer) {
         vda5050Visualizer.updateVisualization(payload);
@@ -94,11 +96,11 @@ function handleMqttMessage(topic: string, message: any) {
     }
     // Add more topic handlers as needed
   } catch (error) {
-    console.error('Error processing MQTT message:', { 
-      error, 
-      topic, 
+    console.error("Error processing MQTT message:", {
+      error,
+      topic,
       messageType: typeof message,
-      message: message
+      message: message,
     });
   }
 }
@@ -136,8 +138,8 @@ const totalNodes = ref();
 const totalEdges = ref();
 const totalLayouts = ref();
 
-
-setInterval(() => {
+// Throttle the graph updates to reduce memory usage
+const updateGraph = throttle(() => {
   if (agvs.value.length > 0) {
     totalNodes.value = agvs.value.map((agv: any) => toRaw(agv.agv.nodes.value));
     totalNodes.value = convertToNestedObject(toRaw(totalNodes.value));
@@ -150,7 +152,9 @@ setInterval(() => {
       nodes: convertToNestedObject(toRaw(totalLayouts.value)),
     };
   }
-}, 200);
+}, 500); // Update at most every 500ms
+
+setInterval(updateGraph, 200);
 </script>
 <template>
   <div style="padding: 10px" :key="version">
@@ -263,7 +267,7 @@ setInterval(() => {
       v-if="agvs.length > 0"
     >
       <v-network-graph
-        style="height: 750px"
+        style="height: 750px; background-color: white"
         zoom-level="100"
         :nodes="totalNodes"
         :edges="totalEdges"

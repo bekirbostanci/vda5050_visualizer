@@ -54,7 +54,7 @@ const configs = defineConfigs({
     maxZoomLevel: 200,
     grid: {
       visible: true,
-      interval: 1,
+      interval: 2,
       thickIncrements: 2,
       line: {
         color: "#e0e0e0",

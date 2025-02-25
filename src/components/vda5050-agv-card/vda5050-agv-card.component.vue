@@ -3,8 +3,8 @@ import { VDA5050Agv } from "@/controllers/vda5050-agv.controller";
 import VDA5050AgvToMaster from "./vda5050-agv-to-master.component.vue";
 import VDA5050MasterToAgv from "./vda5050-master-to-agv.component.vue";
 import { ConnectionState, type AgvId } from "vda-5050-lib";
-import { onMounted, onUnmounted, computed } from 'vue';
-import { subscribeToMessages } from '@/controllers/vda5050.controller';
+import { onMounted, onUnmounted, computed } from "vue";
+import { subscribeToMessages } from "@/controllers/vda5050.controller";
 
 const props = defineProps({
   manufacturer: { type: String, required: true },
@@ -21,20 +21,24 @@ let agv: VDA5050Agv = new VDA5050Agv(props.manufacturer, props.serialNumber);
 // Use computed properties to reduce reactivity overhead
 const position = computed(() => {
   const pos = agv.visualizationInfo.value?.agvPosition;
-  return pos ? {
-    x: pos.x.toFixed(2),
-    y: pos.y.toFixed(2),
-    theta: pos.theta.toFixed(2)
-  } : null;
+  return pos
+    ? {
+        x: pos.x.toFixed(2),
+        y: pos.y.toFixed(2),
+        theta: pos.theta.toFixed(2),
+      }
+    : null;
 });
 
 const velocity = computed(() => {
   const vel = agv.visualizationInfo.value?.velocity;
-  return vel ? {
-    vx: (Math.round(vel.vx * 100) / 100).toFixed(2),
-    vy: (Math.round(vel.vy * 100) / 100).toFixed(2),
-    omega: (Math.round(vel.omega * 100) / 100).toFixed(2)
-  } : null;
+  return vel
+    ? {
+        vx: (Math.round(vel.vx * 100) / 100).toFixed(2),
+        vy: (Math.round(vel.vy * 100) / 100).toFixed(2),
+        omega: (Math.round(vel.omega * 100) / 100).toFixed(2),
+      }
+    : null;
 });
 
 onMounted(() => {
@@ -68,7 +72,8 @@ defineExpose({
               x: {{ position.x }}, y: {{ position.y }}, θ: {{ position.theta }}
             </ui-chip>
             <ui-chip icon="speed" v-if="velocity">
-              x: {{ velocity.vx }}, y: {{ velocity.vy }}, ω: {{ velocity.omega }}
+              x: {{ velocity.vx }}, y: {{ velocity.vy }}, ω:
+              {{ velocity.omega }}
             </ui-chip>
             <ui-chip
               icon="signal_wifi_0_bar"

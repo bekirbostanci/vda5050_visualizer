@@ -75,8 +75,6 @@ function connectMQTT(connectionOptions) {
           mqttClient.subscribe(topic, (err) => {
             if (err) {
               console.error(`Failed to subscribe to ${topic}:`, err);
-            } else {
-              console.log(`Successfully subscribed to ${topic}`);
             }
           });
         });
@@ -136,9 +134,6 @@ ipcMain.on('subscribe-topic', (event, topic) => {
       if (err) {
         console.error(`Failed to subscribe to ${topic}:`, err);
         mainWindow.webContents.send('mqtt-error', `Failed to subscribe to ${topic}: ${err.message}`);
-      } else {
-        console.log(`Subscribed to ${topic}`);
-        mainWindow.webContents.send('mqtt-subscribed', topic);
       }
     });
   } else {
