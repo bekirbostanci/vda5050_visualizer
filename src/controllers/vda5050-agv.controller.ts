@@ -124,15 +124,10 @@ export class VDA5050Agv {
       window.electron.ipcRenderer.send('subscribe-topic', topic);
     });
 
-    // Listen for MQTT messages
-    window.electron.ipcRenderer.on('mqtt-message', (data) => {
-      if (data.topic.startsWith(this.mqttTopic)) {
-        this.handleMqttMessage(data.topic, data.message);
-      }
-    });
+    // Remove the MQTT message listener since it's handled in the controller
   }
 
-  private handleMqttMessage(topic: string, message: any) {
+  public handleMqttMessage(topic: string, message: any) {
     const topicType = topic.split('/').pop() as Topic;
     
     switch (topicType) {

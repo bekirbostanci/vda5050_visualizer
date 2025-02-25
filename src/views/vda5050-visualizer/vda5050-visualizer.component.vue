@@ -45,6 +45,9 @@ function updateBroker() {
 
 // Setup MQTT event listeners
 onMounted(() => {
+  // Register the handleMqttMessage function globally so the controller can access it
+  window.handleMqttMessage = handleMqttMessage;
+
   window.electron.ipcRenderer.on('mqtt-connected', () => {
     console.log('MQTT Connected in component');
     mqttStatus.value = MqttClientState.CONNECTED;
@@ -63,6 +66,9 @@ onMounted(() => {
 
 // Clean up event listeners
 onUnmounted(() => {
+  // Remove the global handler when component is unmounted
+  delete window.handleMqttMessage;
+  
   window.electron.ipcRenderer.removeAllListeners('mqtt-connected');
   window.electron.ipcRenderer.removeAllListeners('mqtt-message');
   window.electron.ipcRenderer.removeAllListeners('mqtt-error');
@@ -130,43 +136,19 @@ const totalNodes = ref();
 const totalEdges = ref();
 const totalLayouts = ref();
 
+
 setInterval(() => {
   if (agvs.value.length > 0) {
-    try {
-      // Safely map and filter out any undefined values
-      totalNodes.value = agvs.value
-        .filter(agv => agv?.agv?.nodes?.value)
-        .map((agv: any) => toRaw(agv.agv.nodes.value));
-      
-      if (totalNodes.value.length > 0) {
-        totalNodes.value = convertToNestedObject(toRaw(totalNodes.value));
-      }
-
-      totalEdges.value = agvs.value
-        .filter(agv => agv?.agv?.edges?.value)
-        .map((agv: any) => toRaw(agv.agv.edges.value));
-      
-      if (totalEdges.value.length > 0) {
-        totalEdges.value = convertToNestedObject(toRaw(totalEdges.value));
-      }
-
-      totalLayouts.value = agvs.value
-        .filter(agv => agv?.agv?.layouts?.value?.nodes)
-        .map((agv: any) => toRaw(agv.agv.layouts.value["nodes"]));
-      
-      if (totalLayouts.value.length > 0) {
-        totalLayouts.value = {
-          nodes: convertToNestedObject(toRaw(totalLayouts.value)),
-        };
-      }
-    } catch (error) {
-      console.error('Error processing AGV data:', error);
-    }
-  } else {
-    // Initialize empty values when no AGVs exist
-    totalNodes.value = {};
-    totalEdges.value = {};
-    totalLayouts.value = { nodes: {} };
+    totalNodes.value = agvs.value.map((agv: any) => toRaw(agv.agv.nodes.value));
+    totalNodes.value = convertToNestedObject(toRaw(totalNodes.value));
+    totalEdges.value = agvs.value.map((agv: any) => toRaw(agv.agv.edges.value));
+    totalEdges.value = convertToNestedObject(toRaw(totalEdges.value));
+    totalLayouts.value = agvs.value.map((agv: any) =>
+      toRaw(agv.agv.layouts.value["nodes"])
+    );
+    totalLayouts.value = {
+      nodes: convertToNestedObject(toRaw(totalLayouts.value)),
+    };
   }
 }, 200);
 </script>

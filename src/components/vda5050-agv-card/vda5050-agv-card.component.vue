@@ -1,19 +1,55 @@
 <script setup lang="ts">
 import { VDA5050Agv } from "@/controllers/vda5050-agv.controller";
-import VDA5050AgvToMaster from "@/components/vda5050-agv-card/vda5050-agv-to-master.component.vue";
-import VDA5050MasterToAgv from "@/components/vda5050-agv-card/vda5050-master-to-agv.component.vue";
+import VDA5050AgvToMaster from "./vda5050-agv-to-master.component.vue";
+import VDA5050MasterToAgv from "./vda5050-master-to-agv.component.vue";
 import { ConnectionState, type AgvId } from "vda-5050-lib";
+import { onMounted, onUnmounted, computed } from 'vue';
+import { subscribeToMessages } from '@/controllers/vda5050.controller';
 
 const props = defineProps({
   manufacturer: { type: String, required: true },
   serialNumber: { type: String, required: true },
 });
+
 const agvId: AgvId = {
   manufacturer: props.manufacturer,
   serialNumber: props.serialNumber,
 };
 
-let agv: VDA5050Agv = new VDA5050Agv(agvId);
+let agv: VDA5050Agv = new VDA5050Agv(props.manufacturer, props.serialNumber);
+
+// Use computed properties to reduce reactivity overhead
+const position = computed(() => {
+  const pos = agv.visualizationInfo.value?.agvPosition;
+  return pos ? {
+    x: pos.x.toFixed(2),
+    y: pos.y.toFixed(2),
+    theta: pos.theta.toFixed(2)
+  } : null;
+});
+
+const velocity = computed(() => {
+  const vel = agv.visualizationInfo.value?.velocity;
+  return vel ? {
+    vx: (Math.round(vel.vx * 100) / 100).toFixed(2),
+    vy: (Math.round(vel.vy * 100) / 100).toFixed(2),
+    omega: (Math.round(vel.omega * 100) / 100).toFixed(2)
+  } : null;
+});
+
+onMounted(() => {
+  // Subscribe to MQTT messages
+  subscribeToMessages((topic, message) => {
+    if (topic.includes(props.serialNumber)) {
+      agv.handleMqttMessage(topic, message);
+    }
+  });
+});
+
+onUnmounted(() => {
+  // Clean up any subscriptions or listeners
+});
+
 defineExpose({
   agv,
 });
@@ -28,33 +64,11 @@ defineExpose({
             {{ agvId.manufacturer }} -> {{ agvId.serialNumber }}
           </div>
           <ui-chips class="flex-right">
-            <ui-chip icon="gps_fixed" v-if="agv.visualizationInfo.value">
-              x: {{ agv.visualizationInfo.value?.agvPosition?.x.toFixed(2) }},
-              y: {{ agv.visualizationInfo.value?.agvPosition?.y.toFixed(2) }},
-              θ:
-              {{ agv.visualizationInfo.value?.agvPosition?.theta.toFixed(2) }}
+            <ui-chip icon="gps_fixed" v-if="position">
+              x: {{ position.x }}, y: {{ position.y }}, θ: {{ position.theta }}
             </ui-chip>
-            <ui-chip icon="speed" v-if="agv.visualizationInfo.value">
-              x:
-              {{
-                (
-                  Math.round(agv.visualizationInfo.value?.velocity?.vx! * 100) /
-                  100
-                ).toFixed(2)
-              }}, x:
-              {{
-                (
-                  Math.round(agv.visualizationInfo.value?.velocity?.vy! * 100) /
-                  100
-                ).toFixed(2)
-              }}, ω:
-              {{
-                (
-                  Math.round(
-                    agv.visualizationInfo.value?.velocity?.omega! * 100
-                  ) / 100
-                ).toFixed(2)
-              }},
+            <ui-chip icon="speed" v-if="velocity">
+              x: {{ velocity.vx }}, y: {{ velocity.vy }}, ω: {{ velocity.omega }}
             </ui-chip>
             <ui-chip
               icon="signal_wifi_0_bar"
@@ -109,4 +123,8 @@ defineExpose({
   </ui-card>
 </template>
 
-<style lang="scss" scoped></style>
+<style lang="scss" scoped>
+.card-board {
+  contain: content; /* Add CSS containment */
+}
+</style>

@@ -1,6 +1,16 @@
 import { ref } from "vue";
+import { VDA5050Agv, type ColorSchema } from './vda5050-agv.controller';
+import { ConnectionState } from "vda-5050-lib";
+import type { Ref } from 'vue';
 
-const agvs = ref<any[]>([]);
+// Define a type for our AGV instance
+type AGVInstance = {
+  agv: VDA5050Agv;
+  topics: string[];
+}
+
+// Change the ref type to store AGVInstance objects
+const agvs = ref<AGVInstance[]>([]);
 let isConnecting = false;
 
 export enum MqttClientState {
@@ -19,6 +29,15 @@ export enum Topic {
 
 const clientState = ref<MqttClientState>(MqttClientState.OFFLINE);
 
+// Add a type for subscribers
+type MessageSubscriber = (topic: string, message: any) => void;
+const messageSubscribers = ref<MessageSubscriber[]>([]);
+
+// Add function to register subscribers
+export function subscribeToMessages(callback: MessageSubscriber) {
+  messageSubscribers.value.push(callback);
+}
+
 export async function connectMqtt(
   mqttIp: string,
   mqttPort: string,
@@ -31,13 +50,10 @@ export async function connectMqtt(
   isConnecting = true;
 
   try {
-    // Remove any protocol prefix from IP if present
     const cleanIp = mqttIp.replace(/^mqtt:\/\/|^tcp:\/\//, '');
     
-    console.log('Connecting to MQTT:', { host: cleanIp, port: mqttPort });
-    
     window.electron.ipcRenderer.send('connect-mqtt', {
-      host: cleanIp, // Use clean IP without protocol
+      host: cleanIp,
       port: Number(mqttPort),
       clientId: `vda5050_client_${Math.random().toString(16).slice(2, 8)}`,
       username,
@@ -54,7 +70,6 @@ export async function connectMqtt(
     setupMqttListeners();
 
   } catch (error) {
-    console.error('Error connecting to MQTT:', error);
     clientState.value = MqttClientState.OFFLINE;
   } finally {
     isConnecting = false;
@@ -63,43 +78,52 @@ export async function connectMqtt(
 
 function setupMqttListeners() {
   window.electron.ipcRenderer.on('mqtt-connected', () => {
-    console.log('MQTT Connected');
     clientState.value = MqttClientState.CONNECTED;
   });
 
   window.electron.ipcRenderer.on('mqtt-disconnected', () => {
-    console.log('MQTT Disconnected');
     clientState.value = MqttClientState.OFFLINE;
   });
 
   window.electron.ipcRenderer.on('mqtt-reconnecting', () => {
-    console.log('MQTT Reconnecting');
     clientState.value = MqttClientState.RECONNECTING;
   });
 
   window.electron.ipcRenderer.on('mqtt-error', (error) => {
-    console.error('MQTT Error in controller:', error);
     clientState.value = MqttClientState.OFFLINE;
   });
 
   window.electron.ipcRenderer.on('mqtt-message', (data) => {
-    console.log('MQTT Message in controller:', {
-      topic: data.topic,
-      messageType: typeof data.message,
-      messagePreview: JSON.stringify(data.message).substring(0, 100) + '...'
-    });
-
     try {
       const message = typeof data.message === 'string' ? 
         JSON.parse(data.message) : data.message;
 
+      // Notify all subscribers
+      messageSubscribers.value.forEach(subscriber => {
+        subscriber(data.topic, message);
+      });
+
       const topicParts = data.topic.split('/');
+      const manufacturer = topicParts[1];
+      const serialNumber = topicParts[2];
       const topicType = topicParts[topicParts.length - 1] as Topic;
 
+      // Forward message to any registered handlers
       window.electron.ipcRenderer.send('mqtt-message-processed', {
         type: topicType,
-        message: message
+        message: message,
+        topic: data.topic
       });
+
+      // Find the correct AGV instance by both manufacturer and serialNumber
+      const agvInstance = agvs.value.find(instance => 
+        instance.agv.agvId.manufacturer === manufacturer &&
+        instance.agv.agvId.serialNumber === serialNumber
+      );
+
+      if (agvInstance) {
+        agvInstance.agv.handleMqttMessage(data.topic, message);
+      }
 
     } catch (error) {
       console.error('Error processing MQTT message:', error);
@@ -111,52 +135,42 @@ export function getMqttClientState(): MqttClientState {
   return clientState.value;
 }
 
-export function getAgvs(): any[] {
-  return agvs.value;
+export function getAgvs(): VDA5050Agv[] {
+  return agvs.value.map(instance => instance.agv);
 }
 
 export async function createAgv(
-  serial: string,
-  mapId: string,
+  manufacturer: string,
+  serialNumber: string,
   x: number,
   y: number,
   mqttIp: string,
   mqttPort: string
 ) {
-  const agv = {
-    id: serial,
-    mapId,
-    position: { x, y, theta: 0.0 },
-    state: {
-      velocity: 0.75,
-      lastNodeId: "",
-      batteryLevel: 100,
-      operatingMode: "AUTOMATIC",
-      errors: [],
-      loads: []
-    },
-    agv: {
-      nodes: ref({}),
-      edges: ref({}),
-      layouts: ref({ nodes: {} })
-    }
-  };
+  const agv = new VDA5050Agv(manufacturer, serialNumber);
+  
+  const topics = [
+    `uagv/${manufacturer}/${serialNumber}/${Topic.Connection}`,
+    `uagv/${manufacturer}/${serialNumber}/${Topic.InstantActions}`,
+    `uagv/${manufacturer}/${serialNumber}/${Topic.Order}`,
+    `uagv/${manufacturer}/${serialNumber}/${Topic.State}`,
+    `uagv/${manufacturer}/${serialNumber}/${Topic.Visualization}`
+  ];
+
+  // Store both the AGV instance and its topics
+  agvs.value.push({
+    agv,
+    topics
+  });
 
   // Connect to MQTT via Electron with AGV-specific topics
   window.electron.ipcRenderer.send('connect-mqtt', {
     host: mqttIp,
     port: Number(mqttPort),
-    clientId: `vda5050_agv_${serial}_${Math.random().toString(16).slice(2, 8)}`,
-    topics: [
-      `uagv/${serial}/${Topic.Connection}`,
-      `uagv/${serial}/${Topic.InstantActions}`,
-      `uagv/${serial}/${Topic.Order}`,
-      `uagv/${serial}/${Topic.State}`,
-      `uagv/${serial}/${Topic.Visualization}`
-    ]
+    clientId: `vda5050_agv_${manufacturer}_${serialNumber}_${Math.random().toString(16).slice(2, 8)}`,
+    topics
   });
 
-  agvs.value.push(agv);
   return agv;
 }
 
