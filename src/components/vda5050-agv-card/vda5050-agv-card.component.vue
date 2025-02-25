@@ -107,7 +107,7 @@ defineExpose({
             </ui-chip>
             <ui-chip
               icon="av_timer"
-              style="width: 250px"
+              style="width: 230px"
               v-if="agv.visualizationInfo.value"
             >
               {{ agv.visualizationInfo.value?.timestamp }}
