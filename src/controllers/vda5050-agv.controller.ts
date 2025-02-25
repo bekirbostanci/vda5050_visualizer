@@ -1,39 +1,13 @@
 import type { Edges, Layouts, Nodes } from "v-network-graph";
-import { Topic } from "vda-5050-lib";
 import { ref } from "vue";
 import randomColor from "randomcolor";
 import { publishMessage } from "./vda5050.controller";
-
-export interface ColorSchema {
-  nodeStandard: string;
-  nodeAction: string;
-  edgeStandard: string;
-  edgeAction: string;
-  robot: string;
-}
-
-interface VDA5050Error {
-  errorType: string;
-  errorDescription: string;
-  errorLevel: "warning" | "fatal";
-  errorReference?: string;
-}
-
-interface AgvState {
-  position: { x: number; y: number; theta: number };
-  velocity: number;
-  batteryLevel: number;
-  errors: VDA5050Error[];
-  loads: any[];
-  agvPosition: { x: number; y: number; theta: number };
-  operatingMode: string;
-  nodeStates: any[];
-  edgeStates: any[];
-  lastNodeId: string;
-  lastNodeSequenceId: number;
-  driving: boolean;
-  timestamp: string;
-}
+import type {
+  IVDA5050Agv,
+  VDA5050Error,
+  ColorSchema,
+} from "../types/vda5050.types";
+import { Topic } from "../types/mqtt.types";
 
 export class VDA5050AgvController {
   state = ref({
@@ -82,7 +56,7 @@ export class VDA5050AgvController {
   }
 }
 
-export class VDA5050Agv {
+export class VDA5050Agv implements IVDA5050Agv {
   public readonly agvId: { manufacturer: string; serialNumber: string };
   public readonly orderInfo = ref<any>();
   public readonly instantActionsInfo = ref<any>();
@@ -93,8 +67,8 @@ export class VDA5050Agv {
   public readonly edges = ref<Edges>({});
   public readonly layouts = ref<Layouts>({ nodes: {} });
   public readonly color: string;
-  private readonly colors: ColorSchema;
-  private readonly mqttTopic: string;
+  public colors: ColorSchema;
+  public mqttTopic: string;
 
   constructor(
     manufacturer: string,

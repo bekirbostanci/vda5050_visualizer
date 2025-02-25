@@ -2,7 +2,7 @@
 import { VDA5050Agv } from "@/controllers/vda5050-agv.controller";
 import VDA5050AgvToMaster from "./vda5050-agv-to-master.component.vue";
 import VDA5050MasterToAgv from "./vda5050-master-to-agv.component.vue";
-import { ConnectionState, type AgvId } from "vda-5050-lib";
+import { ConnectionState, type AgvId } from "@/types/vda5050.types";
 import { onMounted, onUnmounted, computed } from "vue";
 import { subscribeToMessages } from "@/controllers/vda5050.controller";
 
@@ -79,7 +79,7 @@ defineExpose({
               icon="signal_wifi_0_bar"
               v-if="
                 agv.connectionInfo.value?.connectionState ==
-                ConnectionState.Online
+                ConnectionState.ONLINE
               "
               >Online</ui-chip
             >
@@ -87,7 +87,7 @@ defineExpose({
               icon="signal_wifi_bad"
               v-else-if="
                 agv.connectionInfo.value?.connectionState ==
-                ConnectionState.Offline
+                ConnectionState.OFFLINE
               "
               >Offline</ui-chip
             >
@@ -95,7 +95,7 @@ defineExpose({
               icon="signal_wifi_statusbar_null"
               v-else-if="
                 agv.connectionInfo.value?.connectionState ==
-                ConnectionState.Connectionbroken
+                ConnectionState.CONNECTIONBROKEN
               "
               >Connection Broken</ui-chip
             >

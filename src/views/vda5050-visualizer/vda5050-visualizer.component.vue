@@ -4,23 +4,28 @@ import config from "@/utils/configs";
 import { VDA5050Visualizer } from "@/controllers/vda5050-visualizer.controller";
 import VDA5050Card from "@/components/vda5050-agv-card/vda5050-agv-card.component.vue";
 import SkeletonCard from "@/components/skeleton-card.vue";
-import {
-  getMqttClientState,
-  MqttClientState,
-} from "@/controllers/vda5050.controller";
+import { getMqttClientState } from "@/controllers/vda5050.controller";
+import { MqttClientState } from "@/types/mqtt.types";
 import { throttle } from "lodash";
-import { MqttConfig, loadSavedConfig, saveConfig } from "@/types/mqtt-config";
+import { loadSavedConfig, saveConfig } from "@/types/mqtt-config";
 
 // Initialize refs with saved values or defaults
-const brokerIp = ref(loadSavedConfig().brokerIp || import.meta.env.VITE_MQTT_HOST);
-const brokerPort = ref(loadSavedConfig().brokerPort || import.meta.env.VITE_MQTT_PORT);
-const basepath = ref(loadSavedConfig().basepath || import.meta.env.VITE_BASEPATH);
-const interfaceName = ref(loadSavedConfig().interfaceName || import.meta.env.VITE_VDA_INTERFACE);
+const brokerIp = ref(
+  loadSavedConfig().brokerIp || import.meta.env.VITE_MQTT_HOST
+);
+const brokerPort = ref(
+  loadSavedConfig().brokerPort || import.meta.env.VITE_MQTT_PORT
+);
+const basepath = ref(
+  loadSavedConfig().basepath || import.meta.env.VITE_BASEPATH
+);
+const interfaceName = ref(
+  loadSavedConfig().interfaceName || import.meta.env.VITE_VDA_INTERFACE
+);
 const username = ref(loadSavedConfig().username || "");
 const password = ref(loadSavedConfig().password || "");
-const vdaVersion = ref(import.meta.env.VITE_VDA_VERSION);
 let vda5050Visualizer: VDA5050Visualizer | undefined;
-const version = ref(0);
+const version = ref(import.meta.env.VITE_VDA_VERSION);
 const settings = ref(false);
 
 // Add new refs for MQTT status
@@ -39,7 +44,7 @@ const paginationOptions = [
 
 function updateBroker() {
   version.value += 1;
-  
+
   // Save current configuration
   saveConfig({
     brokerIp: brokerIp.value,
@@ -73,9 +78,6 @@ function updateBroker() {
 
 // Setup MQTT event listeners
 onMounted(() => {
-  // Register the handleMqttMessage function globally so the controller can access it
-  window.handleMqttMessage = handleMqttMessage;
-
   window.electron.ipcRenderer.on("mqtt-connected", () => {
     console.log("MQTT Connected in component");
     mqttStatus.value = MqttClientState.CONNECTED;
@@ -83,7 +85,6 @@ onMounted(() => {
 
   window.electron.ipcRenderer.on("mqtt-message", (data) => {
     mqttMessages.value.push(data);
-    handleMqttMessage(data.topic, data.message);
   });
 
   window.electron.ipcRenderer.on("mqtt-error", (error) => {
@@ -94,9 +95,7 @@ onMounted(() => {
 
 // Clean up event listeners
 onUnmounted(() => {
-  // Remove the global handler when component is unmounted
-  delete window.handleMqttMessage;
-
+  window.electron.ipcRenderer.removeAllListeners("mqtt-connected");
   window.electron.ipcRenderer.removeAllListeners("mqtt-connected");
   window.electron.ipcRenderer.removeAllListeners("mqtt-message");
   window.electron.ipcRenderer.removeAllListeners("mqtt-error");
@@ -106,46 +105,6 @@ onUnmounted(() => {
   totalEdges.value = {};
   totalLayouts.value = { nodes: {} };
 });
-
-// Handle incoming MQTT messages
-function handleMqttMessage(topic: string, message: any) {
-  try {
-    // Check if message is already an object
-    const payload = typeof message === "string" ? JSON.parse(message) : message;
-
-    // Update visualizer based on message type
-    if (topic.includes("/state")) {
-      // Handle state updates
-      if (vda5050Visualizer) {
-        vda5050Visualizer.updateState(payload);
-      }
-    } else if (topic.includes("/visualization")) {
-      // Handle visualization updates
-      if (vda5050Visualizer) {
-        vda5050Visualizer.updateVisualization(payload);
-      }
-    }
-    // Add more topic handlers as needed
-  } catch (error) {
-    console.error("Error processing MQTT message:", {
-      error,
-      topic,
-      messageType: typeof message,
-      message: message,
-    });
-  }
-}
-
-const options = [
-  {
-    label: "2.0.0",
-    value: "2.0.0",
-  },
-  {
-    label: "1.1.0",
-    value: "1.1.0",
-  },
-];
 
 function convertToNestedObject<T extends { [key: string]: any }>(
   array: T[]
@@ -190,17 +149,22 @@ setInterval(updateGraph, 200);
 // Add computed property for filtered and paginated robots
 const filteredAndPaginatedRobots = computed(() => {
   if (!vda5050Visualizer?.robotList.value) return [];
-  
+
   let filtered = vda5050Visualizer.robotList.value;
-  
+
   // Apply filter
   if (filterText.value) {
-    filtered = filtered.filter(robot => 
-      robot.serialNumber.toLowerCase().includes(filterText.value.toLowerCase()) ||
-      robot.manufacturer.toLowerCase().includes(filterText.value.toLowerCase())
+    filtered = filtered.filter(
+      (robot) =>
+        robot.serialNumber
+          .toLowerCase()
+          .includes(filterText.value.toLowerCase()) ||
+        robot.manufacturer
+          .toLowerCase()
+          .includes(filterText.value.toLowerCase())
     );
   }
-  
+
   // Apply pagination if not showing all
   const perPage = parseInt(itemsPerPage.value);
   if (perPage > 0) {
@@ -208,7 +172,7 @@ const filteredAndPaginatedRobots = computed(() => {
     const end = start + perPage;
     return filtered.slice(start, end);
   }
-  
+
   return filtered;
 });
 
@@ -384,7 +348,9 @@ function changePage(page: number) {
           :disabled="currentPage === 1"
           @click="changePage(currentPage - 1)"
         ></ui-button>
-        <span class="page-info">Page {{ currentPage }} of {{ totalPages }}</span>
+        <span class="page-info"
+          >Page {{ currentPage }} of {{ totalPages }}</span
+        >
         <ui-button
           icon="chevron_right"
           outlined

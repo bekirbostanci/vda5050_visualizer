@@ -1,11 +1,12 @@
 import {
   getMqttClientState,
   createAgv,
-  MqttClientState,
   connectMqtt,
 } from "./vda5050.controller";
 import { ref } from "vue";
+import { MqttClientState } from "../types/mqtt.types";
 
+// Define interfaces locally to avoid import issues
 interface AgvId {
   manufacturer: string;
   serialNumber: string;
@@ -115,13 +116,5 @@ export class VDA5050Visualizer {
     );
 
     return agv;
-  }
-
-  public updateVisualization(payload: any): void {
-    // Handle visualization update logic here
-  }
-
-  public updateState(payload: any): void {
-    // Handle state update logic here
   }
 }

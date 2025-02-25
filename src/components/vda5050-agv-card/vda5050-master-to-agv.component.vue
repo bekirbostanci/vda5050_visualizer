@@ -4,6 +4,7 @@ import { ref } from "vue";
 import VueJsonPretty from "vue-json-pretty";
 import "vue-json-pretty/lib/styles.css";
 import configs from "@/utils/configs";
+
 const props = defineProps({
   agv: { type: VDA5050Agv, required: true },
 });

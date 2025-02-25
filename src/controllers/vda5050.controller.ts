@@ -1,15 +1,13 @@
 import { ref } from "vue";
 import { VDA5050Agv } from "./vda5050-agv.controller";
+import type { AGVInstance, IVDA5050Agv } from "../types/vda5050.types";
+import {
+  MqttClientState,
+  Topic,
+  type MessageSubscriber,
+} from "../types/mqtt.types";
 
-interface AGVInstance {
-  agv: VDA5050Agv;
-  topics: string[];
-  credentials?: {
-    username: string;
-    password: string;
-  };
-}
-
+// Then use an interface instead of importing it
 interface MqttConnectionConfig {
   host: string;
   port: number;
@@ -18,22 +16,6 @@ interface MqttConnectionConfig {
   password?: string;
   topics: string[];
 }
-
-export enum MqttClientState {
-  OFFLINE = "offline",
-  CONNECTED = "connected",
-  RECONNECTING = "reconnecting",
-}
-
-export enum Topic {
-  Connection = "connection",
-  InstantActions = "instantActions",
-  Order = "order",
-  State = "state",
-  Visualization = "visualization",
-}
-
-type MessageSubscriber = (topic: string, message: any) => void;
 
 class VDA5050Controller {
   private static instance: VDA5050Controller;
@@ -167,8 +149,8 @@ class VDA5050Controller {
     return this.clientState.value;
   }
 
-  public getAgvs(): VDA5050Agv[] {
-    return this.agvs.value.map((instance) => instance.agv as VDA5050Agv);
+  public getAgvs(): IVDA5050Agv[] {
+    return this.agvs.value.map((instance) => instance.agv);
   }
 
   public publishMessage(
@@ -194,7 +176,7 @@ class VDA5050Controller {
     interfaceName: string,
     username: string = "",
     password: string = ""
-  ): Promise<VDA5050Agv> {
+  ): Promise<IVDA5050Agv> {
     const agv = new VDA5050Agv(manufacturer, serialNumber, basePath);
 
     const topics = [
@@ -207,7 +189,7 @@ class VDA5050Controller {
 
     // Store AGV instance with credentials
     this.agvs.value.push({
-      agv: agv as unknown as VDA5050Agv,
+      agv,
       topics,
       credentials: username || password ? { username, password } : undefined,
     });
@@ -255,7 +237,7 @@ export const vda5050Controller = VDA5050Controller.getInstance();
 // Export the methods
 export const getMqttClientState = (): MqttClientState =>
   vda5050Controller.getMqttClientState();
-export const getAgvs = (): VDA5050Agv[] => vda5050Controller.getAgvs();
+export const getAgvs = (): IVDA5050Agv[] => vda5050Controller.getAgvs();
 export const publishMessage = (
   topic: string,
   message: any,
@@ -290,7 +272,7 @@ export const createAgv = (
   interfaceName: string,
   username?: string,
   password?: string
-): Promise<VDA5050Agv> =>
+): Promise<IVDA5050Agv> =>
   vda5050Controller.createAgv(
     manufacturer,
     serialNumber,
