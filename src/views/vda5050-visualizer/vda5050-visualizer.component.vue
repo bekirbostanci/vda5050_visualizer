@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, toRaw, onMounted, onUnmounted } from "vue";
+import { ref, toRaw, onMounted, onUnmounted, computed } from "vue";
 import config from "@/utils/configs";
 import { VDA5050Visualizer } from "@/controllers/vda5050-visualizer.controller";
 import VDA5050Card from "@/components/vda5050-agv-card/vda5050-agv-card.component.vue";
@@ -26,6 +26,16 @@ const settings = ref(false);
 // Add new refs for MQTT status
 const mqttStatus = ref(MqttClientState.OFFLINE);
 const mqttMessages = ref<any[]>([]);
+
+// Add new refs for filtering and pagination
+const filterText = ref("");
+const itemsPerPage = ref("10");
+const currentPage = ref(1);
+const paginationOptions = [
+  { label: "Show All", value: "-1" },
+  { label: "10 per page", value: "10" },
+  { label: "100 per page", value: "100" },
+];
 
 function updateBroker() {
   version.value += 1;
@@ -176,6 +186,44 @@ const updateGraph = throttle(() => {
 }, 500); // Update at most every 500ms
 
 setInterval(updateGraph, 200);
+
+// Add computed property for filtered and paginated robots
+const filteredAndPaginatedRobots = computed(() => {
+  if (!vda5050Visualizer?.robotList.value) return [];
+  
+  let filtered = vda5050Visualizer.robotList.value;
+  
+  // Apply filter
+  if (filterText.value) {
+    filtered = filtered.filter(robot => 
+      robot.serialNumber.toLowerCase().includes(filterText.value.toLowerCase()) ||
+      robot.manufacturer.toLowerCase().includes(filterText.value.toLowerCase())
+    );
+  }
+  
+  // Apply pagination if not showing all
+  const perPage = parseInt(itemsPerPage.value);
+  if (perPage > 0) {
+    const start = (currentPage.value - 1) * perPage;
+    const end = start + perPage;
+    return filtered.slice(start, end);
+  }
+  
+  return filtered;
+});
+
+// Add computed property for total pages
+const totalPages = computed(() => {
+  if (!vda5050Visualizer?.robotList.value) return 1;
+  const perPage = parseInt(itemsPerPage.value);
+  if (perPage <= 0) return 1;
+  return Math.ceil(vda5050Visualizer.robotList.value.length / perPage);
+});
+
+// Add function to handle page changes
+function changePage(page: number) {
+  currentPage.value = page;
+}
 </script>
 <template>
   <div style="padding: 10px" :key="version">
@@ -294,8 +342,31 @@ setInterval(updateGraph, 200);
         vda5050Visualizer?.robotList.value.length > 0
       "
     >
+      <ui-grid class="mb">
+        <ui-grid-cell columns="8">
+          <ui-textfield
+            class="w100"
+            outlined
+            v-model="filterText"
+            icon="search"
+          >
+            Filter Robots
+          </ui-textfield>
+        </ui-grid-cell>
+        <ui-grid-cell columns="4">
+          <ui-select
+            class="w100"
+            outlined
+            v-model="itemsPerPage"
+            :options="paginationOptions"
+          >
+            Items per page
+          </ui-select>
+        </ui-grid-cell>
+      </ui-grid>
+
       <div
-        v-for="agv in vda5050Visualizer?.robotList.value"
+        v-for="agv in filteredAndPaginatedRobots"
         v-bind:key="'robot-card-' + agv.serialNumber"
       >
         <VDA5050Card
@@ -303,6 +374,23 @@ setInterval(updateGraph, 200);
           :serialNumber="agv.serialNumber"
           :ref="skipUnwrap.itemRefs"
         />
+      </div>
+
+      <!-- Pagination controls -->
+      <div class="pagination-controls" v-if="itemsPerPage !== '-1'">
+        <ui-button
+          icon="chevron_left"
+          outlined
+          :disabled="currentPage === 1"
+          @click="changePage(currentPage - 1)"
+        ></ui-button>
+        <span class="page-info">Page {{ currentPage }} of {{ totalPages }}</span>
+        <ui-button
+          icon="chevron_right"
+          outlined
+          :disabled="currentPage === totalPages"
+          @click="changePage(currentPage + 1)"
+        ></ui-button>
       </div>
     </div>
     <SkeletonCard v-else></SkeletonCard>
@@ -328,5 +416,22 @@ setInterval(updateGraph, 200);
 
 .material-icons.mdc-fab__icon {
   color: black !important;
+}
+
+.pagination {
+  margin-top: 10px;
+  text-align: center;
+}
+
+.pagination-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 20px;
+  gap: 10px;
+}
+
+.page-info {
+  margin: 0 10px;
 }
 </style>
