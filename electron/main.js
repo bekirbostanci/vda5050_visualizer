@@ -29,14 +29,19 @@ function createWindow() {
 
   if (isDev) {
     mainWindow.loadURL('http://localhost:8082');
-    mainWindow.webContents.openDevTools(); // Open DevTools in dev mode
+    // mainWindow.webContents.openDevTools(); // Open DevTools in dev mode
   } else {
     const indexPath = path.resolve(__dirname, '..', 'dist', 'index.html');
     console.log('Loading from:', indexPath);
     mainWindow.loadFile(indexPath).catch(err => {
       console.error('Failed to load index.html:', err);
     });
-    mainWindow.webContents.openDevTools(); // Temporarily open DevTools in prod to debug
+    // mainWindow.webContents.openDevTools(); // Temporarily open DevTools in prod to debug
+  }
+
+  // Only open DevTools in development mode
+  if (process.env.NODE_ENV === 'development') {
+    mainWindow.webContents.openDevTools()
   }
 }
 
