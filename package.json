@@ -1,15 +1,16 @@
 {
-  "name": "vda_visualizer",
+  "name": "vda5050-visualizer",
+  "author": "bekir.bostanci",
   "version": "0.0.0",
   "scripts": {
-    "dev": "vite --host --port 8080",
+    "dev": "vite --host --port 8082",
     "build:bundle": "vite build",
     "preview": "vite preview --host",
     "test:unit": "vitest --environment jsdom",
     "type-check": "vue-tsc --noEmit -p tsconfig.vitest.json --composite false",
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .eslintignore",
-    "electron:dev": "concurrently \"vite --host --port 8080\" \"wait-on tcp:8080 && electron .\"",
-    "electron:build": "vite build && electron-builder"
+    "electron:dev": "concurrently \"vite --host --port 8082\" \"wait-on tcp:8082 && electron .\"",
+    "electron:build": "npm run build:clean && vite build && electron-builder"
   },
   "dependencies": {
     "@rollup/plugin-commonjs": "^25.0.7",
@@ -65,15 +66,27 @@
     "vitest": "^0.23.0",
     "vue-loader": "^16.8.3",
     "vue-tsc": "^0.40.7",
-    "wait-on": "^8.0.2"
+    "wait-on": "^8.0.2",
+    "rimraf": "^5.0.1"
   },
   "main": "electron/main.js",
   "build": {
     "appId": "com.your-app-name",
     "productName": "Your App Name",
     "directories": {
-      "output": "dist_electron"
+      "output": "dist_electron",
+      "buildResources": "build"
     },
+    "files": [
+      "dist/**/*",
+      "electron/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "dist",
+        "to": "dist"
+      }
+    ],
     "win": {
       "target": "nsis"
     },

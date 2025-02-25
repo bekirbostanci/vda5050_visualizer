@@ -35,9 +35,18 @@ function updateBroker() {
 
   vda5050Visualizer = new VDA5050Visualizer();
 
-  vda5050Visualizer.connect(brokerIp.value, brokerPort.value).catch((error) => {
-    console.error("Failed to connect to MQTT:", error);
-  });
+  vda5050Visualizer
+    .connect(
+      brokerIp.value,
+      brokerPort.value.toString(),
+      basepath.value,
+      interfaceName.value,
+      username.value,
+      password.value
+    )
+    .catch((error) => {
+      console.error("Failed to connect to MQTT:", error);
+    });
 }
 
 // Setup MQTT event listeners
@@ -170,26 +179,17 @@ setInterval(updateGraph, 200);
             Broker PORT
           </ui-textfield>
         </ui-grid-cell>
-        <ui-grid-cell columns="1">
+        <ui-grid-cell columns="2">
           <ui-textfield class="mr w100" outlined v-model="basepath">
             Basepath
           </ui-textfield>
         </ui-grid-cell>
-        <ui-grid-cell columns="1">
+        <ui-grid-cell columns="2">
           <ui-textfield class="mr w100" outlined v-model="interfaceName">
             Interface Name
           </ui-textfield>
         </ui-grid-cell>
-        <ui-grid-cell columns="2">
-          <ui-select
-            class="mr w100"
-            v-model="vdaVersion"
-            :options="options"
-            outlined
-          >
-            VDA Version
-          </ui-select>
-        </ui-grid-cell>
+
         <ui-grid-cell
           :columns="{ default: 2, tablet: 2, phone: 2 }"
           v-if="getMqttClientState() == MqttClientState.CONNECTED"

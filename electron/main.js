@@ -18,24 +18,26 @@ function createWindow() {
     }
   });
 
-  // Load the app
-  if (isDev) {
-    mainWindow.loadURL('http://localhost:8080').catch(err => {
-      console.error('Failed to load dev server:', err);
+  // Add this for debugging
+  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
+    console.error('Failed to load:', {
+      errorCode,
+      errorDescription,
+      validatedURL
     });
-    mainWindow.webContents.openDevTools();
-  } else {
-    mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
-  }
-
-  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
-    console.log('Failed to load:', errorDescription);
-    setTimeout(() => {
-      if (isDev) {
-        mainWindow.loadURL('http://localhost:8080');
-      }
-    }, 1000);
   });
+
+  if (isDev) {
+    mainWindow.loadURL('http://localhost:8082');
+    mainWindow.webContents.openDevTools(); // Open DevTools in dev mode
+  } else {
+    const indexPath = path.resolve(__dirname, '..', 'dist', 'index.html');
+    console.log('Loading from:', indexPath);
+    mainWindow.loadFile(indexPath).catch(err => {
+      console.error('Failed to load index.html:', err);
+    });
+    mainWindow.webContents.openDevTools(); // Temporarily open DevTools in prod to debug
+  }
 }
 
 // MQTT Connection Handler

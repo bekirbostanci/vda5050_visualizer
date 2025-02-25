@@ -16,8 +16,10 @@ const actionsStateShow = ref(false);
   <ui-divider class="mb-2 mt-2 card-divider"></ui-divider>
   <div class="card-header-div">
     <div class="flex-right">
-      <div class="card-font-bold">AGV -> Master Controller</div>
-      <div class="card-font" style="margin-left: 20px">
+      <div class="card-font-bold" style="display: inline">
+        AGV -> Master Controller
+      </div>
+      <div class="card-font" style="margin-left: 20px; display: inline">
         Header : {{ props.agv.stateInfo.value?.headerId }}
       </div>
     </div>

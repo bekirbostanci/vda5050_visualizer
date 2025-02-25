@@ -56,7 +56,7 @@ docker build -t vda-visualizer:dev -f Dockerfile.dev .
 
 Run docker container 
 ```
-docker run -p 8080:8080 -v $(pwd):/app -v /app/node_modules --rm vda-visualizer:dev
+docker run -p 8082:8082 -v $(pwd):/app -v /app/node_modules --rm vda-visualizer:dev
 ```
 
 ### Production 

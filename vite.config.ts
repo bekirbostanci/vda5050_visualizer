@@ -10,6 +10,7 @@ export default defineConfig(({ mode }) => {
   const isDevelopment = mode === "development";
 
   return {
+    base: "./",
     plugins: [
       vue(),
       isDevelopment && commonjs(),
@@ -33,11 +34,14 @@ export default defineConfig(({ mode }) => {
       },
     },
     build: {
+      outDir: "dist",
+      emptyOutDir: true,
+      assetsDir: "assets",
       rollupOptions: {
-        plugins: [
-          // Conditionally include inject plugin during build if needed
-          inject({ Buffer: ["buffer", "Buffer"], process: "process" }),
-        ],
+        plugins: [inject({ Buffer: ["buffer", "Buffer"], process: "process" })],
+        output: {
+          manualChunks: undefined,
+        },
       },
     },
     define: {

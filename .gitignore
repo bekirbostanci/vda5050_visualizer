@@ -12,3 +12,4 @@ node_modules
 .vscode/*
 dist/
 .vercel
+dist_electron/

@@ -4,6 +4,10 @@ import { VDA5050Agv } from "./vda5050-agv.controller";
 interface AGVInstance {
   agv: VDA5050Agv;
   topics: string[];
+  credentials?: {
+    username: string;
+    password: string;
+  };
 }
 
 interface MqttConnectionConfig {
@@ -37,6 +41,7 @@ class VDA5050Controller {
   private readonly clientState = ref<MqttClientState>(MqttClientState.OFFLINE);
   private readonly messageSubscribers = ref<MessageSubscriber[]>([]);
   private isConnecting = false;
+  private readonly mqttConfig = ref<MqttConnectionConfig | null>(null);
 
   private constructor() {
     // Private constructor to enforce singleton
@@ -65,23 +70,37 @@ class VDA5050Controller {
     this.isConnecting = true;
 
     try {
+      // Just clean the host without adding protocol or port
+      const cleanHost = mqttIp
+        .replace(/^mqtt:\/\/|^tcp:\/\//, "")
+        .replace(/:.*$/, "");
+
       const config: MqttConnectionConfig = {
-        host: mqttIp.replace(/^mqtt:\/\/|^tcp:\/\//, ""),
+        host: cleanHost, // Just the clean IP/hostname
         port: Number(mqttPort),
         clientId: `vda5050_client_${Math.random().toString(16).slice(2, 8)}`,
-        username,
-        password,
+        username: username || undefined,
+        password: password || undefined,
         topics: [
-          `${basepath}/${interfaceName}/+/+/connection`,
-          `${basepath}/${interfaceName}/+/+/instantActions`,
-          `${basepath}/${interfaceName}/+/+/order`,
-          `${basepath}/${interfaceName}/+/+/state`,
-          `${basepath}/${interfaceName}/+/+/visualization`,
+          `${interfaceName}/+/+/+/connection`,
+          `${interfaceName}/+/+/+/instantActions`,
+          `${interfaceName}/+/+/+/order`,
+          `${interfaceName}/+/+/+/state`,
+          `${interfaceName}/+/+/+/visualization`,
         ],
       };
 
+      console.log("Connecting to MQTT with config:", {
+        ...config,
+        password: config.password ? "****" : undefined,
+      });
+
+      this.mqttConfig.value = config;
       window.electron.ipcRenderer.send("connect-mqtt", config);
       this.setupMqttListeners();
+    } catch (error) {
+      console.error("MQTT Connection Error:", error);
+      this.clientState.value = MqttClientState.OFFLINE;
     } finally {
       this.isConnecting = false;
     }
@@ -152,10 +171,15 @@ class VDA5050Controller {
     return this.agvs.value.map((instance) => instance.agv as VDA5050Agv);
   }
 
-  public publishMessage(topic: string, message: any): void {
+  public publishMessage(
+    topic: string,
+    message: any,
+    credentials?: { username: string; password: string }
+  ): void {
     window.electron.ipcRenderer.send("publish-message", {
       topic,
       message: typeof message === "string" ? message : JSON.stringify(message),
+      credentials,
     });
   }
 
@@ -165,35 +189,63 @@ class VDA5050Controller {
     x: number,
     y: number,
     mqttIp: string,
-    mqttPort: string
+    mqttPort: string,
+    basePath: string,
+    interfaceName: string,
+    username: string = "",
+    password: string = ""
   ): Promise<VDA5050Agv> {
-    const agv = new VDA5050Agv(manufacturer, serialNumber);
+    const agv = new VDA5050Agv(manufacturer, serialNumber, basePath);
 
     const topics = [
-      `uagv/${manufacturer}/${serialNumber}/${Topic.Connection}`,
-      `uagv/${manufacturer}/${serialNumber}/${Topic.InstantActions}`,
-      `uagv/${manufacturer}/${serialNumber}/${Topic.Order}`,
-      `uagv/${manufacturer}/${serialNumber}/${Topic.State}`,
-      `uagv/${manufacturer}/${serialNumber}/${Topic.Visualization}`,
+      `${interfaceName}/${manufacturer}/${serialNumber}/${Topic.Connection}`,
+      `${interfaceName}/${manufacturer}/${serialNumber}/${Topic.InstantActions}`,
+      `${interfaceName}/${manufacturer}/${serialNumber}/${Topic.Order}`,
+      `${interfaceName}/${manufacturer}/${serialNumber}/${Topic.State}`,
+      `${interfaceName}/${manufacturer}/${serialNumber}/${Topic.Visualization}`,
     ];
 
-    // Store both the AGV instance and its topics
+    // Store AGV instance with credentials
     this.agvs.value.push({
-      agv: agv as VDA5050Agv,
+      agv: agv as unknown as VDA5050Agv,
       topics,
+      credentials: username || password ? { username, password } : undefined,
     });
 
-    // Connect to MQTT via Electron with AGV-specific topics
+    // Connect to MQTT via Electron with AGV-specific topics and credentials
     window.electron.ipcRenderer.send("connect-mqtt", {
       host: mqttIp,
       port: Number(mqttPort),
       clientId: `vda5050_agv_${manufacturer}_${serialNumber}_${Math.random()
         .toString(16)
         .slice(2, 8)}`,
+      username,
+      password,
       topics,
     });
 
     return agv;
+  }
+
+  public reconnectAgv(manufacturer: string, serialNumber: string): void {
+    const agvInstance = this.agvs.value.find(
+      (instance) =>
+        instance.agv.agvId.manufacturer === manufacturer &&
+        instance.agv.agvId.serialNumber === serialNumber
+    );
+
+    if (agvInstance) {
+      window.electron.ipcRenderer.send("connect-mqtt", {
+        host: this.mqttConfig.value?.host || "",
+        port: Number(this.mqttConfig.value?.port || ""),
+        clientId: `vda5050_agv_${manufacturer}_${serialNumber}_${Math.random()
+          .toString(16)
+          .slice(2, 8)}`,
+        username: agvInstance.credentials?.username,
+        password: agvInstance.credentials?.password,
+        topics: agvInstance.topics,
+      });
+    }
   }
 }
 
@@ -204,8 +256,11 @@ export const vda5050Controller = VDA5050Controller.getInstance();
 export const getMqttClientState = (): MqttClientState =>
   vda5050Controller.getMqttClientState();
 export const getAgvs = (): VDA5050Agv[] => vda5050Controller.getAgvs();
-export const publishMessage = (topic: string, message: any): void =>
-  vda5050Controller.publishMessage(topic, message);
+export const publishMessage = (
+  topic: string,
+  message: any,
+  credentials?: { username: string; password: string }
+): void => vda5050Controller.publishMessage(topic, message, credentials);
 export const subscribeToMessages = (callback: MessageSubscriber): void =>
   vda5050Controller.subscribeToMessages(callback);
 export const connectMqtt = (
@@ -230,7 +285,11 @@ export const createAgv = (
   x: number,
   y: number,
   mqttIp: string,
-  mqttPort: string
+  mqttPort: string,
+  basePath: string,
+  interfaceName: string,
+  username?: string,
+  password?: string
 ): Promise<VDA5050Agv> =>
   vda5050Controller.createAgv(
     manufacturer,
@@ -238,5 +297,13 @@ export const createAgv = (
     x,
     y,
     mqttIp,
-    mqttPort
+    mqttPort,
+    basePath,
+    interfaceName,
+    username,
+    password
   );
+export const reconnectAgv = (
+  manufacturer: string,
+  serialNumber: string
+): void => vda5050Controller.reconnectAgv(manufacturer, serialNumber);

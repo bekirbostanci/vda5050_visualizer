@@ -16,6 +16,8 @@ interface MqttConfig {
   port: string;
   basePath: string;
   interfaceName: string;
+  username: string;
+  password: string;
 }
 
 export class VDA5050Visualizer {
@@ -23,8 +25,10 @@ export class VDA5050Visualizer {
   private readonly mqttConfig: MqttConfig = {
     host: "",
     port: "",
-    basePath: "uagv",
-    interfaceName: "v2",
+    basePath: "",
+    interfaceName: "",
+    username: "",
+    password: "",
   };
 
   constructor() {
@@ -39,15 +43,27 @@ export class VDA5050Visualizer {
     });
   }
 
-  public async connect(host: string, port: string): Promise<void> {
+  public async connect(
+    host: string,
+    port: string,
+    basePath: string,
+    interfaceName: string,
+    username: string,
+    password: string
+  ): Promise<void> {
     this.mqttConfig.host = host;
     this.mqttConfig.port = port;
-
+    this.mqttConfig.basePath = basePath;
+    this.mqttConfig.interfaceName = interfaceName;
+    this.mqttConfig.username = username;
+    this.mqttConfig.password = password;
     await connectMqtt(
       host,
       port,
       this.mqttConfig.basePath,
-      this.mqttConfig.interfaceName
+      this.mqttConfig.interfaceName,
+      this.mqttConfig.username,
+      this.mqttConfig.password
     );
   }
 
@@ -91,9 +107,21 @@ export class VDA5050Visualizer {
       x,
       y,
       this.mqttConfig.host,
-      this.mqttConfig.port
+      this.mqttConfig.port,
+      this.mqttConfig.basePath,
+      this.mqttConfig.interfaceName,
+      this.mqttConfig.username,
+      this.mqttConfig.password
     );
 
     return agv;
+  }
+
+  public updateVisualization(payload: any): void {
+    // Handle visualization update logic here
+  }
+
+  public updateState(payload: any): void {
+    // Handle state update logic here
   }
 }

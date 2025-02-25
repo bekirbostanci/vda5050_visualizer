@@ -99,7 +99,7 @@ export class VDA5050Agv {
   constructor(
     manufacturer: string,
     serialNumber: string,
-    private readonly basePath: string = "uagv"
+    private readonly basePath: string = "vda5050"
   ) {
     this.agvId = { manufacturer, serialNumber };
     this.mqttTopic = `${this.basePath}/${this.agvId.manufacturer}/${this.agvId.serialNumber}`;
