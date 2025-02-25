@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import { ref, toRaw } from "vue";
+import { ref, toRaw, onMounted, onUnmounted } from "vue";
 import config from "@/utils/configs";
 import { VDA5050Visualizer } from "@/controllers/vda5050-visualizer.controller";
 import VDA5050Card from "@/components/vda5050-agv-card/vda5050-agv-card.component.vue";
 import SkeletonCard from "@/components/skeleton-card.vue";
 import {
-  MqttClientState,
   getMqttClientState,
-  masterController,
+  MqttClientState,
+  connectMqtt
 } from "@/controllers/vda5050.controller";
 
 const brokerIp = ref(import.meta.env.VITE_MQTT_HOST);
@@ -21,18 +21,80 @@ let vda5050Visualizer: VDA5050Visualizer | undefined;
 const version = ref(0);
 const settings = ref(false);
 
+// Add new refs for MQTT status
+const mqttStatus = ref(MqttClientState.OFFLINE);
+const mqttMessages = ref<any[]>([]);
+
 function updateBroker() {
   version.value += 1;
-  masterController(
-    brokerIp.value,
-    brokerPort.value,
-    basepath.value,
-    interfaceName.value,
-    vdaVersion.value,
-    username.value,
-    password.value
-  );
+  
+  console.log('Connecting to MQTT broker:', {
+    host: brokerIp.value,
+    port: brokerPort.value
+  });
+  
   vda5050Visualizer = new VDA5050Visualizer();
+  
+  vda5050Visualizer.connect(
+    brokerIp.value,
+    brokerPort.value
+  ).catch(error => {
+    console.error('Failed to connect to MQTT:', error);
+  });
+}
+
+// Setup MQTT event listeners
+onMounted(() => {
+  window.electron.ipcRenderer.on('mqtt-connected', () => {
+    console.log('MQTT Connected in component');
+    mqttStatus.value = MqttClientState.CONNECTED;
+  });
+
+  window.electron.ipcRenderer.on('mqtt-message', (data) => {
+    mqttMessages.value.push(data);
+    handleMqttMessage(data.topic, data.message);
+  });
+
+  window.electron.ipcRenderer.on('mqtt-error', (error) => {
+    console.error('MQTT Error in component:', error);
+    mqttStatus.value = MqttClientState.OFFLINE;
+  });
+});
+
+// Clean up event listeners
+onUnmounted(() => {
+  window.electron.ipcRenderer.removeAllListeners('mqtt-connected');
+  window.electron.ipcRenderer.removeAllListeners('mqtt-message');
+  window.electron.ipcRenderer.removeAllListeners('mqtt-error');
+});
+
+// Handle incoming MQTT messages
+function handleMqttMessage(topic: string, message: any) {
+  try {
+    // Check if message is already an object
+    const payload = typeof message === 'string' ? JSON.parse(message) : message;
+    
+    // Update visualizer based on message type
+    if (topic.includes('/state')) {
+      // Handle state updates
+      if (vda5050Visualizer) {
+        vda5050Visualizer.updateState(payload);
+      }
+    } else if (topic.includes('/visualization')) {
+      // Handle visualization updates
+      if (vda5050Visualizer) {
+        vda5050Visualizer.updateVisualization(payload);
+      }
+    }
+    // Add more topic handlers as needed
+  } catch (error) {
+    console.error('Error processing MQTT message:', { 
+      error, 
+      topic, 
+      messageType: typeof message,
+      message: message
+    });
+  }
 }
 
 const options = [
@@ -70,16 +132,41 @@ const totalLayouts = ref();
 
 setInterval(() => {
   if (agvs.value.length > 0) {
-    totalNodes.value = agvs.value.map((agv: any) => toRaw(agv.agv.nodes.value));
-    totalNodes.value = convertToNestedObject(toRaw(totalNodes.value));
-    totalEdges.value = agvs.value.map((agv: any) => toRaw(agv.agv.edges.value));
-    totalEdges.value = convertToNestedObject(toRaw(totalEdges.value));
-    totalLayouts.value = agvs.value.map((agv: any) =>
-      toRaw(agv.agv.layouts.value["nodes"])
-    );
-    totalLayouts.value = {
-      nodes: convertToNestedObject(toRaw(totalLayouts.value)),
-    };
+    try {
+      // Safely map and filter out any undefined values
+      totalNodes.value = agvs.value
+        .filter(agv => agv?.agv?.nodes?.value)
+        .map((agv: any) => toRaw(agv.agv.nodes.value));
+      
+      if (totalNodes.value.length > 0) {
+        totalNodes.value = convertToNestedObject(toRaw(totalNodes.value));
+      }
+
+      totalEdges.value = agvs.value
+        .filter(agv => agv?.agv?.edges?.value)
+        .map((agv: any) => toRaw(agv.agv.edges.value));
+      
+      if (totalEdges.value.length > 0) {
+        totalEdges.value = convertToNestedObject(toRaw(totalEdges.value));
+      }
+
+      totalLayouts.value = agvs.value
+        .filter(agv => agv?.agv?.layouts?.value?.nodes)
+        .map((agv: any) => toRaw(agv.agv.layouts.value["nodes"]));
+      
+      if (totalLayouts.value.length > 0) {
+        totalLayouts.value = {
+          nodes: convertToNestedObject(toRaw(totalLayouts.value)),
+        };
+      }
+    } catch (error) {
+      console.error('Error processing AGV data:', error);
+    }
+  } else {
+    // Initialize empty values when no AGVs exist
+    totalNodes.value = {};
+    totalEdges.value = {};
+    totalLayouts.value = { nodes: {} };
   }
 }, 200);
 </script>

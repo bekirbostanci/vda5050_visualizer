@@ -7,7 +7,9 @@
     "preview": "vite preview --host",
     "test:unit": "vitest --environment jsdom",
     "type-check": "vue-tsc --noEmit -p tsconfig.vitest.json --composite false",
-    "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .eslintignore"
+    "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .eslintignore",
+    "electron:dev": "concurrently \"vite --host --port 8080\" \"wait-on tcp:8080 && electron .\"",
+    "electron:build": "vite build && electron-builder"
   },
   "dependencies": {
     "@rollup/plugin-commonjs": "^25.0.7",
@@ -28,7 +30,8 @@
     "vue-json-pretty": "^2.2.4",
     "vue-router": "^4.1.5",
     "vue3-loading-skeleton": "^0.0.13",
-    "webpack": "^5.88.2"
+    "webpack": "^5.88.2",
+    "mqtt": "^5.3.5"
   },
   "devDependencies": {
     "@babel/core": "^7.19.1",
@@ -44,7 +47,10 @@
     "@vue/test-utils": "^2.0.2",
     "@vue/tsconfig": "^0.1.3",
     "babel-loader": "^8.2.5",
+    "concurrently": "^9.1.2",
     "cypress": "^10.7.0",
+    "electron": "^28.3.3",
+    "electron-builder": "^24.13.3",
     "eslint": "^8.22.0",
     "eslint-plugin-cypress": "^2.12.1",
     "eslint-plugin-vue": "^9.3.0",
@@ -57,6 +63,24 @@
     "typescript": "~4.7.4",
     "vitest": "^0.23.0",
     "vue-loader": "^16.8.3",
-    "vue-tsc": "^0.40.7"
+    "vue-tsc": "^0.40.7",
+    "wait-on": "^8.0.2"
+  },
+  "main": "electron/main.js",
+  "build": {
+    "appId": "com.your-app-name",
+    "productName": "Your App Name",
+    "directories": {
+      "output": "dist_electron"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "mac": {
+      "target": "dmg"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
   }
 }

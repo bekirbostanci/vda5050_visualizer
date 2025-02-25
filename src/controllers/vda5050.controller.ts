@@ -1,135 +1,173 @@
-import {
-  AgvController,
-  MasterController,
-  VdaVersion,
-  VirtualAgvAdapter,
-  type AgvId,
-  type ClientOptions,
-  type VirtualAgvAdapterOptions,
-} from "vda-5050-lib";
-import mqtt from "mqtt";
 import { ref } from "vue";
-let mc: MasterController;
-let client: mqtt.MqttClient;
-const agvs: VirtualAgvAdapter[] = [];
+
+const agvs = ref<any[]>([]);
+let isConnecting = false;
 
 export enum MqttClientState {
   OFFLINE = "offline",
   CONNECTED = "connected",
   RECONNECTING = "reconnecting",
 }
+
+export enum Topic {
+  Connection = "connection",
+  InstantActions = "instantActions",
+  Order = "order",
+  State = "state",
+  Visualization = "visualization"
+}
+
 const clientState = ref<MqttClientState>(MqttClientState.OFFLINE);
 
-export async function masterController(
+export async function connectMqtt(
   mqttIp: string,
   mqttPort: string,
   basepath: string,
   interfaceName: string,
-  vdaVersion: VdaVersion,
   username: string = "",
   password: string = ""
 ) {
-  if (mc) {
-    mc.stop();
-    client.end();
-  }
-  client = mqtt.connect("ws://" + mqttIp + ":" + mqttPort + "/" + basepath, {
-    username: username,
-    password: password,
-  });
-  clientStateHandlers();
-  mc = new MasterController(
-    {
-      interfaceName: interfaceName,
-      transport: {
-        brokerUrl: "ws://" + mqttIp + ":" + mqttPort + "/" + basepath,
-        username: username,
-        password: password,
-      },
-      vdaVersion: vdaVersion,
-    },
-    {}
-  );
+  if (isConnecting) return;
+  isConnecting = true;
 
-  await mc.start();
+  try {
+    // Remove any protocol prefix from IP if present
+    const cleanIp = mqttIp.replace(/^mqtt:\/\/|^tcp:\/\//, '');
+    
+    console.log('Connecting to MQTT:', { host: cleanIp, port: mqttPort });
+    
+    window.electron.ipcRenderer.send('connect-mqtt', {
+      host: cleanIp, // Use clean IP without protocol
+      port: Number(mqttPort),
+      clientId: `vda5050_client_${Math.random().toString(16).slice(2, 8)}`,
+      username,
+      password,
+      topics: [
+        `${basepath}/${interfaceName}/+/+/connection`,
+        `${basepath}/${interfaceName}/+/+/instantActions`,
+        `${basepath}/${interfaceName}/+/+/order`,
+        `${basepath}/${interfaceName}/+/+/state`,
+        `${basepath}/${interfaceName}/+/+/visualization`
+      ]
+    });
+
+    setupMqttListeners();
+
+  } catch (error) {
+    console.error('Error connecting to MQTT:', error);
+    clientState.value = MqttClientState.OFFLINE;
+  } finally {
+    isConnecting = false;
+  }
 }
-function clientStateHandlers() {
-  client.on("connect", () => {
+
+function setupMqttListeners() {
+  window.electron.ipcRenderer.on('mqtt-connected', () => {
+    console.log('MQTT Connected');
     clientState.value = MqttClientState.CONNECTED;
   });
-  client.on("reconnect", () => {
+
+  window.electron.ipcRenderer.on('mqtt-disconnected', () => {
+    console.log('MQTT Disconnected');
+    clientState.value = MqttClientState.OFFLINE;
+  });
+
+  window.electron.ipcRenderer.on('mqtt-reconnecting', () => {
+    console.log('MQTT Reconnecting');
     clientState.value = MqttClientState.RECONNECTING;
   });
-  client.on("offline", () => {
+
+  window.electron.ipcRenderer.on('mqtt-error', (error) => {
+    console.error('MQTT Error in controller:', error);
     clientState.value = MqttClientState.OFFLINE;
+  });
+
+  window.electron.ipcRenderer.on('mqtt-message', (data) => {
+    console.log('MQTT Message in controller:', {
+      topic: data.topic,
+      messageType: typeof data.message,
+      messagePreview: JSON.stringify(data.message).substring(0, 100) + '...'
+    });
+
+    try {
+      const message = typeof data.message === 'string' ? 
+        JSON.parse(data.message) : data.message;
+
+      const topicParts = data.topic.split('/');
+      const topicType = topicParts[topicParts.length - 1] as Topic;
+
+      window.electron.ipcRenderer.send('mqtt-message-processed', {
+        type: topicType,
+        message: message
+      });
+
+    } catch (error) {
+      console.error('Error processing MQTT message:', error);
+    }
   });
 }
 
 export function getMqttClientState(): MqttClientState {
   return clientState.value;
 }
-export function getMasterController(): MasterController {
-  return mc;
-}
-export function getMqttClient(): mqtt.MqttClient {
-  return client;
-}
-export function getAgvs(): VirtualAgvAdapter[] {
-  return agvs;
+
+export function getAgvs(): any[] {
+  return agvs.value;
 }
 
-export async function agvController(
+export async function createAgv(
   serial: string,
   mapId: string,
   x: number,
   y: number,
   mqttIp: string,
   mqttPort: string
-): Promise<VirtualAgvAdapter> {
-  // Use minimal client options: communication namespace and broker endpoint address.
-  const agvClientOptions: ClientOptions = {
-    interfaceName: "uagv",
-    transport: { brokerUrl: "ws://" + mqttIp + ":" + mqttPort },
-    vdaVersion: "2.0.0",
+) {
+  const agv = {
+    id: serial,
+    mapId,
+    position: { x, y, theta: 0.0 },
+    state: {
+      velocity: 0.75,
+      lastNodeId: "",
+      batteryLevel: 100,
+      operatingMode: "AUTOMATIC",
+      errors: [],
+      loads: []
+    },
+    agv: {
+      nodes: ref({}),
+      edges: ref({}),
+      layouts: ref({ nodes: {} })
+    }
   };
 
-  // The target AGV.
-  const agvId: AgvId = { manufacturer: "x", serialNumber: serial };
+  // Connect to MQTT via Electron with AGV-specific topics
+  window.electron.ipcRenderer.send('connect-mqtt', {
+    host: mqttIp,
+    port: Number(mqttPort),
+    clientId: `vda5050_agv_${serial}_${Math.random().toString(16).slice(2, 8)}`,
+    topics: [
+      `uagv/${serial}/${Topic.Connection}`,
+      `uagv/${serial}/${Topic.InstantActions}`,
+      `uagv/${serial}/${Topic.Order}`,
+      `uagv/${serial}/${Topic.State}`,
+      `uagv/${serial}/${Topic.Visualization}`
+    ]
+  });
 
-  // Specify associated adapter type; use defaults for all other AGV controller options.
+  agvs.value.push(agv);
+  return agv;
+}
 
-  const agvControllerOptions = {
-    agvAdapterType: VirtualAgvAdapter,
-    publishVisualizationInterval: 20,
-  };
-
-  // Use defaults for all adapter options of Virtual AGV adapter.
-  const agvAdapterOptions: VirtualAgvAdapterOptions = {
-    vehicleSpeed: 0.75,
-    timeLapse: 5,
-    tickRate: 20,
-    agvNormalDeviationThetaTolerance: 10,
-    agvNormalDeviationXyTolerance: 1,
-    initialPosition: { mapId: mapId, x: x, y: y, theta: 0.0, lastNodeId: "" },
-  };
-
-  // Create instance of AGV Controller with client, controller, and adapter options.
-  const agvController = new AgvController(
-    agvId,
-    agvClientOptions,
-    agvControllerOptions,
-    agvAdapterOptions
-  );
-
-  // Start client interaction, connect to MQTT broker.
-  await agvController.start();
-
-  const adapter: VirtualAgvAdapter = new VirtualAgvAdapter(
-    agvController,
-    agvAdapterOptions,
-    agvController.debug
-  );
-
-  agvs.push(adapter);
-  return adapter;
+export function publishMessage(topic: string, message: any) {
+  console.log('Publishing MQTT message:', {
+    topic,
+    messagePreview: JSON.stringify(message).substring(0, 100) + '...'
+  });
+  
+  window.electron.ipcRenderer.send('publish-message', {
+    topic,
+    message: typeof message === 'string' ? message : JSON.stringify(message)
+  });
 }
