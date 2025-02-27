@@ -41,6 +41,26 @@ const velocity = computed(() => {
     : null;
 });
 
+// Add computed property for sequence progress
+const sequenceProgress = computed(() => {
+  const orderInfo = agv.orderInfo.value;
+  const stateInfo = agv.stateInfo.value;
+  
+  if (!orderInfo || !stateInfo) return null;
+  
+  const lastNodeSequenceId = orderInfo.nodes.length > 0 ? 
+    Math.max(...orderInfo.nodes.map((node: { sequenceId: number }) => node.sequenceId)) : 0;
+  
+  const currentNodeSequenceId = stateInfo.lastNodeSequenceId || 0;
+  
+  return {
+    current: currentNodeSequenceId,
+    total: lastNodeSequenceId,
+    percentage: lastNodeSequenceId > 0 ? 
+      Math.round((currentNodeSequenceId / lastNodeSequenceId) * 100) : 0
+  };
+});
+
 onMounted(() => {
   // Subscribe to MQTT messages
   subscribeToMessages((topic, message) => {
@@ -114,6 +134,18 @@ defineExpose({
             </ui-chip>
           </ui-chips>
         </div>
+        
+        <!-- Add Order Progress Bar -->
+        <div class="order-progress-container" v-if="sequenceProgress && sequenceProgress.total > 0">
+          <div class="progress-label">
+            <span class="progress-text">Order Progress: {{ sequenceProgress.current }} / {{ sequenceProgress.total }}</span>
+            <span class="progress-percentage">{{ sequenceProgress.percentage }}%</span>
+          </div>
+          <div class="progress-bar-container">
+            <div class="progress-bar" :style="{ width: sequenceProgress.percentage + '%' }"></div>
+          </div>
+        </div>
+        
         <VDA5050AgvToMaster
           :agv="agv"
           v-if="agv.stateInfo.value"
@@ -131,5 +163,40 @@ defineExpose({
 <style lang="scss" scoped>
 .card-board {
   contain: content; /* Add CSS containment */
+}
+
+.order-progress-container {
+  margin: 10px 0;
+  padding: 5px 10px;
+}
+
+.progress-label {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 5px;
+  font-size: 0.9rem;
+}
+
+.progress-text {
+  font-weight: 500;
+}
+
+.progress-percentage {
+  font-weight: bold;
+}
+
+.progress-bar-container {
+  width: 100%;
+  height: 10px;
+  background-color: #e0e0e0;
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  background-color: #808080;
+  border-radius: 5px;
+  transition: width 0.3s ease;
 }
 </style>
