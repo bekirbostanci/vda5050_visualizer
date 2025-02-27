@@ -188,6 +188,10 @@ const totalPages = computed(() => {
 function changePage(page: number) {
   currentPage.value = page;
 }
+
+function openGithub() {
+  window.open('https://github.com/bekirbostanci/vda5050_visualizer', '_blank');
+}
 </script>
 <template>
   <div style="padding: 10px" :key="version">
@@ -273,15 +277,25 @@ function changePage(page: number) {
             icon="settings"
           ></ui-fab>
         </ui-grid-cell>
-        <ui-grid-cell columns="6" v-if="settings">
+        <ui-grid-cell columns="12" v-if="settings" style="display: flex; align-items: center;">
           <ui-textfield class="mr w100" outlined v-model="username">
             Username
           </ui-textfield>
-        </ui-grid-cell>
-        <ui-grid-cell columns="6" v-if="settings">
           <ui-textfield class="mr w100" outlined v-model="password">
             Password
           </ui-textfield>
+          <ui-fab
+            style="
+              min-width: 55px;
+              background-color: white;
+              border-style: solid;
+              border-width: 1px;
+              border-color: gray;
+              box-shadow: none;
+            "
+            @click="openGithub()"
+            icon="help"
+          ></ui-fab>
         </ui-grid-cell>
       </ui-grid>
     </div>
@@ -360,6 +374,9 @@ function changePage(page: number) {
       </div>
     </div>
     <SkeletonCard v-else></SkeletonCard>
+    <div style="text-align: center; margin-top: 20px; font-size: 15px;">
+      <p>Developed by Bekir Bostanci - <a href="https://github.com/bekirbostanci">GitHub</a></p>
+    </div>
   </div>
 </template>
 

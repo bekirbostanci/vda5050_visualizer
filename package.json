@@ -71,8 +71,8 @@
   },
   "main": "electron/main.js",
   "build": {
-    "appId": "com.your-app-name",
-    "productName": "Your App Name",
+    "appId": "com.vda5050-visualizer",
+    "productName": "vda5050-visualizer",
     "directories": {
       "output": "dist_electron",
       "buildResources": "build"
