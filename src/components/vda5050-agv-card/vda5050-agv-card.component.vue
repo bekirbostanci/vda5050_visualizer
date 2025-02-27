@@ -64,7 +64,9 @@ const sequenceProgress = computed(() => {
 onMounted(() => {
   // Subscribe to MQTT messages
   subscribeToMessages((topic, message) => {
-    if (topic.includes(props.serialNumber)) {
+    const topicParts = topic.split("/");
+    const topicSerialNumber = topicParts[3]; // Assuming the serial number is the third part of the topic
+    if (topicSerialNumber === props.serialNumber) {
       agv.handleMqttMessage(topic, message);
     }
   });
