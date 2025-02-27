@@ -34,7 +34,7 @@ const mqttMessages = ref<any[]>([]);
 
 // Add new refs for filtering and pagination
 const filterText = ref("");
-const itemsPerPage = ref("10");
+const itemsPerPage = ref("-1");
 const currentPage = ref(1);
 const paginationOptions = [
   { label: "Show All", value: "-1" },
