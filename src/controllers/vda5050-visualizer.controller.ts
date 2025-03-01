@@ -6,6 +6,8 @@ import {
 import { ref } from "vue";
 import { MqttClientState } from "../types/mqtt.types";
 import mqtt from "mqtt";
+import { sharedMqttClient } from "../utils/shared-mqtt-client";
+
 // Define interfaces locally to avoid import issues
 interface AgvId {
   manufacturer: string;
@@ -47,32 +49,11 @@ export class VDA5050Visualizer {
         }
       });
     } else if (mqttConfig.connectionType === "websocket") {
-      // Implement WebSocket message handling here
-      // dont use electron for websocket
-      
-      const mqttUrl = `ws://${this.mqttConfig.host}:${this.mqttConfig.port}/ws`;
-      const client = mqtt.connect(mqttUrl, {
-        clientId: `vda5050_client_${Math.random().toString(16).slice(2, 8)}`,
-        username: this.mqttConfig.username || undefined,
-        password: this.mqttConfig.password || undefined,
-      });
-      client.on("connect", () => {
-        console.log("WebSocket connected");
-        // Subscribe to topics after connecting
-        const topics = [
-          `${this.mqttConfig.interfaceName}/+/+/+/connection`,
-          `${this.mqttConfig.interfaceName}/+/+/+/instantActions`,
-          `${this.mqttConfig.interfaceName}/+/+/+/order`,
-          `${this.mqttConfig.interfaceName}/+/+/+/state`,
-          `${this.mqttConfig.interfaceName}/+/+/+/visualization`,
-        ];
-        client.subscribe(topics, (err) => {
-          if (err) {
-            console.error("WebSocket Subscription error:", err);
-          } else {
-            console.log("Subscribed to WebSocket topics:", topics);
-          }
-        });
+      // Use the shared MQTT client for WebSocket connections
+      sharedMqttClient.subscribeToMessages((topic, message) => {
+        if (topic.includes("/connection")) {
+          this.handleConnectionMessage(topic);
+        }
       });
     }
   }
@@ -117,15 +98,31 @@ export class VDA5050Visualizer {
     this.mqttConfig.password = password;
     this.mqttConfig.connectionType = "websocket";
 
-    await connectMqtt(
-      host,
-      port,
-      this.mqttConfig.basePath,
-      this.mqttConfig.interfaceName,
-      this.mqttConfig.username,
-      this.mqttConfig.password,
-      this.mqttConfig.connectionType
-    );
+    // If the shared client is not connected, connect it
+    if (!sharedMqttClient.connected) {
+      try {
+        await sharedMqttClient.connect(
+          host,
+          port,
+          `vda5050_visualizer_${Math.random().toString(16).slice(2, 8)}`,
+          username,
+          password
+        );
+        
+        // Subscribe to connection topics
+        const topics = [
+          `${this.mqttConfig.interfaceName}/+/+/+/connection`,
+          `${this.mqttConfig.interfaceName}/+/+/+/instantActions`,
+          `${this.mqttConfig.interfaceName}/+/+/+/order`,
+          `${this.mqttConfig.interfaceName}/+/+/+/state`,
+          `${this.mqttConfig.interfaceName}/+/+/+/visualization`,
+        ];
+        
+        sharedMqttClient.subscribe(topics);
+      } catch (error) {
+        console.error("Failed to connect to WebSocket MQTT:", error);
+      }
+    }
   }
 
   private handleConnectionMessage(topic: string): void {
@@ -172,7 +169,8 @@ export class VDA5050Visualizer {
       this.mqttConfig.basePath,
       this.mqttConfig.interfaceName,
       this.mqttConfig.username,
-      this.mqttConfig.password
+      this.mqttConfig.password,
+      this.mqttConfig.connectionType
     );
 
     return agv;

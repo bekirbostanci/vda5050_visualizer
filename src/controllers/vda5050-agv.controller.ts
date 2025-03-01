@@ -6,7 +6,8 @@ import type {
   ColorSchema,
 } from "../types/vda5050.types";
 import { Topic } from "../types/mqtt.types";
-
+import mqtt from "mqtt";
+import { sharedMqttClient } from "../utils/shared-mqtt-client";
 
 export class VDA5050Agv implements IVDA5050Agv {
   public readonly agvId: { manufacturer: string; serialNumber: string };
@@ -21,11 +22,13 @@ export class VDA5050Agv implements IVDA5050Agv {
   public readonly color: string;
   public colors: ColorSchema;
   public mqttTopic: string;
+  private mqttClient: mqtt.MqttClient | null = null;
 
   constructor(
     manufacturer: string,
     serialNumber: string,
-    private readonly basePath: string = "vda5050"
+    private readonly basePath: string = "vda5050",
+    private readonly mqttConfig?: { host: string; port: string; username?: string; password?: string }
   ) {
     this.agvId = { manufacturer, serialNumber };
     this.mqttTopic = `${this.basePath}/${this.agvId.manufacturer}/${this.agvId.serialNumber}`;
@@ -43,8 +46,51 @@ export class VDA5050Agv implements IVDA5050Agv {
       `${this.mqttTopic}/${Topic.Visualization}`,
     ];
 
-    topics.forEach((topic) => {
-      window.electron.ipcRenderer.send("subscribe-topic", topic);
+    // If using WebSocket, use the shared MQTT client
+    if (sharedMqttClient.connected) {
+      this.setupSharedMqttClient(topics);
+    } else if (this.mqttConfig) {
+      // If we have mqttConfig but no shared client, connect using the shared client
+      this.connectWebSocketMqtt(topics);
+    } else if (window.electron?.ipcRenderer) {
+      // Fallback to Electron IPC if available
+      topics.forEach((topic) => {
+        window.electron.ipcRenderer.send("subscribe-topic", topic);
+      });
+    } else {
+      console.warn("No MQTT connection method available");
+    }
+  }
+
+  private setupSharedMqttClient(topics: string[]): void {
+    // Subscribe to topics using the shared client
+    sharedMqttClient.subscribe(topics);
+    
+    // Subscribe to messages
+    sharedMqttClient.subscribeToMessages((topic, message) => {
+      // Only process messages for this AGV
+      if (topic.includes(`${this.agvId.manufacturer}/${this.agvId.serialNumber}`)) {
+        this.handleMqttMessage(topic, message);
+      }
+    });
+  }
+
+  private connectWebSocketMqtt(topics: string[]): void {
+    if (!this.mqttConfig) return;
+    
+    const { host, port, username, password } = this.mqttConfig;
+    
+    // Use the shared MQTT client
+    sharedMqttClient.connect(
+      host, 
+      port, 
+      `vda5050_client_${this.agvId.serialNumber}_${Math.random().toString(16).slice(2, 8)}`,
+      username,
+      password
+    ).then(() => {
+      this.setupSharedMqttClient(topics);
+    }).catch(error => {
+      console.error(`Failed to connect to WebSocket MQTT for AGV ${this.agvId.serialNumber}:`, error);
     });
   }
 
@@ -79,6 +125,12 @@ export class VDA5050Agv implements IVDA5050Agv {
     };
 
     handlers[topicType]?.(message);
+  }
+
+  // Clean up resources when the component is destroyed
+  public disconnect(): void {
+    // No need to disconnect the shared client
+    // Just unsubscribe from messages if needed
   }
 
   private updateAgvPosition(position: { x: number; y: number }): void {

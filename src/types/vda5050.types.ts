@@ -46,14 +46,15 @@ export interface IVDA5050Agv {
   colors: ColorSchema;
   mqttTopic: string;
   handleMqttMessage(topic: string, message: any): void;
+  disconnect?(): void;
 }
 
 export interface AGVInstance {
   agv: IVDA5050Agv;
   topics: string[];
   credentials?: {
-    username: string;
-    password: string;
+    username?: string;
+    password?: string;
   };
 }
 

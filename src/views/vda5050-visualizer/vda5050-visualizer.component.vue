@@ -8,6 +8,15 @@ import { getMqttClientState } from "@/controllers/vda5050.controller";
 import { MqttClientState } from "@/types/mqtt.types";
 import { throttle } from "lodash";
 import { loadSavedConfig, saveConfig } from "@/types/mqtt-config";
+import mqtt from "mqtt";
+import { sharedMqttClient } from "@/utils/shared-mqtt-client";
+
+
+// Define interfaces locally to avoid import issues
+interface AgvId {
+  manufacturer: string;
+  serialNumber: string;
+}
 
 // Initialize refs with saved values or defaults
 const brokerIp = ref(
@@ -31,6 +40,7 @@ const settings = ref(false);
 // Add new refs for MQTT status
 const mqttStatus = ref(MqttClientState.OFFLINE);
 const mqttMessages = ref<any[]>([]);
+const websocketClient = ref<mqtt.MqttClient | null>(null);
 
 // Add new refs for filtering and pagination
 const filterText = ref("");
@@ -88,49 +98,108 @@ function updateBroker() {
         console.error("Failed to connect to MQTT:", error);
       });
   } else if (connectionType.value === "websocket") {
-    vda5050Visualizer
-      .websocketConnect(
-        brokerIp.value,
-        brokerPort.value.toString(),
-        basepath.value,
-        interfaceName.value,
-        username.value,
-        password.value
-      )
-      .catch((error) => {
-        console.error("Failed to connect to WebSocket:", error);
+    // Handle WebSocket connection using the shared MQTT client
+    const mqttUrl = `ws://${brokerIp.value}:${brokerPort.value}/ws`;
+    
+    // Create a new client
+    websocketClient.value = mqtt.connect(mqttUrl, {
+      clientId: `vda5050_client_${Math.random().toString(16).slice(2, 8)}`,
+      username: username.value || undefined,
+      password: password.value || undefined,
+    });
+    
+    // Set the client in the shared service
+    sharedMqttClient.setClient(websocketClient.value);
+    
+    websocketClient.value.on("connect", () => {
+      console.log("WebSocket connected");
+      mqttStatus.value = MqttClientState.CONNECTED;
+      
+      // Subscribe to topics after connecting
+      const topics = [
+        `${interfaceName.value}/+/+/+/connection`,
+        `${interfaceName.value}/+/+/+/instantActions`,
+        `${interfaceName.value}/+/+/+/order`,
+        `${interfaceName.value}/+/+/+/state`,
+        `${interfaceName.value}/+/+/+/visualization`,
+      ];
+      
+      websocketClient.value?.subscribe(topics, (err: Error | null) => {
+        if (err) {
+          console.error("WebSocket Subscription error:", err);
+        } else {
+          console.log("Subscribed to WebSocket topics:", topics);
+        }
       });
+    });
+    
+    websocketClient.value.on("error", (error: Error) => {
+      console.error("WebSocket connection error:", error);
+      mqttStatus.value = MqttClientState.OFFLINE;
+    });
+    
+    websocketClient.value.on("close", () => {
+      console.log("WebSocket connection closed");
+      mqttStatus.value = MqttClientState.OFFLINE;
+    });
+    
+    websocketClient.value.on("reconnect", () => {
+      console.log("WebSocket reconnecting");
+      mqttStatus.value = MqttClientState.RECONNECTING;
+    });
+    
+    websocketClient.value.on("message", (topic: string, message: Buffer) => {
+      try {
+        const messageString = new TextDecoder().decode(message);
+        const messageObject = JSON.parse(messageString);
+        mqttMessages.value.push({ topic, message: messageObject });
+        
+        // Handle connection messages to update robot list
+        if (topic.includes("/connection") && vda5050Visualizer) {
+          const agvId = extractAgvIdFromTopic(topic);
+          if (agvId && !robotExists(agvId)) {
+            vda5050Visualizer.robotList.value.push(agvId);
+          }
+        }
+      } catch (error) {
+        console.error("Error processing WebSocket message:", error);
+      }
+    });
   }
 }
 
 // Setup MQTT event listeners
 onMounted(() => {
   if (connectionType.value === "mqtt") {
-  window.electron.ipcRenderer.on("mqtt-connected", () => {
-    console.log("MQTT Connected in component");
-    mqttStatus.value = MqttClientState.CONNECTED;
-  });
+    window.electron.ipcRenderer.on("mqtt-connected", () => {
+      console.log("MQTT Connected in component");
+      mqttStatus.value = MqttClientState.CONNECTED;
+    });
 
-  window.electron.ipcRenderer.on("mqtt-message", (data) => {
-    mqttMessages.value.push(data);
-  });
+    window.electron.ipcRenderer.on("mqtt-message", (data) => {
+      mqttMessages.value.push(data);
+    });
 
-  window.electron.ipcRenderer.on("mqtt-error", (error) => {
-    console.error("MQTT Error in component:", error);
-    mqttStatus.value = MqttClientState.OFFLINE;
-  });
-  } else if (connectionType.value === "websocket") {
-  
-    
+    window.electron.ipcRenderer.on("mqtt-error", (error) => {
+      console.error("MQTT Error in component:", error);
+      mqttStatus.value = MqttClientState.OFFLINE;
+    });
   }
 });
 
 // Clean up event listeners
 onUnmounted(() => {
-  window.electron.ipcRenderer.removeAllListeners("mqtt-connected");
-  window.electron.ipcRenderer.removeAllListeners("mqtt-connected");
-  window.electron.ipcRenderer.removeAllListeners("mqtt-message");
-  window.electron.ipcRenderer.removeAllListeners("mqtt-error");
+  if (connectionType.value === "mqtt" && window.electron?.ipcRenderer) {
+    window.electron.ipcRenderer.removeAllListeners("mqtt-connected");
+    window.electron.ipcRenderer.removeAllListeners("mqtt-message");
+    window.electron.ipcRenderer.removeAllListeners("mqtt-error");
+  }
+
+  // Disconnect WebSocket client if it exists
+  if (websocketClient.value) {
+    websocketClient.value.end();
+    websocketClient.value = null;
+  }
 
   // Clear graph data
   totalNodes.value = {};
@@ -223,6 +292,26 @@ function changePage(page: number) {
 
 function openGithub() {
   window.open("https://github.com/bekirbostanci/vda5050_visualizer", "_blank");
+}
+
+// Helper functions for WebSocket connection
+function extractAgvIdFromTopic(topic: string): AgvId | null {
+  const parts = topic.split("/");
+  return parts.length >= 4
+    ? {
+        manufacturer: parts[2],
+        serialNumber: parts[3],
+      }
+    : null;
+}
+
+function robotExists(agvId: AgvId): boolean {
+  if (!vda5050Visualizer) return false;
+  return vda5050Visualizer.robotList.value.some(
+    (robot) =>
+      robot.serialNumber === agvId.serialNumber &&
+      robot.manufacturer === agvId.manufacturer
+  );
 }
 </script>
 <template>
