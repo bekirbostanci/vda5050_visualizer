@@ -111,8 +111,8 @@ const clearInstantActionsSearch = () => {
       </div>
     </div>
     <ui-chips class="flex-right">
-      <ui-chip icon="raw_on" @click="orderShow = !orderShow" @dblclick="copyOrderData"> Order </ui-chip>
-      <ui-chip icon="raw_on" @click="instantActionsShow = !instantActionsShow" @dblclick="copyInstantActionsData">
+      <ui-chip icon="raw_on" @click="orderShow = !orderShow"> Order </ui-chip>
+      <ui-chip icon="raw_on" @click="instantActionsShow = !instantActionsShow">
         Instant Actions
       </ui-chip>
       <ui-chip
@@ -199,7 +199,6 @@ const clearInstantActionsSearch = () => {
     </div>
     <vue-json-pretty
       :data="orderSearchQuery ? { key: filteredOrderData } : { key: props.agv.orderInfo.value }"
-      :deep="3"
       :show-double-quotes="true"
       :show-length="true"
       :show-line="true"
@@ -231,7 +230,6 @@ const clearInstantActionsSearch = () => {
     </div>
     <vue-json-pretty
       :data="instantActionsSearchQuery ? { key: filteredInstantActionsData } : { key: props.agv.instantActionsInfo.value }"
-      :deep="3"
       :show-double-quotes="true"
       :show-length="true"
       :show-line="true"
@@ -338,7 +336,6 @@ ui-chip {
     cursor: pointer;
     
     &:after {
-      content: "Double-click to copy";
       position: absolute;
       bottom: -30px;
       left: 50%;

@@ -122,7 +122,7 @@ const clearErrorsSearch = () => {
       </div>
     </div>
     <ui-chips class="flex-right">
-      <ui-chip icon="raw_on" @click="stateShow = !stateShow" @dblclick="copyStateData"> State </ui-chip>
+      <ui-chip icon="raw_on" @click="stateShow = !stateShow"> State </ui-chip>
       <ui-chip icon="av_timer">
         {{ props.agv.stateInfo.value?.timestamp }}
       </ui-chip>
@@ -169,14 +169,12 @@ const clearErrorsSearch = () => {
       <ui-chip
         icon="pending_actions"
         @click="actionsStateShow = !actionsStateShow"
-        @dblclick="copyActionsData"
       >
         Actions : {{ props.agv.stateInfo.value?.actionStates?.length }}
       </ui-chip>
       <ui-chip 
         icon="errors" 
         @click="errorsShow = !errorsShow"
-        @dblclick="copyErrorsData"
       >
         Errors : {{ props.agv.stateInfo.value?.errors?.length }}
       </ui-chip>
@@ -205,7 +203,6 @@ const clearErrorsSearch = () => {
     </div>
     <vue-json-pretty
       :data="stateSearchQuery ? { key: filteredStateData } : { key: props.agv.stateInfo.value }"
-      :deep="3"
       :show-double-quotes="true"
       :show-length="true"
       :show-line="true"
@@ -237,7 +234,6 @@ const clearErrorsSearch = () => {
     </div>
     <vue-json-pretty
       :data="actionsSearchQuery ? { key: filteredActionsData } : { key: props.agv.stateInfo.value?.actionStates }"
-      :deep="3"
       :show-double-quotes="true"
       :show-length="true"
       :show-line="true"
@@ -269,7 +265,6 @@ const clearErrorsSearch = () => {
     </div>
     <vue-json-pretty
       :data="errorsSearchQuery ? { key: filteredErrorsData } : { key: props.agv.stateInfo.value?.errors }"
-      :deep="3"
       :show-double-quotes="true"
       :show-length="true"
       :show-line="true"
