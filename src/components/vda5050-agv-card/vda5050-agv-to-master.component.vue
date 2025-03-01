@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { VDA5050Agv } from "@/controllers/vda5050-agv.controller";
-import { ref, computed } from "vue";
+import { ref, computed, watch, onMounted } from "vue";
 import VueJsonPretty from "vue-json-pretty";
 import "vue-json-pretty/lib/styles.css";
 
@@ -10,6 +10,14 @@ const props = defineProps({
 const stateShow = ref(false);
 const errorsShow = ref(false);
 const actionsStateShow = ref(false);
+const messageHistoryShow = ref(false);
+const activeHistoryTab = ref('state');
+
+// Message history
+const MAX_HISTORY_ITEMS = 5;
+const stateHistory = ref<any[]>([]);
+const actionsHistory = ref<any[]>([]);
+const errorsHistory = ref<any[]>([]);
 
 // Search functionality
 const stateSearchQuery = ref('');
@@ -33,6 +41,7 @@ const copyToClipboard = (data: any) => {
 const copyStateData = () => copyToClipboard(props.agv.stateInfo.value);
 const copyActionsData = () => copyToClipboard(props.agv.stateInfo.value?.actionStates);
 const copyErrorsData = () => copyToClipboard(props.agv.stateInfo.value?.errors);
+const copyHistoryItem = (item: any) => copyToClipboard(item);
 
 // Search in JSON data
 const searchInJson = (json: any, query: string): any => {
@@ -108,6 +117,89 @@ const clearActionsSearch = () => {
 const clearErrorsSearch = () => {
   errorsSearchQuery.value = '';
 };
+
+// Watch for changes in state data to update history
+watch(() => props.agv.stateInfo.value, (newValue) => {
+  if (newValue) {
+    // Create a timestamp for the history item
+    const historyItem = {
+      timestamp: new Date().toISOString(),
+      data: JSON.parse(JSON.stringify(newValue)),
+      type: 'state'
+    };
+    
+    // Add to history and maintain max length
+    stateHistory.value.unshift(historyItem);
+    if (stateHistory.value.length > MAX_HISTORY_ITEMS) {
+      stateHistory.value = stateHistory.value.slice(0, MAX_HISTORY_ITEMS);
+    }
+    
+    // Also track action states if they exist
+    if (newValue.actionStates && newValue.actionStates.length > 0) {
+      const actionsItem = {
+        timestamp: new Date().toISOString(),
+        data: JSON.parse(JSON.stringify(newValue.actionStates)),
+        type: 'actions',
+        stateId: newValue.headerId
+      };
+      
+      actionsHistory.value.unshift(actionsItem);
+      if (actionsHistory.value.length > MAX_HISTORY_ITEMS) {
+        actionsHistory.value = actionsHistory.value.slice(0, MAX_HISTORY_ITEMS);
+      }
+    }
+    
+    // Also track errors if they exist
+    if (newValue.errors && newValue.errors.length > 0) {
+      const errorsItem = {
+        timestamp: new Date().toISOString(),
+        data: JSON.parse(JSON.stringify(newValue.errors)),
+        type: 'errors',
+        stateId: newValue.headerId
+      };
+      
+      errorsHistory.value.unshift(errorsItem);
+      if (errorsHistory.value.length > MAX_HISTORY_ITEMS) {
+        errorsHistory.value = errorsHistory.value.slice(0, MAX_HISTORY_ITEMS);
+      }
+    }
+  }
+}, { deep: true });
+
+// Format timestamp for display
+const formatTimestamp = (timestamp: string) => {
+  const date = new Date(timestamp);
+  return date.toLocaleTimeString();
+};
+
+// Initialize history with current values if available
+onMounted(() => {
+  if (props.agv.stateInfo.value) {
+    stateHistory.value.push({
+      timestamp: new Date().toISOString(),
+      data: JSON.parse(JSON.stringify(props.agv.stateInfo.value)),
+      type: 'state'
+    });
+    
+    if (props.agv.stateInfo.value.actionStates && props.agv.stateInfo.value.actionStates.length > 0) {
+      actionsHistory.value.push({
+        timestamp: new Date().toISOString(),
+        data: JSON.parse(JSON.stringify(props.agv.stateInfo.value.actionStates)),
+        type: 'actions',
+        stateId: props.agv.stateInfo.value.headerId
+      });
+    }
+    
+    if (props.agv.stateInfo.value.errors && props.agv.stateInfo.value.errors.length > 0) {
+      errorsHistory.value.push({
+        timestamp: new Date().toISOString(),
+        data: JSON.parse(JSON.stringify(props.agv.stateInfo.value.errors)),
+        type: 'errors',
+        stateId: props.agv.stateInfo.value.headerId
+      });
+    }
+  }
+});
 </script>
 
 <template>
@@ -122,7 +214,10 @@ const clearErrorsSearch = () => {
       </div>
     </div>
     <ui-chips class="flex-right">
-      <ui-chip icon="raw_on" @click="stateShow = !stateShow"> State </ui-chip>
+      <ui-chip icon="raw_on" @click="stateShow = !stateShow" @dblclick="copyStateData"> State </ui-chip>
+      <ui-chip icon="history" @click="messageHistoryShow = !messageHistoryShow">
+        History
+      </ui-chip>
       <ui-chip icon="av_timer">
         {{ props.agv.stateInfo.value?.timestamp }}
       </ui-chip>
@@ -169,16 +264,122 @@ const clearErrorsSearch = () => {
       <ui-chip
         icon="pending_actions"
         @click="actionsStateShow = !actionsStateShow"
+        @dblclick="copyActionsData"
       >
         Actions : {{ props.agv.stateInfo.value?.actionStates?.length }}
       </ui-chip>
       <ui-chip 
         icon="errors" 
         @click="errorsShow = !errorsShow"
+        @dblclick="copyErrorsData"
       >
         Errors : {{ props.agv.stateInfo.value?.errors?.length }}
       </ui-chip>
     </ui-chips>
+  </div>
+  
+  <!-- Message History Section -->
+  <div v-if="messageHistoryShow" class="history-container">
+    <div class="history-header">
+      <span>Message History (Last {{ MAX_HISTORY_ITEMS }})</span>
+    </div>
+    
+    <div class="history-tabs">
+      <button 
+        class="history-tab" 
+        :class="{ active: activeHistoryTab === 'state' }" 
+        @click="activeHistoryTab = 'state'"
+      >
+        States ({{ stateHistory.length }})
+      </button>
+      <button 
+        class="history-tab" 
+        :class="{ active: activeHistoryTab === 'actions' }" 
+        @click="activeHistoryTab = 'actions'"
+      >
+        Actions ({{ actionsHistory.length }})
+      </button>
+      <button 
+        class="history-tab" 
+        :class="{ active: activeHistoryTab === 'errors' }" 
+        @click="activeHistoryTab = 'errors'"
+      >
+        Errors ({{ errorsHistory.length }})
+      </button>
+    </div>
+    
+    <div v-if="activeHistoryTab === 'state'" class="history-list">
+      <div v-if="stateHistory.length === 0" class="no-history">
+        No state history available
+      </div>
+      <div v-for="(item, index) in stateHistory" :key="index" class="history-item">
+        <div class="history-item-header">
+          <div class="history-item-info">
+            <span class="history-timestamp">{{ formatTimestamp(item.timestamp) }}</span>
+            <span class="history-id" v-if="item.data.headerId">Header ID: {{ item.data.headerId }}</span>
+            <span class="history-id" v-if="item.data.orderId">Order ID: {{ item.data.orderId }}</span>
+          </div>
+          <button class="copy-btn" @click="copyHistoryItem(item.data)">
+            <i class="material-icons">content_copy</i>
+          </button>
+        </div>
+        <vue-json-pretty
+          :data="{ key: item.data }"
+          :show-double-quotes="true"
+          :show-length="true"
+          :collapsed="true"
+          :collapsed-on-click-brackets="true"
+        />
+      </div>
+    </div>
+    
+    <div v-if="activeHistoryTab === 'actions'" class="history-list">
+      <div v-if="actionsHistory.length === 0" class="no-history">
+        No actions history available
+      </div>
+      <div v-for="(item, index) in actionsHistory" :key="index" class="history-item">
+        <div class="history-item-header">
+          <div class="history-item-info">
+            <span class="history-timestamp">{{ formatTimestamp(item.timestamp) }}</span>
+            <span class="history-id" v-if="item.stateId">State ID: {{ item.stateId }}</span>
+          </div>
+          <button class="copy-btn" @click="copyHistoryItem(item.data)">
+            <i class="material-icons">content_copy</i>
+          </button>
+        </div>
+        <vue-json-pretty
+          :data="{ key: item.data }"
+          :show-double-quotes="true"
+          :show-length="true"
+          :collapsed="true"
+          :collapsed-on-click-brackets="true"
+        />
+      </div>
+    </div>
+    
+    <div v-if="activeHistoryTab === 'errors'" class="history-list">
+      <div v-if="errorsHistory.length === 0" class="no-history">
+        No errors history available
+      </div>
+      <div v-for="(item, index) in errorsHistory" :key="index" class="history-item">
+        <div class="history-item-header">
+          <div class="history-item-info">
+            <span class="history-timestamp">{{ formatTimestamp(item.timestamp) }}</span>
+            <span class="history-id" v-if="item.stateId">State ID: {{ item.stateId }}</span>
+          </div>
+          <button class="copy-btn" @click="copyHistoryItem(item.data)">
+            <i class="material-icons">content_copy</i>
+          </button>
+        </div>
+        <vue-json-pretty
+          :data="{ key: item.data }"
+          :show-double-quotes="true"
+          :show-length="true"
+          :collapsed="true"
+          :collapsed-on-click-brackets="true"
+        />
+      </div>
+    </div>
   </div>
   
   <div v-if="stateShow" class="json-container">
@@ -276,7 +477,7 @@ const clearErrorsSearch = () => {
 </template>
 
 <style lang="scss" scoped>
-.json-container {
+.json-container, .history-container {
   position: relative;
   margin-top: 10px;
   border: 1px solid #eee;
@@ -284,7 +485,7 @@ const clearErrorsSearch = () => {
   overflow: hidden;
 }
 
-.json-header {
+.json-header, .history-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -361,6 +562,82 @@ const clearErrorsSearch = () => {
   i {
     font-size: 18px;
   }
+}
+
+// History styles
+.history-tabs {
+  display: flex;
+  background-color: #f9f9f9;
+  border-bottom: 1px solid #eee;
+}
+
+.history-tab {
+  padding: 8px 16px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+  
+  &:hover {
+    background-color: #f0f0f0;
+  }
+  
+  &.active {
+    border-bottom-color: #2196F3;
+    font-weight: bold;
+  }
+}
+
+.history-list {
+  max-height: 500px;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.history-item {
+  margin-bottom: 12px;
+  border: 1px solid #eee;
+  border-radius: 4px;
+  overflow: hidden;
+  
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.history-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background-color: #f9f9f9;
+  border-bottom: 1px solid #eee;
+}
+
+.history-item-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.history-timestamp {
+  font-size: 12px;
+  color: #666;
+  font-weight: bold;
+}
+
+.history-id {
+  font-size: 12px;
+  color: #333;
+}
+
+.no-history {
+  padding: 16px;
+  text-align: center;
+  color: #666;
+  font-style: italic;
 }
 
 // Add tooltip for chips with double-click functionality

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { VDA5050Agv } from "@/controllers/vda5050-agv.controller";
-import { ref, computed } from "vue";
+import { ref, computed, watch, onMounted } from "vue";
 import VueJsonPretty from "vue-json-pretty";
 import "vue-json-pretty/lib/styles.css";
 import configs from "@/utils/configs";
@@ -11,6 +11,13 @@ const props = defineProps({
 const orderShow = ref(false);
 const orderGraphShow = ref(false);
 const instantActionsShow = ref(false);
+const messageHistoryShow = ref(false);
+const activeHistoryTab = ref('orders');
+
+// Message history
+const MAX_HISTORY_ITEMS = 5;
+const orderHistory = ref<any[]>([]);
+const instantActionsHistory = ref<any[]>([]);
 
 // Search functionality
 const orderSearchQuery = ref('');
@@ -32,6 +39,7 @@ const copyToClipboard = (data: any) => {
 // Copy specific data based on type
 const copyOrderData = () => copyToClipboard(props.agv.orderInfo.value);
 const copyInstantActionsData = () => copyToClipboard(props.agv.instantActionsInfo.value);
+const copyHistoryItem = (item: any) => copyToClipboard(item);
 
 // Search in JSON data
 const searchInJson = (json: any, query: string): any => {
@@ -99,6 +107,66 @@ const clearOrderSearch = () => {
 const clearInstantActionsSearch = () => {
   instantActionsSearchQuery.value = '';
 };
+
+// Watch for changes in order and instant actions data to update history
+watch(() => props.agv.orderInfo.value, (newValue) => {
+  if (newValue) {
+    // Create a timestamp for the history item
+    const historyItem = {
+      timestamp: new Date().toISOString(),
+      data: JSON.parse(JSON.stringify(newValue)),
+      type: 'order'
+    };
+    
+    // Add to history and maintain max length
+    orderHistory.value.unshift(historyItem);
+    if (orderHistory.value.length > MAX_HISTORY_ITEMS) {
+      orderHistory.value = orderHistory.value.slice(0, MAX_HISTORY_ITEMS);
+    }
+  }
+}, { deep: true });
+
+watch(() => props.agv.instantActionsInfo.value, (newValue) => {
+  if (newValue) {
+    // Create a timestamp for the history item
+    const historyItem = {
+      timestamp: new Date().toISOString(),
+      data: JSON.parse(JSON.stringify(newValue)),
+      type: 'instantAction'
+    };
+    
+    // Add to history and maintain max length
+    instantActionsHistory.value.unshift(historyItem);
+    if (instantActionsHistory.value.length > MAX_HISTORY_ITEMS) {
+      instantActionsHistory.value = instantActionsHistory.value.slice(0, MAX_HISTORY_ITEMS);
+    }
+  }
+}, { deep: true });
+
+// Format timestamp for display
+const formatTimestamp = (timestamp: string) => {
+  const date = new Date(timestamp);
+  return date.toLocaleTimeString();
+};
+
+// Initialize history with current values if available
+onMounted(() => {
+  if (props.agv.orderInfo.value) {
+    orderHistory.value.push({
+      timestamp: new Date().toISOString(),
+      data: JSON.parse(JSON.stringify(props.agv.orderInfo.value)),
+      type: 'order'
+    });
+  }
+  
+  if (props.agv.instantActionsInfo.value) {
+    instantActionsHistory.value.push({
+      timestamp: new Date().toISOString(),
+      data: JSON.parse(JSON.stringify(props.agv.instantActionsInfo.value)),
+      type: 'instantAction'
+    });
+  }
+});
 </script>
 
 <template>
@@ -111,8 +179,8 @@ const clearInstantActionsSearch = () => {
       </div>
     </div>
     <ui-chips class="flex-right">
-      <ui-chip icon="raw_on" @click="orderShow = !orderShow"> Order </ui-chip>
-      <ui-chip icon="raw_on" @click="instantActionsShow = !instantActionsShow">
+      <ui-chip icon="raw_on" @click="orderShow = !orderShow" @dblclick="copyOrderData"> Order </ui-chip>
+      <ui-chip icon="raw_on" @click="instantActionsShow = !instantActionsShow" @dblclick="copyInstantActionsData">
         Instant Actions
       </ui-chip>
       <ui-chip
@@ -129,7 +197,9 @@ const clearInstantActionsSearch = () => {
       >
         Show
       </ui-chip>
-
+      <ui-chip icon="history" @click="messageHistoryShow = !messageHistoryShow">
+        History
+      </ui-chip>
       <ui-chip icon="av_timer">
         {{ props.agv.orderInfo.value?.timestamp }}
       </ui-chip>
@@ -142,6 +212,78 @@ const clearInstantActionsSearch = () => {
       </div>
       <div class="card-font mal-1">
         Update : {{ props.agv.orderInfo.value?.orderUpdateId }}
+      </div>
+    </div>
+  </div>
+
+  <!-- Message History Section -->
+  <div v-if="messageHistoryShow" class="history-container">
+    <div class="history-header">
+      <span>Message History (Last {{ MAX_HISTORY_ITEMS }})</span>
+    </div>
+    
+    <div class="history-tabs">
+      <button 
+        class="history-tab" 
+        :class="{ active: activeHistoryTab === 'orders' }" 
+        @click="activeHistoryTab = 'orders'"
+      >
+        Orders ({{ orderHistory.length }})
+      </button>
+      <button 
+        class="history-tab" 
+        :class="{ active: activeHistoryTab === 'instantActions' }" 
+        @click="activeHistoryTab = 'instantActions'"
+      >
+        Instant Actions ({{ instantActionsHistory.length }})
+      </button>
+    </div>
+    
+    <div v-if="activeHistoryTab === 'orders'" class="history-list">
+      <div v-if="orderHistory.length === 0" class="no-history">
+        No order history available
+      </div>
+      <div v-for="(item, index) in orderHistory" :key="index" class="history-item">
+        <div class="history-item-header">
+          <div class="history-item-info">
+            <span class="history-timestamp">{{ formatTimestamp(item.timestamp) }}</span>
+            <span class="history-id" v-if="item.data.orderId">Order ID: {{ item.data.orderId }}</span>
+          </div>
+          <button class="copy-btn" @click="copyHistoryItem(item.data)">
+            <i class="material-icons">content_copy</i>
+          </button>
+        </div>
+        <vue-json-pretty
+          :data="{ key: item.data }"
+          :show-double-quotes="true"
+          :show-length="true"
+          :collapsed="true"
+          :collapsed-on-click-brackets="true"
+        />
+      </div>
+    </div>
+    
+    <div v-if="activeHistoryTab === 'instantActions'" class="history-list">
+      <div v-if="instantActionsHistory.length === 0" class="no-history">
+        No instant actions history available
+      </div>
+      <div v-for="(item, index) in instantActionsHistory" :key="index" class="history-item">
+        <div class="history-item-header">
+          <div class="history-item-info">
+            <span class="history-timestamp">{{ formatTimestamp(item.timestamp) }}</span>
+            <span class="history-id" v-if="item.data.instantActionId">Action ID: {{ item.data.instantActionId }}</span>
+          </div>
+          <button class="copy-btn" @click="copyHistoryItem(item.data)">
+            <i class="material-icons">content_copy</i>
+          </button>
+        </div>
+        <vue-json-pretty
+          :data="{ key: item.data }"
+          :show-double-quotes="true"
+          :show-length="true"
+          :collapsed="true"
+          :collapsed-on-click-brackets="true"
+        />
       </div>
     </div>
   </div>
@@ -241,7 +383,7 @@ const clearInstantActionsSearch = () => {
 </template>
 
 <style lang="scss" scoped>
-.json-container {
+.json-container, .history-container {
   position: relative;
   margin-top: 10px;
   border: 1px solid #eee;
@@ -249,7 +391,7 @@ const clearInstantActionsSearch = () => {
   overflow: hidden;
 }
 
-.json-header {
+.json-header, .history-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -328,6 +470,82 @@ const clearInstantActionsSearch = () => {
   }
 }
 
+// History styles
+.history-tabs {
+  display: flex;
+  background-color: #f9f9f9;
+  border-bottom: 1px solid #eee;
+}
+
+.history-tab {
+  padding: 8px 16px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+  
+  &:hover {
+    background-color: #f0f0f0;
+  }
+  
+  &.active {
+    border-bottom-color: #2196F3;
+    font-weight: bold;
+  }
+}
+
+.history-list {
+  max-height: 500px;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.history-item {
+  margin-bottom: 12px;
+  border: 1px solid #eee;
+  border-radius: 4px;
+  overflow: hidden;
+  
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.history-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background-color: #f9f9f9;
+  border-bottom: 1px solid #eee;
+}
+
+.history-item-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.history-timestamp {
+  font-size: 12px;
+  color: #666;
+  font-weight: bold;
+}
+
+.history-id {
+  font-size: 12px;
+  color: #333;
+}
+
+.no-history {
+  padding: 16px;
+  text-align: center;
+  color: #666;
+  font-style: italic;
+}
+
 // Add tooltip for chips with double-click functionality
 ui-chip {
   position: relative;
@@ -336,6 +554,7 @@ ui-chip {
     cursor: pointer;
     
     &:after {
+      content: "Double-click to copy";
       position: absolute;
       bottom: -30px;
       left: 50%;
