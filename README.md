@@ -1,3 +1,94 @@
+# VDA5050 Visualizer
+
+A visualization tool for VDA5050 AGVs (Automated Guided Vehicles) that supports both WebSocket and Electron IPC MQTT connections.
+
+## Shared MQTT Client
+
+The application uses a shared MQTT client to optimize connection management and prevent multiple connections when one already exists. This approach provides several benefits:
+
+1. **Efficiency**: Only one MQTT connection is created, regardless of how many AGVs are being monitored
+2. **Simplicity**: Components can subscribe to specific topics without managing the connection
+3. **Reliability**: Connection management is centralized, making it easier to handle reconnections
+4. **Flexibility**: Works with both WebSocket and Electron IPC approaches
+
+### Key Components
+
+- **SharedMqttClient**: A singleton class that manages a single MQTT connection shared across the application
+- **VDA5050Agv**: Controller for individual AGVs that uses the shared client for WebSocket connections
+- **VDA5050Visualizer**: Component that creates and manages the shared client for the application
+- **VDA5050Controller**: Main controller that coordinates AGV instances and message routing
+
+### Usage Example
+
+```typescript
+import { sharedMqttClient } from './utils/shared-mqtt-client';
+
+// Connect to the MQTT broker
+await sharedMqttClient.connect(
+  'localhost',
+  '9001',
+  'client_id',
+  'username',
+  'password'
+);
+
+// Subscribe to topics
+sharedMqttClient.subscribe(['topic1', 'topic2']);
+
+// Subscribe to messages
+const unsubscribe = sharedMqttClient.subscribeToMessages((topic, message) => {
+  console.log(`Received message on ${topic}:`, message);
+});
+
+// Publish a message
+sharedMqttClient.publish('topic', { data: 'value' });
+
+// Unsubscribe from messages when done
+unsubscribe();
+
+// Disconnect when the application is shutting down
+// Note: This will disconnect all components using the shared client
+sharedMqttClient.disconnect();
+```
+
+## Connection Types
+
+The application supports two types of MQTT connections:
+
+1. **WebSocket**: Direct connection to an MQTT broker via WebSocket
+2. **Electron IPC**: Connection via Electron's IPC mechanism (for desktop applications)
+
+The connection type can be configured in the application settings.
+
+## Development
+
+### Prerequisites
+
+- Node.js 14+
+- npm or yarn
+
+### Installation
+
+```bash
+npm install
+```
+
+### Running the Application
+
+```bash
+npm run dev
+```
+
+### Building for Production
+
+```bash
+npm run build
+```
+
+## License
+
+MIT
+
 ## VDA5050 Visualizer
 The purpose of this package is to view and visualize vda5050 messages more quickly without looking at the json data. After running the application, you need to press the start button.
 

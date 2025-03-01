@@ -131,6 +131,21 @@ export class VDA5050Agv implements IVDA5050Agv {
   public disconnect(): void {
     // No need to disconnect the shared client
     // Just unsubscribe from messages if needed
+    if (sharedMqttClient.connected) {
+      const topics = [
+        `${this.mqttTopic}/${Topic.InstantActions}`,
+        `${this.mqttTopic}/${Topic.Order}`,
+        `${this.mqttTopic}/${Topic.State}`,
+        `${this.mqttTopic}/${Topic.Connection}`,
+        `${this.mqttTopic}/${Topic.Visualization}`,
+      ];
+      
+      // Unsubscribe from topics if needed
+      // Note: We don't actually unsubscribe here to avoid affecting other components
+      // that might be using the same topics
+      
+      console.log(`Disconnected AGV ${this.agvId.serialNumber}`);
+    }
   }
 
   private updateAgvPosition(position: { x: number; y: number }): void {

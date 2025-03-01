@@ -101,70 +101,75 @@ function updateBroker() {
     // Handle WebSocket connection using the shared MQTT client
     const mqttUrl = `ws://${brokerIp.value}:${brokerPort.value}/ws`;
     
-    // Create a new client
-    websocketClient.value = mqtt.connect(mqttUrl, {
-      clientId: `vda5050_client_${Math.random().toString(16).slice(2, 8)}`,
-      username: username.value || undefined,
-      password: password.value || undefined,
-    });
-    
-    // Set the client in the shared service
-    sharedMqttClient.setClient(websocketClient.value);
-    
-    websocketClient.value.on("connect", () => {
-      console.log("WebSocket connected");
-      mqttStatus.value = MqttClientState.CONNECTED;
+    try {
+      // Create a new client
+      websocketClient.value = mqtt.connect(mqttUrl, {
+        clientId: `vda5050_client_${Math.random().toString(16).slice(2, 8)}`,
+        username: username.value || undefined,
+        password: password.value || undefined,
+      });
       
-      // Subscribe to topics after connecting
-      const topics = [
-        `${interfaceName.value}/+/+/+/connection`,
-        `${interfaceName.value}/+/+/+/instantActions`,
-        `${interfaceName.value}/+/+/+/order`,
-        `${interfaceName.value}/+/+/+/state`,
-        `${interfaceName.value}/+/+/+/visualization`,
-      ];
+      // Set the client in the shared service
+      sharedMqttClient.setClient(websocketClient.value);
       
-      websocketClient.value?.subscribe(topics, (err: Error | null) => {
-        if (err) {
-          console.error("WebSocket Subscription error:", err);
-        } else {
-          console.log("Subscribed to WebSocket topics:", topics);
+      websocketClient.value.on("connect", () => {
+        console.log("WebSocket connected");
+        mqttStatus.value = MqttClientState.CONNECTED;
+        
+        // Subscribe to topics after connecting
+        const topics = [
+          `${interfaceName.value}/+/+/+/connection`,
+          `${interfaceName.value}/+/+/+/instantActions`,
+          `${interfaceName.value}/+/+/+/order`,
+          `${interfaceName.value}/+/+/+/state`,
+          `${interfaceName.value}/+/+/+/visualization`,
+        ];
+        
+        websocketClient.value?.subscribe(topics, (err?: Error) => {
+          if (err) {
+            console.error("WebSocket Subscription error:", err);
+          } else {
+            console.log("Subscribed to WebSocket topics:", topics);
+          }
+        });
+      });
+      
+      websocketClient.value.on("error", (error: Error) => {
+        console.error("WebSocket connection error:", error);
+        mqttStatus.value = MqttClientState.OFFLINE;
+      });
+      
+      websocketClient.value.on("close", () => {
+        console.log("WebSocket connection closed");
+        mqttStatus.value = MqttClientState.OFFLINE;
+      });
+      
+      websocketClient.value.on("reconnect", () => {
+        console.log("WebSocket reconnecting");
+        mqttStatus.value = MqttClientState.RECONNECTING;
+      });
+      
+      websocketClient.value.on("message", (topic: string, message: Buffer) => {
+        try {
+          const messageString = new TextDecoder().decode(message);
+          const messageObject = JSON.parse(messageString);
+          mqttMessages.value.push({ topic, message: messageObject });
+          
+          // Handle connection messages to update robot list
+          if (topic.includes("/connection") && vda5050Visualizer) {
+            const agvId = extractAgvIdFromTopic(topic);
+            if (agvId && !robotExists(agvId)) {
+              vda5050Visualizer.robotList.value.push(agvId);
+            }
+          }
+        } catch (error) {
+          console.error("Error processing WebSocket message:", error);
         }
       });
-    });
-    
-    websocketClient.value.on("error", (error: Error) => {
-      console.error("WebSocket connection error:", error);
+    } catch (error) {
+      console.error("Failed to connect to WebSocket:", error);
       mqttStatus.value = MqttClientState.OFFLINE;
-    });
-    
-    websocketClient.value.on("close", () => {
-      console.log("WebSocket connection closed");
-      mqttStatus.value = MqttClientState.OFFLINE;
-    });
-    
-    websocketClient.value.on("reconnect", () => {
-      console.log("WebSocket reconnecting");
-      mqttStatus.value = MqttClientState.RECONNECTING;
-    });
-    
-    websocketClient.value.on("message", (topic: string, message: Buffer) => {
-      try {
-        const messageString = new TextDecoder().decode(message);
-        const messageObject = JSON.parse(messageString);
-        mqttMessages.value.push({ topic, message: messageObject });
-        
-        // Handle connection messages to update robot list
-        if (topic.includes("/connection") && vda5050Visualizer) {
-          const agvId = extractAgvIdFromTopic(topic);
-          if (agvId && !robotExists(agvId)) {
-            vda5050Visualizer.robotList.value.push(agvId);
-          }
-        }
-      } catch (error) {
-        console.error("Error processing WebSocket message:", error);
-      }
-    });
+    }
   }
 }
 

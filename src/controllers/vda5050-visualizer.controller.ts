@@ -35,6 +35,7 @@ export class VDA5050Visualizer {
     password: "",
     connectionType: "",
   };
+  private messageUnsubscriber: (() => void) | null = null;
 
   constructor(mqttConfig: MqttConfig) {
     this.setupMessageHandler(mqttConfig);
@@ -50,7 +51,14 @@ export class VDA5050Visualizer {
       });
     } else if (mqttConfig.connectionType === "websocket") {
       // Use the shared MQTT client for WebSocket connections
-      sharedMqttClient.subscribeToMessages((topic, message) => {
+      // Clean up any existing subscription first
+      if (this.messageUnsubscriber) {
+        this.messageUnsubscriber();
+        this.messageUnsubscriber = null;
+      }
+      
+      // Subscribe to messages with the new unsubscribe function
+      this.messageUnsubscriber = sharedMqttClient.subscribeToMessages((topic, message) => {
         if (topic.includes("/connection")) {
           this.handleConnectionMessage(topic);
         }
@@ -78,7 +86,8 @@ export class VDA5050Visualizer {
       this.mqttConfig.basePath,
       this.mqttConfig.interfaceName,
       this.mqttConfig.username,
-      this.mqttConfig.password
+      this.mqttConfig.password,
+      "mqtt" // Explicitly set connection type
     );
   }
 
@@ -152,6 +161,18 @@ export class VDA5050Visualizer {
         robot.serialNumber === agvId.serialNumber &&
         robot.manufacturer === agvId.manufacturer
     );
+  }
+  
+  // Clean up resources when the component is destroyed
+  public disconnect(): void {
+    // Clean up message subscription
+    if (this.messageUnsubscriber) {
+      this.messageUnsubscriber();
+      this.messageUnsubscriber = null;
+    }
+    
+    // Note: We don't disconnect the shared client here
+    // as other components might still be using it
   }
 
   async addRobot(serial: string, mapId: string, x: number, y: number) {

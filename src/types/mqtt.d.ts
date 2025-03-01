@@ -43,6 +43,12 @@ declare module 'mqtt' {
       callback?: (error?: Error) => void
     ): this;
     
+    public unsubscribe(
+      topic: string | string[],
+      options?: any,
+      callback?: (error?: Error) => void
+    ): this;
+    
     public publish(
       topic: string,
       message: string | Buffer,
