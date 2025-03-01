@@ -24,6 +24,9 @@ const instantActionsShow = ref(false);
     </div>
     <ui-chips class="flex-right">
       <ui-chip icon="raw_on" @click="orderShow = !orderShow"> Order </ui-chip>
+      <ui-chip icon="raw_on" @click="instantActionsShow = !instantActionsShow">
+        Instant Actions
+      </ui-chip>
       <ui-chip
         icon="disabled_visible"
         @click="orderGraphShow = !orderGraphShow"
@@ -38,9 +41,7 @@ const instantActionsShow = ref(false);
       >
         Show
       </ui-chip>
-      <ui-chip icon="raw_on" @click="instantActionsShow = !instantActionsShow">
-        Instant Actions
-      </ui-chip>
+
       <ui-chip icon="av_timer">
         {{ props.agv.orderInfo.value?.timestamp }}
       </ui-chip>
