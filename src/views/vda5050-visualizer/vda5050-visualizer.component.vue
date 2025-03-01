@@ -37,6 +37,9 @@ let vda5050Visualizer: VDA5050Visualizer | undefined;
 const version = ref(import.meta.env.VITE_VDA_VERSION);
 const settings = ref(false);
 
+// Check if Electron is available
+const isElectronAvailable = ref(typeof window.electron !== 'undefined');
+
 // Add new refs for MQTT status
 const mqttStatus = ref(MqttClientState.OFFLINE);
 const mqttMessages = ref<any[]>([]);
@@ -52,13 +55,30 @@ const paginationOptions = [
   { label: "100 per page", value: "100" },
 ];
 
-const connectionType = ref("websocket");
+// Set default connection type based on Electron availability
+const connectionType = ref(isElectronAvailable.value ? "mqtt" : "websocket");
 
-// Add options for connection type
-const connectionOptions = [
-  { label: "MQTT", value: "mqtt" },
-  { label: "WebSocket", value: "websocket" },
-];
+// Add options for connection type based on Electron availability
+const connectionOptions = computed(() => {
+  const options = [
+    { label: "WebSocket", value: "websocket" }
+  ];
+  
+  // Only add MQTT option if Electron is available
+  if (isElectronAvailable.value) {
+    options.unshift({ label: "MQTT", value: "mqtt" });
+  }
+  
+  return options;
+});
+
+// Watch for changes in connection type to ensure it's valid
+onMounted(() => {
+  // If Electron is not available and connection type is set to mqtt, change it to websocket
+  if (!isElectronAvailable.value && connectionType.value === "mqtt") {
+    connectionType.value = "websocket";
+  }
+});
 
 function updateBroker() {
   version.value += 1;
