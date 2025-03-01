@@ -69,7 +69,14 @@ export class VDA5050Agv implements IVDA5050Agv {
     // Subscribe to messages
     sharedMqttClient.subscribeToMessages((topic, message) => {
       // Only process messages for this AGV
-      if (topic.includes(`${this.agvId.manufacturer}/${this.agvId.serialNumber}`)) {
+      // Use a more precise matching method to avoid substring matching issues
+      // Split the topic into parts and check for exact matches of manufacturer and serialNumber
+      const topicParts = topic.split('/');
+      const manufacturerIndex = topicParts.findIndex(part => part === this.agvId.manufacturer);
+      
+      if (manufacturerIndex !== -1 && 
+          manufacturerIndex + 1 < topicParts.length && 
+          topicParts[manufacturerIndex + 1] === this.agvId.serialNumber) {
         this.handleMqttMessage(topic, message);
       }
     });

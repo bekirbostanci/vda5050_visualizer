@@ -39,7 +39,13 @@ export async function connectToMqttWithSharedClient(
     // Subscribe to messages
     sharedMqttClient.subscribeToMessages((topic, message) => {
       // Only process messages for this AGV
-      if (topic.includes(`${manufacturer}/${serialNumber}`)) {
+      // Use a more precise matching method to avoid substring matching issues
+      const topicParts = topic.split('/');
+      const manufacturerIndex = topicParts.findIndex(part => part === manufacturer);
+      
+      if (manufacturerIndex !== -1 && 
+          manufacturerIndex + 1 < topicParts.length && 
+          topicParts[manufacturerIndex + 1] === serialNumber) {
         console.log(`Received message on topic ${topic}:`, message);
         
         // Handle different message types based on the topic
