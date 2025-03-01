@@ -5,7 +5,7 @@ import {
 } from "./vda5050.controller";
 import { ref } from "vue";
 import { MqttClientState } from "../types/mqtt.types";
-
+import mqtt from "mqtt";
 // Define interfaces locally to avoid import issues
 interface AgvId {
   manufacturer: string;
@@ -19,32 +19,65 @@ interface MqttConfig {
   interfaceName: string;
   username: string;
   password: string;
+  connectionType: string;
 }
 
 export class VDA5050Visualizer {
   public readonly robotList = ref<AgvId[]>([]);
-  private readonly mqttConfig: MqttConfig = {
+  private mqttConfig: MqttConfig = {
     host: "",
     port: "",
     basePath: "",
     interfaceName: "",
     username: "",
     password: "",
+    connectionType: "",
   };
 
-  constructor() {
-    this.setupMessageHandler();
+  constructor(mqttConfig: MqttConfig) {
+    this.setupMessageHandler(mqttConfig);
   }
 
-  private setupMessageHandler(): void {
-    window.electron.ipcRenderer.on("mqtt-message", (data) => {
-      if (data.topic.includes("/connection")) {
-        this.handleConnectionMessage(data.topic);
-      }
-    });
+  private setupMessageHandler(mqttConfig: MqttConfig): void {
+    this.mqttConfig = mqttConfig;
+    if (mqttConfig.connectionType === "mqtt") {
+      window.electron.ipcRenderer.on("mqtt-message", (data) => {
+        if (data.topic.includes("/connection")) {
+          this.handleConnectionMessage(data.topic);
+        }
+      });
+    } else if (mqttConfig.connectionType === "websocket") {
+      // Implement WebSocket message handling here
+      // dont use electron for websocket
+      
+      const mqttUrl = `ws://${this.mqttConfig.host}:${this.mqttConfig.port}/ws`;
+      const client = mqtt.connect(mqttUrl, {
+        clientId: `vda5050_client_${Math.random().toString(16).slice(2, 8)}`,
+        username: this.mqttConfig.username || undefined,
+        password: this.mqttConfig.password || undefined,
+      });
+      client.on("connect", () => {
+        console.log("WebSocket connected");
+        // Subscribe to topics after connecting
+        const topics = [
+          `${this.mqttConfig.interfaceName}/+/+/+/connection`,
+          `${this.mqttConfig.interfaceName}/+/+/+/instantActions`,
+          `${this.mqttConfig.interfaceName}/+/+/+/order`,
+          `${this.mqttConfig.interfaceName}/+/+/+/state`,
+          `${this.mqttConfig.interfaceName}/+/+/+/visualization`,
+        ];
+        client.subscribe(topics, (err) => {
+          if (err) {
+            console.error("WebSocket Subscription error:", err);
+          } else {
+            console.log("Subscribed to WebSocket topics:", topics);
+          }
+        });
+      });
+    }
   }
 
-  public async connect(
+  public async mqttConnect(
     host: string,
     port: string,
     basePath: string,
@@ -65,6 +98,33 @@ export class VDA5050Visualizer {
       this.mqttConfig.interfaceName,
       this.mqttConfig.username,
       this.mqttConfig.password
+    );
+  }
+
+  public async websocketConnect(
+    host: string,
+    port: string,
+    basePath: string,
+    interfaceName: string,
+    username: string,
+    password: string
+  ): Promise<void> {
+    this.mqttConfig.host = host;
+    this.mqttConfig.port = port;
+    this.mqttConfig.basePath = basePath;
+    this.mqttConfig.interfaceName = interfaceName;
+    this.mqttConfig.username = username;
+    this.mqttConfig.password = password;
+    this.mqttConfig.connectionType = "websocket";
+
+    await connectMqtt(
+      host,
+      port,
+      this.mqttConfig.basePath,
+      this.mqttConfig.interfaceName,
+      this.mqttConfig.username,
+      this.mqttConfig.password,
+      this.mqttConfig.connectionType
     );
   }
 

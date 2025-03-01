@@ -42,6 +42,14 @@ const paginationOptions = [
   { label: "100 per page", value: "100" },
 ];
 
+const connectionType = ref("websocket");
+
+// Add options for connection type
+const connectionOptions = [
+  { label: "MQTT", value: "mqtt" },
+  { label: "WebSocket", value: "websocket" },
+];
+
 function updateBroker() {
   version.value += 1;
 
@@ -53,31 +61,51 @@ function updateBroker() {
     interfaceName: interfaceName.value,
     username: username.value,
     password: password.value,
+    connectionType: connectionType.value,
   });
 
-  console.log("Connecting to MQTT broker:", {
+  vda5050Visualizer = new VDA5050Visualizer({
     host: brokerIp.value,
     port: brokerPort.value,
+    basePath: basepath.value,
+    interfaceName: interfaceName.value,
+    username: username.value,
+    password: password.value,
+    connectionType: connectionType.value,
   });
 
-  vda5050Visualizer = new VDA5050Visualizer();
-
-  vda5050Visualizer
-    .connect(
-      brokerIp.value,
-      brokerPort.value.toString(),
-      basepath.value,
-      interfaceName.value,
-      username.value,
-      password.value
-    )
-    .catch((error) => {
-      console.error("Failed to connect to MQTT:", error);
-    });
+  if (connectionType.value === "mqtt") {
+    vda5050Visualizer
+      .mqttConnect(
+        brokerIp.value,
+        brokerPort.value.toString(),
+        basepath.value,
+        interfaceName.value,
+        username.value,
+        password.value
+      )
+      .catch((error) => {
+        console.error("Failed to connect to MQTT:", error);
+      });
+  } else if (connectionType.value === "websocket") {
+    vda5050Visualizer
+      .websocketConnect(
+        brokerIp.value,
+        brokerPort.value.toString(),
+        basepath.value,
+        interfaceName.value,
+        username.value,
+        password.value
+      )
+      .catch((error) => {
+        console.error("Failed to connect to WebSocket:", error);
+      });
+  }
 }
 
 // Setup MQTT event listeners
 onMounted(() => {
+  if (connectionType.value === "mqtt") {
   window.electron.ipcRenderer.on("mqtt-connected", () => {
     console.log("MQTT Connected in component");
     mqttStatus.value = MqttClientState.CONNECTED;
@@ -91,6 +119,10 @@ onMounted(() => {
     console.error("MQTT Error in component:", error);
     mqttStatus.value = MqttClientState.OFFLINE;
   });
+  } else if (connectionType.value === "websocket") {
+  
+    
+  }
 });
 
 // Clean up event listeners
@@ -190,7 +222,7 @@ function changePage(page: number) {
 }
 
 function openGithub() {
-  window.open('https://github.com/bekirbostanci/vda5050_visualizer', '_blank');
+  window.open("https://github.com/bekirbostanci/vda5050_visualizer", "_blank");
 }
 </script>
 <template>
@@ -207,15 +239,25 @@ function openGithub() {
             Broker PORT
           </ui-textfield>
         </ui-grid-cell>
-        <ui-grid-cell columns="2">
+        <ui-grid-cell columns="1">
           <ui-textfield class="mr w100" outlined v-model="basepath">
             Basepath
           </ui-textfield>
         </ui-grid-cell>
-        <ui-grid-cell columns="2">
+        <ui-grid-cell columns="1">
           <ui-textfield class="mr w100" outlined v-model="interfaceName">
             Interface Name
           </ui-textfield>
+        </ui-grid-cell>
+        <ui-grid-cell columns="2">
+          <ui-select
+            class="mr w100"
+            outlined
+            v-model="connectionType"
+            :options="connectionOptions"
+          >
+            Connection Type
+          </ui-select>
         </ui-grid-cell>
 
         <ui-grid-cell
@@ -277,7 +319,11 @@ function openGithub() {
             icon="settings"
           ></ui-fab>
         </ui-grid-cell>
-        <ui-grid-cell columns="12" v-if="settings" style="display: flex; align-items: center;">
+        <ui-grid-cell
+          columns="12"
+          v-if="settings"
+          style="display: flex; align-items: center"
+        >
           <ui-textfield class="mr w100" outlined v-model="username">
             Username
           </ui-textfield>
@@ -374,8 +420,11 @@ function openGithub() {
       </div>
     </div>
     <SkeletonCard v-else></SkeletonCard>
-    <div style="text-align: center; margin-top: 20px; font-size: 15px;">
-      <p>Developed by Bekir Bostanci - <a href="https://github.com/bekirbostanci">GitHub</a></p>
+    <div style="text-align: center; margin-top: 20px; font-size: 15px">
+      <p>
+        Developed by Bekir Bostanci -
+        <a href="https://github.com/bekirbostanci">GitHub</a>
+      </p>
     </div>
   </div>
 </template>

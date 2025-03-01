@@ -5,6 +5,7 @@ export interface MqttConfig {
   interfaceName: string;
   username: string;
   password: string;
+  connectionType: string;
 }
 
 export const defaultConfig: MqttConfig = {
@@ -14,6 +15,7 @@ export const defaultConfig: MqttConfig = {
   interfaceName: "",
   username: "",
   password: "",
+  connectionType: "",
 };
 
 export function saveConfig(config: MqttConfig): void {

@@ -19,6 +19,8 @@
         "./src/*"
       ]
     },
-    "ignoreDeprecations": "5.0"
-  }
+    "ignoreDeprecations": "5.0",
+    "verbatimModuleSyntax": true
+  },
+  "types": ["node"]
 }

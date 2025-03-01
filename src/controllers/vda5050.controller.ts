@@ -6,8 +6,7 @@ import {
   Topic,
   type MessageSubscriber,
 } from "../types/mqtt.types";
-
-// Then use an interface instead of importing it
+import mqtt from "mqtt";
 interface MqttConnectionConfig {
   host: string;
   port: number;
@@ -46,14 +45,70 @@ class VDA5050Controller {
     basepath: string,
     interfaceName: string,
     username: string = "",
-    password: string = ""
+    password: string = "",
+    connectionType: string
   ): Promise<void> {
     if (this.isConnecting) return;
     this.isConnecting = true;
 
+
     try {
-      // Just clean the host without adding protocol or port
-      const cleanHost = mqttIp
+      if (connectionType === "websocket") {
+        const mqttUrl = `ws://${mqttIp}:${mqttPort}/ws`;
+        const client = mqtt.connect(mqttUrl, {
+          clientId: `vda5050_client_${Math.random().toString(16).slice(2, 8)}`,
+          username: username || undefined,
+          password: password || undefined,
+        });
+        client.on("connect", () => {
+          console.log("WebSocket connected");
+          this.clientState.value = MqttClientState.CONNECTED;
+          // Subscribe to topics after connecting
+          const topics = [
+            `${interfaceName}/+/+/+/connection`,
+            `${interfaceName}/+/+/+/instantActions`,
+            `${interfaceName}/+/+/+/order`,
+            `${interfaceName}/+/+/+/state`,
+            `${interfaceName}/+/+/+/visualization`,
+          ];
+          client.subscribe(topics, (err) => {
+            if (err) {
+              console.error("WebSocket Subscription error:", err);
+            } else {
+              console.log("Subscribed to WebSocket topics:", topics);
+            }
+          });
+        });
+
+        client.on("error", (error) => {
+          console.error("WebSocket connection error:", error);
+          this.clientState.value = MqttClientState.OFFLINE;
+        });
+
+        client.on("close", () => {
+          console.log("WebSocket connection closed");
+          this.clientState.value = MqttClientState.OFFLINE;
+        });
+
+        client.on("reconnect", () => {
+          console.log("WebSocket reconnecting");
+          this.clientState.value = MqttClientState.RECONNECTING;
+        });
+
+        client.on("message", (topic, message) => {
+          if (message instanceof Uint8Array) {
+            const messageString = new TextDecoder().decode(message);
+            const messageObject = JSON.parse(messageString);
+            console.log("messageObject", messageObject);
+            this.notifySubscribers(topic, messageObject);
+            this.forwardMessageToAgv(topic, messageObject);
+          } else {
+            this.handleMqttMessage({ topic, message });
+          }
+        });
+      }
+      else if (connectionType === "mqtt") {
+        const cleanHost = mqttIp
         .replace(/^mqtt:\/\/|^tcp:\/\//, "")
         .replace(/:.*$/, "");
 
@@ -80,6 +135,11 @@ class VDA5050Controller {
       this.mqttConfig.value = config;
       window.electron.ipcRenderer.send("connect-mqtt", config);
       this.setupMqttListeners();
+      }
+      else {
+        console.error("Invalid connection type:", connectionType);
+        this.clientState.value = MqttClientState.OFFLINE;
+      }
     } catch (error) {
       console.error("MQTT Connection Error:", error);
       this.clientState.value = MqttClientState.OFFLINE;
@@ -88,27 +148,43 @@ class VDA5050Controller {
     }
   }
 
-  private setupMqttListeners(): void {
-    window.electron.ipcRenderer.on("mqtt-connected", () => {
-      this.clientState.value = MqttClientState.CONNECTED;
-    });
+  private setupMqttListeners(client?: mqtt.MqttClient): void {
+    if (client) {
+      client.on("message", (topic, message) => {
+        let messageObject;
+        if (message instanceof Uint8Array) {
+          const messageString = new TextDecoder().decode(message);
+          messageObject = JSON.parse(messageString);
+        } else {
+          messageObject = JSON.parse(message);
+        }
+        console.log("messageObject", messageObject);
+        this.notifySubscribers(topic, messageObject);
+        this.forwardMessageToAgv(topic, messageObject);
+      });
+    } else {
+      // Existing Electron-based logic for MQTT
+      window.electron.ipcRenderer.on("mqtt-connected", () => {
+        this.clientState.value = MqttClientState.CONNECTED;
+      });
 
-    window.electron.ipcRenderer.on("mqtt-disconnected", () => {
-      this.clientState.value = MqttClientState.OFFLINE;
-    });
+      window.electron.ipcRenderer.on("mqtt-disconnected", () => {
+        this.clientState.value = MqttClientState.OFFLINE;
+      });
 
-    window.electron.ipcRenderer.on("mqtt-reconnecting", () => {
-      this.clientState.value = MqttClientState.RECONNECTING;
-    });
+      window.electron.ipcRenderer.on("mqtt-reconnecting", () => {
+        this.clientState.value = MqttClientState.RECONNECTING;
+      });
 
-    window.electron.ipcRenderer.on("mqtt-error", () => {
-      this.clientState.value = MqttClientState.OFFLINE;
-    });
+      window.electron.ipcRenderer.on("mqtt-error", () => {
+        this.clientState.value = MqttClientState.OFFLINE;
+      });
 
-    window.electron.ipcRenderer.on(
-      "mqtt-message",
-      this.handleMqttMessage.bind(this)
-    );
+      window.electron.ipcRenderer.on(
+        "mqtt-message",
+        this.handleMqttMessage.bind(this)
+      );
+    }
   }
 
   private handleMqttMessage(data: { topic: string; message: any }): void {
@@ -126,6 +202,7 @@ class VDA5050Controller {
   }
 
   private notifySubscribers(topic: string, message: any): void {
+    console.log("Notifying subscribers for topic:", topic, "with message:", message);
     this.messageSubscribers.value.forEach((subscriber) => {
       subscriber(topic, message);
     });
@@ -251,7 +328,8 @@ export const connectMqtt = (
   basepath: string,
   interfaceName: string,
   username?: string,
-  password?: string
+  password?: string,
+  connectionType: string = "mqtt"
 ): Promise<void> =>
   vda5050Controller.connectMqtt(
     mqttIp,
@@ -259,7 +337,8 @@ export const connectMqtt = (
     basepath,
     interfaceName,
     username,
-    password
+    password,
+    connectionType
   );
 export const createAgv = (
   manufacturer: string,

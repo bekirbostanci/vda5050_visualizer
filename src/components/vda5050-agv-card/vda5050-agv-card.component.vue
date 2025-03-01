@@ -45,19 +45,27 @@ const velocity = computed(() => {
 const sequenceProgress = computed(() => {
   const orderInfo = agv.orderInfo.value;
   const stateInfo = agv.stateInfo.value;
-  
+
   if (!orderInfo || !stateInfo) return null;
-  
-  const lastNodeSequenceId = orderInfo.nodes.length > 0 ? 
-    Math.max(...orderInfo.nodes.map((node: { sequenceId: number }) => node.sequenceId)) : 0;
-  
+
+  const lastNodeSequenceId =
+    orderInfo.nodes.length > 0
+      ? Math.max(
+          ...orderInfo.nodes.map(
+            (node: { sequenceId: number }) => node.sequenceId
+          )
+        )
+      : 0;
+
   const currentNodeSequenceId = stateInfo.lastNodeSequenceId || 0;
-  
+
   return {
     current: currentNodeSequenceId,
     total: lastNodeSequenceId,
-    percentage: lastNodeSequenceId > 0 ? 
-      Math.round((currentNodeSequenceId / lastNodeSequenceId) * 100) : 0
+    percentage:
+      lastNodeSequenceId > 0
+        ? Math.round((currentNodeSequenceId / lastNodeSequenceId) * 100)
+        : 0,
   };
 });
 
@@ -136,18 +144,29 @@ defineExpose({
             </ui-chip>
           </ui-chips>
         </div>
-        
+
         <!-- Add Order Progress Bar -->
-        <div class="order-progress-container" v-if="sequenceProgress && sequenceProgress.total > 0">
+        <div
+          class="order-progress-container"
+          v-if="sequenceProgress && sequenceProgress.total > 0"
+        >
           <div class="progress-label">
-            <span class="progress-text">Order Progress: {{ sequenceProgress.current }} / {{ sequenceProgress.total }}</span>
-            <span class="progress-percentage">{{ sequenceProgress.percentage }}%</span>
+            <span class="progress-text"
+              >Order Progress: {{ sequenceProgress.current }} /
+              {{ sequenceProgress.total }}</span
+            >
+            <span class="progress-percentage"
+              >{{ sequenceProgress.percentage }}%</span
+            >
           </div>
           <div class="progress-bar-container">
-            <div class="progress-bar" :style="{ width: sequenceProgress.percentage + '%' }"></div>
+            <div
+              class="progress-bar"
+              :style="{ width: sequenceProgress.percentage + '%' }"
+            ></div>
           </div>
         </div>
-        
+
         <VDA5050AgvToMaster
           :agv="agv"
           v-if="agv.stateInfo.value"
