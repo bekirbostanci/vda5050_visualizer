@@ -96,15 +96,11 @@ class VDA5050Controller {
         });
 
         client.on("message", (topic, message) => {
-          if (message instanceof Uint8Array) {
             const messageString = new TextDecoder().decode(message);
             const messageObject = JSON.parse(messageString);
             console.log("messageObject", messageObject);
             this.notifySubscribers(topic, messageObject);
             this.forwardMessageToAgv(topic, messageObject);
-          } else {
-            this.handleMqttMessage({ topic, message });
-          }
         });
       }
       else if (connectionType === "mqtt") {
@@ -230,17 +226,6 @@ class VDA5050Controller {
     return this.agvs.value.map((instance) => instance.agv);
   }
 
-  public publishMessage(
-    topic: string,
-    message: any,
-    credentials?: { username: string; password: string }
-  ): void {
-    window.electron.ipcRenderer.send("publish-message", {
-      topic,
-      message: typeof message === "string" ? message : JSON.stringify(message),
-      credentials,
-    });
-  }
 
   public async createAgv(
     manufacturer: string,
@@ -315,11 +300,6 @@ export const vda5050Controller = VDA5050Controller.getInstance();
 export const getMqttClientState = (): MqttClientState =>
   vda5050Controller.getMqttClientState();
 export const getAgvs = (): IVDA5050Agv[] => vda5050Controller.getAgvs();
-export const publishMessage = (
-  topic: string,
-  message: any,
-  credentials?: { username: string; password: string }
-): void => vda5050Controller.publishMessage(topic, message, credentials);
 export const subscribeToMessages = (callback: MessageSubscriber): void =>
   vda5050Controller.subscribeToMessages(callback);
 export const connectMqtt = (

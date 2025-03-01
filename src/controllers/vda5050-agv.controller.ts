@@ -1,60 +1,12 @@
 import type { Edges, Layouts, Nodes } from "v-network-graph";
 import { ref } from "vue";
 import randomColor from "randomcolor";
-import { publishMessage } from "./vda5050.controller";
 import type {
   IVDA5050Agv,
-  VDA5050Error,
   ColorSchema,
 } from "../types/vda5050.types";
 import { Topic } from "../types/mqtt.types";
 
-export class VDA5050AgvController {
-  state = ref({
-    position: { x: 0, y: 0, theta: 0 },
-    velocity: 0,
-    batteryLevel: 100,
-    errors: [] as VDA5050Error[],
-    loads: [],
-    agvPosition: { x: 0, y: 0, theta: 0 },
-    operatingMode: "AUTOMATIC",
-    nodeStates: [],
-    edgeStates: [],
-    lastNodeId: "",
-    lastNodeSequenceId: 0,
-    driving: false,
-    timestamp: new Date().toISOString(),
-  });
-
-  constructor(private serial: string, private basePath: string = "uagv") {}
-
-  publishState() {
-    publishMessage(
-      `${this.basePath}/${this.serial}/${Topic.State}`,
-      this.state.value
-    );
-  }
-
-  updatePosition(x: number, y: number, theta: number = 0) {
-    this.state.value.position = { x, y, theta };
-    this.publishState();
-  }
-
-  updateBatteryLevel(level: number) {
-    this.state.value.batteryLevel = level;
-    this.publishState();
-  }
-
-  addError(error: VDA5050Error) {
-    this.state.value.errors.push(error);
-    this.publishState();
-  }
-
-  clearErrors() {
-    this.state.value.errors = [];
-    this.publishState();
-  }
-}
 
 export class VDA5050Agv implements IVDA5050Agv {
   public readonly agvId: { manufacturer: string; serialNumber: string };
