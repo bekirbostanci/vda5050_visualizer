@@ -1,10 +1,58 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
+const { autoUpdater } = require('electron-updater');
 const path = require('path');
 const mqtt = require('mqtt');
 const isDev = !app.isPackaged;
 
 let mainWindow;
 let mqttClient;
+
+// Configure auto updater
+autoUpdater.autoDownload = false;
+autoUpdater.logger = require('electron-log');
+autoUpdater.logger.transports.file.level = 'info';
+
+// Auto-updater events
+autoUpdater.on('checking-for-update', () => {
+  mainWindow.webContents.send('update-status', 'Checking for updates...');
+});
+
+autoUpdater.on('update-available', (info) => {
+  mainWindow.webContents.send('update-available', info);
+});
+
+autoUpdater.on('update-not-available', (info) => {
+  mainWindow.webContents.send('update-not-available', info);
+});
+
+autoUpdater.on('error', (err) => {
+  mainWindow.webContents.send('update-error', err.message);
+});
+
+autoUpdater.on('download-progress', (progressObj) => {
+  mainWindow.webContents.send('download-progress', progressObj);
+});
+
+autoUpdater.on('update-downloaded', (info) => {
+  mainWindow.webContents.send('update-downloaded', info);
+});
+
+// IPC handlers for updates
+ipcMain.handle('check-for-updates', async () => {
+  if (!isDev) {
+    return await autoUpdater.checkForUpdates();
+  }
+});
+
+ipcMain.handle('start-download', async () => {
+  if (!isDev) {
+    return await autoUpdater.downloadUpdate();
+  }
+});
+
+ipcMain.handle('quit-and-install', () => {
+  autoUpdater.quitAndInstall(false, true);
+});
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -42,6 +90,13 @@ function createWindow() {
   // Only open DevTools in development mode
   if (process.env.NODE_ENV === 'development') {
     mainWindow.webContents.openDevTools()
+  }
+
+  // Check for updates after window is created (only in production)
+  if (!isDev) {
+    setTimeout(() => {
+      autoUpdater.checkForUpdates();
+    }, 3000); // Check after 3 seconds
   }
 }
 

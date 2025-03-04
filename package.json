@@ -1,7 +1,7 @@
 {
   "name": "vda5050-visualizer",
   "author": "bekir.bostanci",
-  "version": "0.0.0",
+  "version": "2.0.0",
   "scripts": {
     "dev": "vite --host --port 8082",
     "build:bundle": "vite build",
@@ -19,6 +19,8 @@
     "balm-ui": "^10.22.0",
     "bootstrap-icons": "^1.9.1",
     "buffer": "^6.0.3",
+    "electron-log": "^5.3.1",
+    "electron-updater": "^6.3.9",
     "lodash": "^4.17.21",
     "mqtt": "^4.3.7",
     "process": "^0.11.10",
@@ -91,14 +93,30 @@
         "to": "dist"
       }
     ],
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "bekirbostanci",
+        "repo": "vda5050_visualizer"
+      }
+    ],
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "publish": [
+        "github"
+      ]
     },
     "mac": {
-      "target": "dmg"
+      "target": "dmg",
+      "publish": [
+        "github"
+      ]
     },
     "linux": {
-      "target": "AppImage"
+      "target": "AppImage",
+      "publish": [
+        "github"
+      ]
     }
   }
 }
