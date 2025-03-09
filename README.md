@@ -118,9 +118,6 @@ npm run dev
 npm run build
 ```
 
-## License
-
-MIT
 
 ## VDA5050 Visualizer
 The purpose of this package is to view and visualize vda5050 messages more quickly without looking at the json data. After running the application, you need to press the start button.
