@@ -60,6 +60,37 @@ The application supports two types of MQTT connections:
 
 The connection type can be configured in the application settings.
 
+## Desktop Application
+
+VDA5050 Visualizer is also available as a desktop application built with Electron. The desktop version provides all the features of the web application plus native desktop integration.
+
+### Running the Desktop App in Development
+
+To run the desktop application in development mode:
+
+```bash
+npm run electron:dev
+```
+
+This will start both the Vite development server and the Electron application.
+
+### Building the Desktop App
+
+To build the desktop application for distribution:
+
+```bash
+npm run electron:build
+```
+
+This will create platform-specific installers in the `dist_electron` directory. The application is configured to build for:
+- Windows (.exe installer)
+- macOS (.dmg)
+- Linux (AppImage)
+
+### Auto Updates
+
+The desktop application supports automatic updates through GitHub releases. When a new version is published, the application will automatically detect and prompt users to install the update.
+
 ## Development
 
 ### Prerequisites
@@ -94,7 +125,9 @@ The purpose of this package is to view and visualize vda5050 messages more quick
 
 https://github.com/bekirbostanci/vda5050_visualizer/assets/26343575/06f22e56-1547-451b-97b9-870a715d525e
 
-![alt text](docs/1.png)
+![Web Interface](docs/1.png)
+
+![Desktop Interface](docs/2.png)
 
 - Display all robots on the one graph
 - Displaying the real-time position of multiple robots
