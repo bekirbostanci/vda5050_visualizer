@@ -57,7 +57,7 @@
     "babel-loader": "^8.2.5",
     "concurrently": "^9.1.2",
     "cypress": "^14.1.0",
-    "electron": "^28.3.3",
+    "electron": "^39.1.2",
     "electron-builder": "^24.13.3",
     "eslint": "^8.22.0",
     "eslint-plugin-cypress": "^2.12.1",
