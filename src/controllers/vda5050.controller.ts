@@ -8,6 +8,7 @@ import {
 } from "../types/mqtt.types";
 import mqtt from "mqtt";
 import { sharedMqttClient } from "../utils/shared-mqtt-client";
+import { useMqttStore } from "../stores/mqtt";
 import type { 
   AGVControllerInstance, 
   MqttControllerConfig, 
@@ -39,6 +40,14 @@ class VDA5050Controller implements IVDA5050Controller {
       window.electron.ipcRenderer.on("mqtt-connected", () => {
         console.log("MQTT Connected");
         this.clientState.value = MqttClientState.CONNECTED;
+        
+        // Update Pinia store
+        try {
+          const store = useMqttStore();
+          store.setConnectionState(MqttClientState.CONNECTED);
+        } catch (error) {
+          console.debug("MQTT store not available:", error);
+        }
       });
 
       window.electron.ipcRenderer.on("mqtt-message", (data) => {
@@ -49,16 +58,40 @@ class VDA5050Controller implements IVDA5050Controller {
       window.electron.ipcRenderer.on("mqtt-error", (error) => {
         console.error("MQTT Error:", error);
         this.clientState.value = MqttClientState.OFFLINE;
+        
+        // Update Pinia store
+        try {
+          const store = useMqttStore();
+          store.setConnectionState(MqttClientState.OFFLINE);
+        } catch (err) {
+          console.debug("MQTT store not available:", err);
+        }
       });
 
       window.electron.ipcRenderer.on("mqtt-reconnect", () => {
         console.log("MQTT Reconnecting");
         this.clientState.value = MqttClientState.RECONNECTING;
+        
+        // Update Pinia store
+        try {
+          const store = useMqttStore();
+          store.setConnectionState(MqttClientState.RECONNECTING);
+        } catch (err) {
+          console.debug("MQTT store not available:", err);
+        }
       });
 
       window.electron.ipcRenderer.on("mqtt-close", () => {
         console.log("MQTT Connection Closed");
         this.clientState.value = MqttClientState.OFFLINE;
+        
+        // Update Pinia store
+        try {
+          const store = useMqttStore();
+          store.setConnectionState(MqttClientState.OFFLINE);
+        } catch (err) {
+          console.debug("MQTT store not available:", err);
+        }
       });
     }
   }
@@ -128,6 +161,14 @@ class VDA5050Controller implements IVDA5050Controller {
           
           this.clientState.value = MqttClientState.CONNECTED;
           
+          // Update Pinia store
+          try {
+            const store = useMqttStore();
+            store.setConnectionState(MqttClientState.CONNECTED);
+          } catch (error) {
+            console.debug("MQTT store not available:", error);
+          }
+          
           // Subscribe to topics
           const topics = [
             `${interfaceName}/+/+/+/connection`,
@@ -178,10 +219,26 @@ class VDA5050Controller implements IVDA5050Controller {
       else {
         console.error("Invalid connection type:", connectionType);
         this.clientState.value = MqttClientState.OFFLINE;
+        
+        // Update Pinia store
+        try {
+          const store = useMqttStore();
+          store.setConnectionState(MqttClientState.OFFLINE);
+        } catch (err) {
+          console.debug("MQTT store not available:", err);
+        }
       }
     } catch (error) {
       console.error("MQTT Connection Error:", error);
       this.clientState.value = MqttClientState.OFFLINE;
+      
+      // Update Pinia store
+      try {
+        const store = useMqttStore();
+        store.setConnectionState(MqttClientState.OFFLINE);
+      } catch (err) {
+        console.debug("MQTT store not available:", err);
+      }
     } finally {
       this.isConnecting = false;
     }

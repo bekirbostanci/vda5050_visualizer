@@ -1,13 +1,30 @@
 <script setup lang="ts">
 import { VDA5050Agv } from "@/controllers/vda5050-agv.controller";
 import { ref, computed, watch, onMounted } from "vue";
+import { useColorMode } from "@vueuse/core";
 import VueJsonPretty from "vue-json-pretty";
 import "vue-json-pretty/lib/styles.css";
-import configs from "@/utils/configs";
+import { createConfigs } from "@/utils/configs";
 
 const props = defineProps({
   agv: { type: VDA5050Agv, required: true },
 });
+
+const emit = defineEmits<{
+  'send-instant-action': [];
+}>();
+
+// Dark mode support for network graph
+const mode = useColorMode({
+  selector: "html",
+  attribute: "class",
+  modes: {
+    dark: "dark",
+    light: "",
+  },
+});
+const configs = computed(() => createConfigs(mode.value === "dark"));
+
 const orderShow = ref(false);
 const orderGraphShow = ref(false);
 const instantActionsShow = ref(false);
@@ -333,6 +350,9 @@ onMounted(() => {
           <button v-if="orderSearchQuery" @click="clearOrderSearch" class="clear-search-btn">
             <i class="material-icons">close</i>
           </button>
+          <span class="action-badge" @click="emit('send-instant-action')" title="Send Instant Action">
+            <i class="material-icons">send</i>
+          </span>
         </div>
         <button class="copy-btn" @click="copyOrderData">
           <i class="material-icons">content_copy</i>
@@ -364,6 +384,9 @@ onMounted(() => {
           <button v-if="instantActionsSearchQuery" @click="clearInstantActionsSearch" class="clear-search-btn">
             <i class="material-icons">close</i>
           </button>
+          <span class="action-badge" @click="emit('send-instant-action')" title="Send Instant Action">
+            <i class="material-icons">send</i>
+          </span>
         </div>
         <button class="copy-btn" @click="copyInstantActionsData">
           <i class="material-icons">content_copy</i>
@@ -411,6 +434,28 @@ onMounted(() => {
   position: relative;
   display: flex;
   align-items: center;
+  gap: 8px;
+}
+
+.action-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+  flex-shrink: 0;
+  
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+  }
+  
+  i {
+    font-size: 18px;
+  }
 }
 
 .search-input {

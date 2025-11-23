@@ -8,6 +8,7 @@ import type {
 import { Topic } from "../types/mqtt.types";
 import mqtt from "mqtt";
 import { sharedMqttClient } from "../utils/shared-mqtt-client";
+import { useMqttStore } from "../stores/mqtt";
 
 export class VDA5050Agv implements IVDA5050Agv {
   public readonly agvId: { manufacturer: string; serialNumber: string };
@@ -34,6 +35,16 @@ export class VDA5050Agv implements IVDA5050Agv {
     this.mqttTopic = `${this.basePath}/${this.agvId.manufacturer}/${this.agvId.serialNumber}`;
     this.color = randomColor();
     this.colors = this.generateColors();
+    
+    // Initialize AGV data in Pinia store
+    try {
+      const store = useMqttStore();
+      store.initializeAgvData(this.agvId, this.color, this.colors);
+      store.addRobot(this.agvId);
+    } catch (error) {
+      console.debug("MQTT store not available during AGV initialization:", error);
+    }
+    
     this.subscribeToTopics();
   }
 
@@ -117,25 +128,82 @@ export class VDA5050Agv implements IVDA5050Agv {
   public handleMqttMessage(topic: string, message: any): void {
     const topicType = topic.split("/").pop() as Topic;
 
+    // Update Pinia store
+    try {
+      const store = useMqttStore();
+      store.updateAgvMessage(this.agvId, topic, message);
+      
+      // Also update graph data in store
+      store.updateAgvData(this.agvId, {
+        nodes: this.nodes.value,
+        edges: this.edges.value,
+        layouts: this.layouts.value,
+      });
+    } catch (error) {
+      console.debug("MQTT store not available:", error);
+    }
+
     const handlers: Partial<Record<Topic, (msg: any) => void>> = {
       [Topic.InstantActions]: (msg) => {
         this.instantActionsInfo.value = msg;
         this.cleanupOldData();
+        // Sync to store
+        this.syncToStore();
       },
       [Topic.Order]: (msg) => {
         this.handleOrderMessage(msg);
         this.cleanupOldData();
+        // Sync to store
+        this.syncToStore();
       },
-      [Topic.State]: (msg) => this.handleStateMessage(msg),
-      [Topic.Connection]: (msg) => (this.connectionInfo.value = msg),
-      [Topic.Visualization]: (msg) => this.handleVisualizationMessage(msg),
+      [Topic.State]: (msg) => {
+        this.handleStateMessage(msg);
+        // Sync to store
+        this.syncToStore();
+      },
+      [Topic.Connection]: (msg) => {
+        this.connectionInfo.value = msg;
+        // Sync to store
+        this.syncToStore();
+      },
+      [Topic.Visualization]: (msg) => {
+        this.handleVisualizationMessage(msg);
+        // Sync to store
+        this.syncToStore();
+      },
     };
 
     handlers[topicType]?.(message);
   }
 
+  private syncToStore(): void {
+    try {
+      const store = useMqttStore();
+      store.updateAgvData(this.agvId, {
+        orderInfo: this.orderInfo.value,
+        instantActionsInfo: this.instantActionsInfo.value,
+        stateInfo: this.stateInfo.value,
+        connectionInfo: this.connectionInfo.value,
+        visualizationInfo: this.visualizationInfo.value,
+        nodes: this.nodes.value,
+        edges: this.edges.value,
+        layouts: this.layouts.value,
+      });
+    } catch (error) {
+      console.debug("Failed to sync to store:", error);
+    }
+  }
+
   // Clean up resources when the component is destroyed
   public disconnect(): void {
+    // Remove from Pinia store
+    try {
+      const store = useMqttStore();
+      store.removeRobot(this.agvId);
+    } catch (error) {
+      console.debug("MQTT store not available during disconnect:", error);
+    }
+    
     // No need to disconnect the shared client
     // Just unsubscribe from messages if needed
     if (sharedMqttClient.connected) {
@@ -179,6 +247,7 @@ export class VDA5050Agv implements IVDA5050Agv {
   private handleOrderMessage(order: any): void {
     this.orderInfo.value = order;
     this.updateGraphFromOrder(order);
+    // Graph data will be synced in syncToStore()
   }
 
   private updateGraphFromOrder(order: any): void {

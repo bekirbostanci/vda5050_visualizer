@@ -1,6 +1,8 @@
 import mqtt from "mqtt";
 import { ref } from "vue";
 import type { MessageSubscriber } from "../types/mqtt.types";
+import { MqttClientState } from "../types/mqtt.types";
+import { useMqttStore } from "../stores/mqtt";
 
 // Singleton MQTT client that can be shared across the application
 class SharedMqttClient {
@@ -46,6 +48,14 @@ class SharedMqttClient {
         this.notifySubscribers(topic, message);
       }
     });
+    
+    // Update Pinia store connection state
+    try {
+      const store = useMqttStore();
+      store.setConnectionState(require("../types/mqtt.types").MqttClientState.CONNECTED);
+    } catch (error) {
+      console.debug("MQTT store not available:", error);
+    }
 
     // Re-subscribe to all previously subscribed topics
     if (this.subscribedTopics.value.size > 0) {
@@ -86,24 +96,65 @@ class SharedMqttClient {
         console.log("WebSocket MQTT connected");
         this.isConnected.value = true;
         this.reconnectAttempts = 0;
+        
+        // Update Pinia store connection state
+        try {
+          const store = useMqttStore();
+          store.setConnectionState(MqttClientState.CONNECTED);
+        } catch (error) {
+          console.debug("MQTT store not available:", error);
+        }
       });
 
       this.client.on("error", (error) => {
         console.error("WebSocket MQTT connection error:", error);
         this.isConnected.value = false;
+        
+        // Update Pinia store connection state
+        try {
+          const store = useMqttStore();
+          store.setConnectionState(MqttClientState.OFFLINE);
+        } catch (err) {
+          console.debug("MQTT store not available:", err);
+        }
       });
 
       this.client.on("close", () => {
         console.log("WebSocket MQTT connection closed");
         this.isConnected.value = false;
+        
+        // Update Pinia store connection state
+        try {
+          const store = useMqttStore();
+          store.setConnectionState(MqttClientState.OFFLINE);
+        } catch (err) {
+          console.debug("MQTT store not available:", err);
+        }
       });
 
       this.client.on("reconnect", () => {
         console.log(`WebSocket MQTT reconnecting (attempt ${++this.reconnectAttempts})`);
+        
+        // Update Pinia store connection state
+        try {
+          const store = useMqttStore();
+          store.setConnectionState(MqttClientState.RECONNECTING);
+        } catch (err) {
+          console.debug("MQTT store not available:", err);
+        }
+        
         if (this.reconnectAttempts > this.maxReconnectAttempts) {
           console.error(`Maximum reconnect attempts (${this.maxReconnectAttempts}) reached. Stopping reconnect.`);
           this.client?.end();
           this.client = null;
+          
+          // Update Pinia store to offline when max attempts reached
+          try {
+            const store = useMqttStore();
+            store.setConnectionState(MqttClientState.OFFLINE);
+          } catch (err) {
+            console.debug("MQTT store not available:", err);
+          }
         }
       });
 
@@ -122,6 +173,14 @@ class SharedMqttClient {
       // Wait for the client to connect
       return new Promise((resolve, reject) => {
         const connectTimeout = setTimeout(() => {
+          // Update Pinia store connection state
+          try {
+            const store = useMqttStore();
+            store.setConnectionState(MqttClientState.OFFLINE);
+          } catch (err) {
+            console.debug("MQTT store not available:", err);
+          }
+          
           reject(new Error("Connection timeout"));
           this.client?.removeListener("connect", connectHandler);
           this.client?.removeListener("error", errorHandler);
@@ -136,6 +195,15 @@ class SharedMqttClient {
         const errorHandler = (err: Error) => {
           clearTimeout(connectTimeout);
           this.client?.removeListener("connect", connectHandler);
+          
+          // Update Pinia store connection state
+          try {
+            const store = useMqttStore();
+            store.setConnectionState(MqttClientState.OFFLINE);
+          } catch (storeErr) {
+            console.debug("MQTT store not available:", storeErr);
+          }
+          
           reject(err);
         };
 
@@ -145,6 +213,15 @@ class SharedMqttClient {
     } catch (error) {
       console.error("Failed to connect to WebSocket MQTT:", error);
       this.isConnected.value = false;
+      
+      // Update Pinia store connection state
+      try {
+        const store = useMqttStore();
+        store.setConnectionState(MqttClientState.OFFLINE);
+      } catch (err) {
+        console.debug("MQTT store not available:", err);
+      }
+      
       throw error;
     } finally {
       this.isConnecting = false;
@@ -211,6 +288,14 @@ class SharedMqttClient {
       this.client = null;
       this.isConnected.value = false;
       this.subscribedTopics.value.clear();
+      
+      // Update Pinia store connection state
+      try {
+        const store = useMqttStore();
+        store.setConnectionState(MqttClientState.OFFLINE);
+      } catch (err) {
+        console.debug("MQTT store not available:", err);
+      }
     }
   }
 
@@ -227,6 +312,16 @@ class SharedMqttClient {
   }
 
   private notifySubscribers(topic: string, message: any): void {
+    // Update Pinia store
+    try {
+      const store = useMqttStore();
+      store.addMessage(topic, message);
+    } catch (error) {
+      // Store might not be initialized yet, ignore
+      console.debug("MQTT store not available:", error);
+    }
+
+    // Notify all subscribers
     this.messageSubscribers.value.forEach((subscriber) => {
       try {
         subscriber(topic, message);

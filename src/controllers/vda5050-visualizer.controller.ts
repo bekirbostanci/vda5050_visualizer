@@ -7,6 +7,7 @@ import { ref } from "vue";
 import { MqttClientState } from "../types/mqtt.types";
 import mqtt from "mqtt";
 import { sharedMqttClient } from "../utils/shared-mqtt-client";
+import { useMqttStore } from "../stores/mqtt";
 
 // Define interfaces locally to avoid import issues
 interface AgvId {
@@ -139,6 +140,14 @@ export class VDA5050Visualizer {
       const agvId = this.extractAgvIdFromTopic(topic);
       if (agvId && !this.robotExists(agvId)) {
         this.robotList.value.push(agvId);
+        
+        // Also add to Pinia store
+        try {
+          const store = useMqttStore();
+          store.addRobot(agvId);
+        } catch (error) {
+          console.debug("MQTT store not available:", error);
+        }
       }
     } catch (error) {
       console.error("Error processing connection message:", error);

@@ -1,6 +1,8 @@
 import { createApp, h } from "vue";
+import { createPinia } from "pinia";
 import App from "./App.vue";
 import { router } from "./router";
+import "./assets/index.css";
 
 // BalmUI
 import "balm-ui/components/core.css";
@@ -28,11 +30,14 @@ import "v-network-graph/lib/style.css";
 import { Buffer } from "buffer";
 window.Buffer = Buffer;
 
+const pinia = createPinia();
+
 const app = createApp({
-  setup() {},
+  setup() { },
   render: () => h(App),
 });
 
+app.use(pinia);
 app.use(router);
 app.use(BalmUI, {
   $theme: {},
