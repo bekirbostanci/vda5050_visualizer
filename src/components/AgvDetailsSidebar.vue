@@ -7,12 +7,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Icon } from '@iconify/vue';
+import OrderPublisher from "@/components/OrderPublisher.vue";
+import InstantActionPublisher from "@/components/InstantActionPublisher.vue";
 
 const emit = defineEmits<{
   close: [];
 }>();
 
-const { selectedAgv, agvControllers } = useVDA5050();
+const { selectedAgv, agvControllers, interfaceName } = useVDA5050();
 
 const selectedAgvData = computed(() => {
   if (!selectedAgv.value) return null;
@@ -167,15 +169,47 @@ const clearJson = () => {
   searchQuery.value = '';
 };
 
+// Publisher mode state
+const publisherMode = ref<'order' | 'instantAction' | null>(null);
+
+// Initialize publishers
+const initOrderPublisher = (_useExisting: boolean = false) => {
+  if (!selectedAgv.value) return;
+  publisherMode.value = 'order';
+  selectedViewType.value = null;
+};
+
+const initInstantActionPublisher = (_useExisting: boolean = false) => {
+  if (!selectedAgv.value) return;
+  publisherMode.value = 'instantAction';
+  selectedViewType.value = null;
+};
+
+const closePublisher = () => {
+  publisherMode.value = null;
+};
+
+const handlePublisherPublished = () => {
+  publisherMode.value = null;
+};
+
 // Automatically show state message when stateInfo becomes available or AGV changes
 watch([stateInfo, selectedAgv], ([newStateInfo], [oldStateInfo, oldSelectedAgv]) => {
   // Show state message if:
   // 1. State info is available AND
   // 2. Either no view is selected OR AGV has changed (reset to default)
-  if (newStateInfo && (!selectedViewType.value || selectedAgv.value !== oldSelectedAgv)) {
+  // 3. Publisher is not open
+  if (newStateInfo && (!selectedViewType.value || selectedAgv.value !== oldSelectedAgv) && !publisherMode.value) {
     showJson('Full State Message', () => stateInfo.value);
   }
 }, { immediate: true });
+
+// Reset publisher when AGV changes
+watch(selectedAgv, () => {
+  if (publisherMode.value) {
+    publisherMode.value = null;
+  }
+});
 </script>
 
 <template>
@@ -183,19 +217,60 @@ watch([stateInfo, selectedAgv], ([newStateInfo], [oldStateInfo, oldSelectedAgv])
     <!-- Header -->
     <div class="p-4 border-b font-semibold flex items-center justify-between h-[68px]">
       <span>AGV Details</span>
-      <Button
-        variant="ghost"
-        size="sm"
-        class="h-8 w-8 p-0"
-        @click="emit('close')"
-      >
-        <Icon icon="material-symbols:close" class="w-4 h-4" />
-      </Button>
+      <div class="flex items-center gap-2">
+        <Button
+          v-if="selectedAgv && !publisherMode"
+          variant="outline"
+          size="sm"
+          class="h-8 text-xs"
+          @click="initOrderPublisher"
+        >
+          <Icon icon="material-symbols:add-circle-outline" class="w-4 h-4 mr-1" />
+          Create Order
+        </Button>
+        <Button
+          v-if="selectedAgv && !publisherMode"
+          variant="outline"
+          size="sm"
+          class="h-8 text-xs"
+          @click="initInstantActionPublisher"
+        >
+          <Icon icon="material-symbols:flash-on" class="w-4 h-4 mr-1" />
+          Instant Action
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          class="h-8 w-8 p-0"
+          @click="emit('close')"
+        >
+          <Icon icon="material-symbols:close" class="w-4 h-4" />
+        </Button>
+      </div>
     </div>
 
     <!-- Content -->
     <div class="flex-1 overflow-auto p-4 agv-details-sidebar-content">
-      <div v-if="selectedAgvData" class="space-y-4">
+      <!-- Order Publisher -->
+      <OrderPublisher
+        v-if="publisherMode === 'order' && selectedAgv"
+        :agv-id="selectedAgv"
+        :existing-order="orderInfo || null"
+        @close="closePublisher"
+        @published="handlePublisherPublished"
+      />
+
+      <!-- InstantAction Publisher -->
+      <InstantActionPublisher
+        v-else-if="publisherMode === 'instantAction' && selectedAgv"
+        :agv-id="selectedAgv"
+        :existing-instant-actions="instantActionsInfo || null"
+        @close="closePublisher"
+        @published="handlePublisherPublished"
+      />
+
+      <!-- View Mode -->
+      <div v-else-if="selectedAgvData" class="space-y-4">
         <!-- State Message Section -->
         <div v-if="stateInfo" class="space-y-2">
           <div class="text-sm font-semibold flex items-center gap-2">
@@ -298,6 +373,14 @@ watch([stateInfo, selectedAgv], ([newStateInfo], [oldStateInfo, oldSelectedAgv])
               Show Full Order
             </Badge>
             <Badge 
+              variant="outline" 
+              class="cursor-pointer hover:bg-accent transition-colors px-1 h-5 gap-1"
+              @click="initOrderPublisher(true)"
+            >
+              <Icon icon="material-symbols:edit" class="w-3 h-3 mr-1" />
+              Edit Order
+            </Badge>
+            <Badge 
               v-if="orderId" 
               variant="outline" 
               class="cursor-pointer hover:bg-accent transition-colors px-1 h-5"
@@ -367,6 +450,14 @@ watch([stateInfo, selectedAgv], ([newStateInfo], [oldStateInfo, oldSelectedAgv])
             >
               <Icon icon="material-symbols:bolt" class="w-3 h-3 mr-1" />
               Count: {{ instantActionsCount }}
+            </Badge>
+            <Badge 
+              variant="outline" 
+              class="cursor-pointer hover:bg-accent transition-colors px-1 h-5 gap-1"
+              @click="initInstantActionPublisher(true)"
+            >
+              <Icon icon="material-symbols:edit" class="w-3 h-3 mr-1" />
+              Edit Instant Actions
             </Badge>
             <Badge 
               v-for="(action, index) in instantActionsArray.slice(0, 3)" 

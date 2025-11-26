@@ -9,6 +9,7 @@ import { Topic } from "../types/mqtt.types";
 import mqtt from "mqtt";
 import { sharedMqttClient } from "../utils/shared-mqtt-client";
 import { useMqttStore } from "../stores/mqtt";
+import type { Order, InstantActions } from "vda-5050-lib";
 
 export class VDA5050Agv implements IVDA5050Agv {
   public readonly agvId: { manufacturer: string; serialNumber: string };
@@ -326,5 +327,57 @@ export class VDA5050Agv implements IVDA5050Agv {
       edgeAction: generatedColors[3],
       robot: generatedColors[4],
     };
+  }
+
+  /**
+   * Publish an Order message to the AGV
+   */
+  public publishOrder(order: Order, interfaceName?: string): void {
+    const store = useMqttStore();
+    const actualInterfaceName = interfaceName || store.config.interfaceName || this.basePath;
+    
+    // Extract major version from order version (e.g., "2.0.0" -> "v2")
+    const majorVersion = order.version ? `v${order.version.split('.')[0]}` : 'v2';
+    const topic = `${actualInterfaceName}/${majorVersion}/${this.agvId.manufacturer}/${this.agvId.serialNumber}/${Topic.Order}`;
+    
+    if (sharedMqttClient.connected) {
+      sharedMqttClient.publish(topic, order);
+      console.log("Order published:", topic, order);
+    } else if (window.electron?.ipcRenderer) {
+      window.electron.ipcRenderer.send("publish-message", {
+        topic,
+        message: JSON.stringify(order),
+      });
+      console.log("Order published via Electron:", topic, order);
+    } else {
+      console.error("Cannot publish order: MQTT client not connected");
+      throw new Error("MQTT client not connected");
+    }
+  }
+
+  /**
+   * Publish an InstantActions message to the AGV
+   */
+  public publishInstantActions(instantActions: InstantActions, interfaceName?: string): void {
+    const store = useMqttStore();
+    const actualInterfaceName = interfaceName || store.config.interfaceName || this.basePath;
+    
+    // Extract major version from instantActions version (e.g., "2.0.0" -> "v2")
+    const majorVersion = instantActions.version ? `v${instantActions.version.split('.')[0]}` : 'v2';
+    const topic = `${actualInterfaceName}/${majorVersion}/${this.agvId.manufacturer}/${this.agvId.serialNumber}/${Topic.InstantActions}`;
+    
+    if (sharedMqttClient.connected) {
+      sharedMqttClient.publish(topic, instantActions);
+      console.log("InstantActions published:", topic, instantActions);
+    } else if (window.electron?.ipcRenderer) {
+      window.electron.ipcRenderer.send("publish-message", {
+        topic,
+        message: JSON.stringify(instantActions),
+      });
+      console.log("InstantActions published via Electron:", topic, instantActions);
+    } else {
+      console.error("Cannot publish instantActions: MQTT client not connected");
+      throw new Error("MQTT client not connected");
+    }
   }
 }
