@@ -68,3 +68,9 @@ export enum ConnectionState {
   OFFLINE = "OFFLINE",
   CONNECTIONBROKEN = "CONNECTIONBROKEN",
 }
+
+export enum BlockingType {
+  None = "NONE",
+  Soft = "SOFT",
+  Hard = "HARD",
+}

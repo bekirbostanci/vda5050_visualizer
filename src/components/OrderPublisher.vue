@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Icon } from '@iconify/vue';
 import type { Order, Node, Edge, Action } from "vda-5050-lib";
-import { BlockingType as BlockingTypeEnum } from "vda-5050-lib";
+import { BlockingType as BlockingTypeEnum } from "@/types/vda5050.types";
 
 // Predefined VDA5050 action types
 const predefinedActions = [

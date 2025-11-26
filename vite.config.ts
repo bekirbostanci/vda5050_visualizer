@@ -28,6 +28,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     optimizeDeps: {
+      exclude: ["vda-5050-lib"],
       esbuildOptions: {
         define: {
           global: "globalThis",
@@ -43,6 +44,9 @@ export default defineConfig(({ mode }) => {
         output: {
           manualChunks: undefined,
         },
+      },
+      commonjsOptions: {
+        exclude: ["vda-5050-lib"],
       },
     },
     define: {
