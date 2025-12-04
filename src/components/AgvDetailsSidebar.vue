@@ -3,10 +3,10 @@ import { computed, ref, unref, watch } from "vue";
 import { useVDA5050 } from "@/composables/useVDA5050";
 import VueJsonPretty from 'vue-json-pretty';
 import 'vue-json-pretty/lib/styles.css';
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Icon } from '@iconify/vue';
+import { toast } from "@/components/ui/toast";
 import OrderPublisher from "@/components/OrderPublisher.vue";
 import InstantActionPublisher from "@/components/InstantActionPublisher.vue";
 
@@ -169,6 +169,30 @@ const clearJson = () => {
   searchQuery.value = '';
 };
 
+// Copy JSON to clipboard
+const copyJsonToClipboard = async () => {
+  if (!selectedViewType.value) return;
+  
+  try {
+    // Get the raw data (not filtered by search)
+    const rawData = selectedViewType.value.getData();
+    const jsonString = JSON.stringify(rawData, null, 2);
+    
+    await navigator.clipboard.writeText(jsonString);
+    toast({
+      title: "Copied to clipboard",
+      description: "JSON data has been copied to your clipboard",
+    });
+  } catch (error) {
+    console.error('Failed to copy to clipboard:', error);
+    toast({
+      title: "Copy failed",
+      description: "Failed to copy JSON to clipboard",
+      variant: "destructive",
+    });
+  }
+};
+
 // Publisher mode state
 const publisherMode = ref<'order' | 'instantAction' | null>(null);
 
@@ -200,7 +224,7 @@ watch([stateInfo, selectedAgv], ([newStateInfo], [oldStateInfo, oldSelectedAgv])
   // 2. Either no view is selected OR AGV has changed (reset to default)
   // 3. Publisher is not open
   if (newStateInfo && (!selectedViewType.value || selectedAgv.value !== oldSelectedAgv) && !publisherMode.value) {
-    showJson('Full State Message', () => stateInfo.value);
+    showJson('State Message', () => stateInfo.value);
   }
 }, { immediate: true });
 
@@ -216,7 +240,7 @@ watch(selectedAgv, () => {
   <div class="h-full w-full border-r bg-background flex flex-col">
     <!-- Header -->
     <div class="p-4 border-b font-semibold flex items-center justify-between h-[68px]">
-      <span>AGV Details</span>
+      <span>{{ selectedAgv?.manufacturer || 'N/A' }} / {{ selectedAgv?.serialNumber || 'N/A' }}</span>
       <div class="flex items-center gap-2">
         <Button
           v-if="selectedAgv && !publisherMode"
@@ -277,83 +301,117 @@ watch(selectedAgv, () => {
             <Icon icon="material-symbols:info" class="w-4 h-4" />
             State Message
           </div>
-          <div class="flex flex-wrap gap-2">
-            <Badge 
-              variant="outline" 
-              class="cursor-pointer hover:bg-accent transition-colors px-1 h-5 gap-1"
-              @click="showJson('Full State Message', () => stateInfo)"
+          <div class="space-y-1">
+            <div 
+              class="flex items-center justify-between py-1.5 px-2 rounded-md cursor-pointer hover:bg-accent transition-colors min-w-0"
+              @click="showJson('Show State Message', () => stateInfo)"
             >
-              <Icon icon="material-symbols:code" class="w-3 h-3 mr-1" />
-              Show Full State
-            </Badge>
+              <div class="flex items-center gap-2 min-w-0 flex-shrink">
+                <Icon icon="material-symbols:code" class="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                <span class="text-sm truncate">Show State Message</span>
+              </div>
+              <Icon icon="material-symbols:chevron-right" class="w-4 h-4 text-muted-foreground flex-shrink-0" />
+            </div>
             <!-- Errors -->
-            <Badge 
-              v-if="errorsCount > 0"
-              variant="outline" 
-              :class="[
-                'cursor-pointer hover:bg-accent transition-colors px-1 h-5 gap-1',
-                fatalErrorsCount > 0 ? 'border-red-500 text-red-600' : warningErrorsCount > 0 ? 'border-yellow-500 text-yellow-600' : ''
-              ]"
-              @click="showJson('Errors', () => errors)"
+            <div 
+              class="flex items-center justify-between py-1.5 px-2 rounded-md cursor-pointer hover:bg-accent transition-colors min-w-0"
+              :class="fatalErrorsCount > 0 ? 'text-red-600' : warningErrorsCount > 0 ? 'text-yellow-600' : ''"
+              @click="showJson('Errors', () => errors || [])"
             >
-              <Icon icon="material-symbols:error" class="w-3 h-3 mr-1" />
-              Errors: {{ errorsCount }}
-              <span v-if="fatalErrorsCount > 0" class="ml-1">({{ fatalErrorsCount }} fatal)</span>
-              <span v-else-if="warningErrorsCount > 0" class="ml-1">({{ warningErrorsCount }} warnings)</span>
-            </Badge>
+              <div class="flex items-center gap-2 min-w-0 flex-shrink">
+                <Icon icon="material-symbols:error" class="w-4 h-4 flex-shrink-0" />
+                <span class="text-sm truncate">Errors</span>
+              </div>
+              <div class="flex items-center gap-1 min-w-0 flex-shrink">
+                <span class="text-sm font-medium truncate max-w-[120px]">{{ errorsCount }}</span>
+                <span v-if="fatalErrorsCount > 0" class="text-xs text-red-600 truncate max-w-[80px]">({{ fatalErrorsCount }} fatal)</span>
+                <span v-else-if="warningErrorsCount > 0" class="text-xs text-yellow-600 truncate max-w-[100px]">({{ warningErrorsCount }} warnings)</span>
+                <Icon icon="material-symbols:chevron-right" class="w-4 h-4 text-muted-foreground flex-shrink-0" />
+              </div>
+            </div>
 
             <!-- Loads -->
-            <Badge 
-              v-if="loadsCount > 0"
-              variant="outline" 
-              class="cursor-pointer hover:bg-accent transition-colors px-1 h-5 gap-1"
-              @click="showJson('Loads', () => loads)"
+            <div 
+              class="flex items-center justify-between py-1.5 px-2 rounded-md cursor-pointer hover:bg-accent transition-colors min-w-0"
+              @click="showJson('Loads', () => loads || [])"
             >
-              <Icon icon="material-symbols:view-in-ar" class="w-3 h-3 mr-1" />
-              Loads: {{ loadsCount }}
-            </Badge>
+              <div class="flex items-center gap-2 min-w-0 flex-shrink">
+                <Icon icon="material-symbols:view-in-ar" class="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                <span class="text-sm truncate">Loads</span>
+              </div>
+              <div class="flex items-center gap-1 min-w-0 flex-shrink">
+                <span class="text-sm font-medium truncate max-w-[120px]">{{ loadsCount }}</span>
+                <Icon icon="material-symbols:chevron-right" class="w-4 h-4 text-muted-foreground flex-shrink-0" />
+              </div>
+            </div>
 
             <!-- Actions -->
-            <Badge 
-              v-if="actionsCount > 0"
-              variant="outline" 
-              class="cursor-pointer hover:bg-accent transition-colors px-1 h-5 gap-1"
-              @click="showJson('Action States', () => actionStates)"
+            <div 
+              class="flex items-center justify-between py-1.5 px-2 rounded-md cursor-pointer hover:bg-accent transition-colors min-w-0"
+              @click="showJson('Action States', () => actionStates || [])"
             >
-              <Icon icon="material-symbols:pending-actions" class="w-3 h-3 mr-1" />
-              Actions: {{ actionsCount }}
-            </Badge>
+              <div class="flex items-center gap-2 min-w-0 flex-shrink">
+                <Icon icon="material-symbols:pending-actions" class="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                <span class="text-sm truncate">Actions</span>
+              </div>
+              <div class="flex items-center gap-1 min-w-0 flex-shrink">
+                <span class="text-sm font-medium truncate max-w-[120px]">{{ actionsCount }}</span>
+                <Icon icon="material-symbols:chevron-right" class="w-4 h-4 text-muted-foreground flex-shrink-0" />
+              </div>
+            </div>
 
-            <!-- Other state info badges -->
-            <Badge 
-              v-if="stateInfo.operatingMode"
-              variant="outline" 
-              class="cursor-pointer hover:bg-accent transition-colors px-1 h-5 gap-1"
-              @click="showJson('Operating Mode', () => ({ operatingMode: stateInfo.operatingMode }))"
+            <!-- Operating Mode -->
+            <div 
+              class="flex items-center justify-between py-1.5 px-2 rounded-md cursor-pointer hover:bg-accent transition-colors min-w-0"
+              @click="showJson('Operating Mode', () => ({ operatingMode: stateInfo.operatingMode || 'N/A' }))"
             >
-              <Icon icon="material-symbols:auto-mode" class="w-3 h-3 mr-1" />
-              Mode: {{ stateInfo.operatingMode }}
-            </Badge>
+              <div class="flex items-center gap-2 min-w-0 flex-shrink">
+                <Icon icon="material-symbols:auto-mode" class="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                <span class="text-sm truncate">Operating Mode</span>
+              </div>
+              <div class="flex items-center gap-1 min-w-0 flex-shrink">
+                <span class="text-sm font-medium truncate max-w-[150px]">{{ stateInfo.operatingMode || 'N/A' }}</span>
+                <Icon icon="material-symbols:chevron-right" class="w-4 h-4 text-muted-foreground flex-shrink-0" />
+              </div>
+            </div>
 
-            <Badge 
-              v-if="stateInfo.batteryState"
-              variant="outline" 
-              class="cursor-pointer hover:bg-accent transition-colors px-1 h-5 gap-1"
-              @click="showJson('Battery State', () => stateInfo.batteryState)"
+            <!-- Battery State -->
+            <div 
+              class="flex items-center justify-between py-1.5 px-2 rounded-md cursor-pointer hover:bg-accent transition-colors min-w-0"
+              @click="showJson('Battery State', () => stateInfo.batteryState || { batteryLevel: stateInfo.batteryLevel })"
             >
-              <Icon icon="material-symbols:battery-charging-full" class="w-3 h-3 mr-1" />
-              Battery
-            </Badge>
+              <div class="flex items-center gap-2 min-w-0 flex-shrink">
+                <Icon icon="material-symbols:battery-charging-full" class="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                <span class="text-sm truncate">Battery</span>
+              </div>
+              <div class="flex items-center gap-1 min-w-0 flex-shrink">
+                <span v-if="stateInfo.batteryLevel !== undefined" class="text-sm font-medium truncate max-w-[120px]">{{ stateInfo.batteryLevel }}%</span>
+                <span v-else-if="stateInfo.batteryState" class="text-sm font-medium truncate max-w-[120px]">View</span>
+                <span v-else class="text-sm font-medium truncate max-w-[120px] text-muted-foreground">N/A</span>
+                <Icon icon="material-symbols:chevron-right" class="w-4 h-4 text-muted-foreground flex-shrink-0" />
+              </div>
+            </div>
 
-            <Badge 
-              v-if="stateInfo.agvPosition"
-              variant="outline" 
-              class="cursor-pointer hover:bg-accent transition-colors px-1 h-5 gap-1"
-              @click="showJson('AGV Position', () => stateInfo.agvPosition)"
+            <!-- AGV Position -->
+            <div 
+              class="flex items-center justify-between py-1.5 px-2 rounded-md cursor-pointer hover:bg-accent transition-colors min-w-0"
+              @click="showJson('AGV Position', () => stateInfo.agvPosition || {})"
             >
-              <Icon icon="material-symbols:gps-fixed" class="w-3 h-3 mr-1" />
-              Position
-            </Badge>
+              <div class="flex items-center gap-2 min-w-0 flex-shrink">
+                <Icon icon="material-symbols:location-on" class="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                <span class="text-sm truncate">Position</span>
+              </div>
+              <div class="flex items-center gap-1 min-w-0 flex-shrink">
+                <span 
+                  v-if="stateInfo.agvPosition && stateInfo.agvPosition.x !== undefined && stateInfo.agvPosition.y !== undefined" 
+                  class="text-sm font-medium truncate max-w-[180px]"
+                >
+                  ({{ stateInfo.agvPosition.x.toFixed(2) }}, {{ stateInfo.agvPosition.y.toFixed(2) }}<span v-if="stateInfo.agvPosition.theta !== undefined">, {{ stateInfo.agvPosition.theta.toFixed(2) }}°</span>)
+                </span>
+                <span v-else class="text-sm font-medium truncate max-w-[120px] text-muted-foreground">N/A</span>
+                <Icon icon="material-symbols:chevron-right" class="w-4 h-4 text-muted-foreground flex-shrink-0" />
+              </div>
+            </div>
           </div>
         </div>
 
@@ -361,78 +419,97 @@ watch(selectedAgv, () => {
         <div v-if="orderInfo" class="space-y-2">
           <div class="text-sm font-semibold flex items-center gap-2">
             <Icon icon="material-symbols:list-alt" class="w-4 h-4" />
-            Orders
+            Order Message
           </div>
-          <div class="flex flex-wrap gap-2">
-            <Badge 
-              variant="outline" 
-              class="cursor-pointer hover:bg-accent transition-colors px-1 h-5 gap-1"
-              @click="showJson('Full Order', () => orderInfo)"
+          <div class="space-y-1">
+            <div 
+              class="flex items-center justify-between py-1.5 px-2 rounded-md cursor-pointer hover:bg-accent transition-colors min-w-0"
+              @click="showJson('Order Message', () => orderInfo)"
             >
-              <Icon icon="material-symbols:code" class="w-3 h-3 mr-1" />
-              Show Full Order
-            </Badge>
-            <Badge 
-              variant="outline" 
-              class="cursor-pointer hover:bg-accent transition-colors px-1 h-5 gap-1"
-              @click="initOrderPublisher(true)"
+              <div class="flex items-center gap-2 min-w-0 flex-shrink">
+                <Icon icon="material-symbols:code" class="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                <span class="text-sm truncate">Show Order Message</span>
+              </div>
+              <Icon icon="material-symbols:chevron-right" class="w-4 h-4 text-muted-foreground" />
+            </div>
+            <div 
+              class="flex items-center justify-between py-1.5 px-2 rounded-md cursor-pointer hover:bg-accent transition-colors min-w-0"
+              @click="showJson('Order Information', () => orderInfo || {})"
             >
-              <Icon icon="material-symbols:edit" class="w-3 h-3 mr-1" />
-              Edit Order
-            </Badge>
-            <Badge 
-              v-if="orderId" 
-              variant="outline" 
-              class="cursor-pointer hover:bg-accent transition-colors px-1 h-5"
-              @click="showJson('Order Information', () => orderInfo)"
-            >
-              {{ orderId }}
-            </Badge>
-            <Badge 
-              v-if="orderUpdateId !== undefined" 
-              variant="outline" 
-              class="cursor-pointer hover:bg-accent transition-colors px-1 h-5 gap-1"
+              <div class="flex items-center gap-2 min-w-0 flex-shrink">
+                <Icon icon="material-symbols:label" class="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                <span class="text-sm truncate">Order ID</span>
+              </div>
+              <div class="flex items-center gap-1 min-w-0 flex-shrink">
+                <span class="text-sm font-medium truncate max-w-[150px]">{{ orderId || 'N/A' }}</span>
+                <Icon icon="material-symbols:chevron-right" class="w-4 h-4 text-muted-foreground flex-shrink-0" />
+              </div>
+            </div>
+            <div 
+              class="flex items-center justify-between py-1.5 px-2 rounded-md cursor-pointer hover:bg-accent transition-colors min-w-0"
               @click="showJson('Order Update ID', () => ({ orderUpdateId }))"
             >
-              <Icon icon="material-symbols:update" class="w-3 h-3 mr-1" />
-              Update: {{ orderUpdateId }}
-            </Badge>
-            <Badge 
-              v-if="orderHeaderId" 
-              variant="outline" 
-              class="cursor-pointer hover:bg-accent transition-colors px-1 h-5 gap-1"
+              <div class="flex items-center gap-2 min-w-0 flex-shrink">
+                <Icon icon="material-symbols:update" class="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                <span class="text-sm truncate">Update ID</span>
+              </div>
+              <div class="flex items-center gap-1 min-w-0 flex-shrink">
+                <span class="text-sm font-medium truncate max-w-[120px]">{{ orderUpdateId !== undefined ? orderUpdateId : 'N/A' }}</span>
+                <Icon icon="material-symbols:chevron-right" class="w-4 h-4 text-muted-foreground flex-shrink-0" />
+              </div>
+            </div>
+            <div 
+              class="flex items-center justify-between py-1.5 px-2 rounded-md cursor-pointer hover:bg-accent transition-colors min-w-0"
               @click="showJson('Order Header ID', () => ({ orderHeaderId }))"
             >
-              <Icon icon="material-symbols:label" class="w-3 h-3 mr-1" />
-              Header: {{ orderHeaderId }}
-            </Badge>
-            <Badge 
-              v-if="orderNodesCount > 0" 
-              variant="outline" 
-              class="cursor-pointer hover:bg-accent transition-colors px-1 h-5 gap-1"
-              @click="showJson('Order Nodes', () => orderInfo.nodes)"
+              <div class="flex items-center gap-2 min-w-0 flex-shrink">
+                <Icon icon="material-symbols:label" class="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                <span class="text-sm truncate">Header ID</span>
+              </div>
+              <div class="flex items-center gap-1 min-w-0 flex-shrink">
+                <span class="text-sm font-medium truncate max-w-[150px]">{{ orderHeaderId || 'N/A' }}</span>
+                <Icon icon="material-symbols:chevron-right" class="w-4 h-4 text-muted-foreground flex-shrink-0" />
+              </div>
+            </div>
+            <div 
+              class="flex items-center justify-between py-1.5 px-2 rounded-md cursor-pointer hover:bg-accent transition-colors min-w-0"
+              @click="showJson('Order Nodes', () => orderInfo?.nodes || [])"
             >
-              <Icon icon="material-symbols:account-tree" class="w-3 h-3 mr-1" />
-              Nodes: {{ orderNodesCount }}
-            </Badge>
-            <Badge 
-              v-if="orderEdgesCount > 0" 
-              variant="outline" 
-              class="cursor-pointer hover:bg-accent transition-colors px-1 h-5 gap-1"
-              @click="showJson('Order Edges', () => orderInfo.edges)"
+              <div class="flex items-center gap-2 min-w-0 flex-shrink">
+                <Icon icon="material-symbols:account-tree" class="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                <span class="text-sm truncate">Nodes</span>
+              </div>
+              <div class="flex items-center gap-1 min-w-0 flex-shrink">
+                <span class="text-sm font-medium truncate max-w-[120px]">{{ orderNodesCount }}</span>
+                <Icon icon="material-symbols:chevron-right" class="w-4 h-4 text-muted-foreground flex-shrink-0" />
+              </div>
+            </div>
+            <div 
+              class="flex items-center justify-between py-1.5 px-2 rounded-md cursor-pointer hover:bg-accent transition-colors min-w-0"
+              @click="showJson('Order Edges', () => orderInfo?.edges || [])"
             >
-              <Icon icon="material-symbols:route" class="w-3 h-3 mr-1" />
-              Edges: {{ orderEdgesCount }}
-            </Badge>
-            <Badge 
-              v-if="orderTimestamp" 
-              variant="outline" 
-              class="cursor-pointer hover:bg-accent transition-colors px-1 h-5 gap-1"
+              <div class="flex items-center gap-2 min-w-0 flex-shrink">
+                <Icon icon="material-symbols:route" class="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                <span class="text-sm truncate">Edges</span>
+              </div>
+              <div class="flex items-center gap-1 min-w-0 flex-shrink">
+                <span class="text-sm font-medium truncate max-w-[120px]">{{ orderEdgesCount }}</span>
+                <Icon icon="material-symbols:chevron-right" class="w-4 h-4 text-muted-foreground flex-shrink-0" />
+              </div>
+            </div>
+            <div 
+              class="flex items-center justify-between py-1.5 px-2 rounded-md cursor-pointer hover:bg-accent transition-colors min-w-0"
               @click="showJson('Order Timestamp', () => ({ timestamp: orderTimestamp }))"
             >
-              <Icon icon="material-symbols:schedule" class="w-3 h-3 mr-1" />
-              {{ orderTimestamp }}
-            </Badge>
+              <div class="flex items-center gap-2 min-w-0 flex-shrink">
+                <Icon icon="material-symbols:schedule" class="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                <span class="text-sm truncate">Timestamp</span>
+              </div>
+              <div class="flex items-center gap-1 min-w-0 flex-shrink">
+                <span class="text-sm font-medium truncate max-w-[180px]">{{ orderTimestamp || 'N/A' }}</span>
+                <Icon icon="material-symbols:chevron-right" class="w-4 h-4 text-muted-foreground flex-shrink-0" />
+              </div>
+            </div>
           </div>
         </div>
 
@@ -442,51 +519,69 @@ watch(selectedAgv, () => {
             <Icon icon="material-symbols:flash-on" class="w-4 h-4" />
             Instant Actions
           </div>
-          <div class="flex flex-wrap gap-2">
-            <Badge 
-              variant="outline" 
-              class="cursor-pointer hover:bg-accent transition-colors px-1 h-5 gap-1"
-              @click="showJson('Instant Actions', () => instantActionsInfo)"
-            >
-              <Icon icon="material-symbols:bolt" class="w-3 h-3 mr-1" />
-              Count: {{ instantActionsCount }}
-            </Badge>
-            <Badge 
-              variant="outline" 
-              class="cursor-pointer hover:bg-accent transition-colors px-1 h-5 gap-1"
-              @click="initInstantActionPublisher(true)"
-            >
-              <Icon icon="material-symbols:edit" class="w-3 h-3 mr-1" />
-              Edit Instant Actions
-            </Badge>
-            <Badge 
-              v-for="(action, index) in instantActionsArray.slice(0, 3)" 
-              :key="index"
-              variant="outline" 
-              class="cursor-pointer hover:bg-accent transition-colors px-1 h-5 gap-1"
-              @click="showJson(`Instant Action ${index + 1}`, () => instantActionsArray[index])"
-            >
-              <Icon icon="material-symbols:flash-on" class="w-3 h-3 mr-1" />
-              Action {{ index + 1 }}
-              <span v-if="action.instantActionId" class="ml-1">({{ action.instantActionId }})</span>
-            </Badge>
-            <Badge 
-              v-if="instantActionsCount > 3" 
-              variant="outline" 
-              class="cursor-pointer hover:bg-accent transition-colors px-1 h-5 gap-1"
-              @click="showJson('All Instant Actions', () => instantActionsArray)"
-            >
-              <Icon icon="material-symbols:more-horiz" class="w-3 h-3 mr-1" />
-              +{{ instantActionsCount - 3 }} more
-            </Badge>
-            <Badge 
-              variant="outline" 
-              class="cursor-pointer hover:bg-accent transition-colors px-1 h-5 gap-1"
+          <div class="space-y-1">
+            <div 
+              class="flex items-center justify-between py-1.5 px-2 rounded-md cursor-pointer hover:bg-accent transition-colors min-w-0"
               @click="showJson('Full Instant Actions', () => instantActionsInfo)"
             >
-              <Icon icon="material-symbols:code" class="w-3 h-3 mr-1" />
-              Show Full Instant Actions
-            </Badge>
+              <div class="flex items-center gap-2 min-w-0 flex-shrink">
+                <Icon icon="material-symbols:code" class="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                <span class="text-sm truncate">Full Instant Actions</span>
+              </div>
+              <Icon icon="material-symbols:chevron-right" class="w-4 h-4 text-muted-foreground" />
+            </div>
+            <div 
+              class="flex items-center justify-between py-1.5 px-2 rounded-md cursor-pointer hover:bg-accent transition-colors min-w-0"
+              @click="initInstantActionPublisher(true)"
+            >
+              <div class="flex items-center gap-2 min-w-0 flex-shrink">
+                <Icon icon="material-symbols:edit" class="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                <span class="text-sm truncate">Edit Instant Actions</span>
+              </div>
+              <Icon icon="material-symbols:chevron-right" class="w-4 h-4 text-muted-foreground" />
+            </div>
+            <div 
+              class="flex items-center justify-between py-1.5 px-2 rounded-md cursor-pointer hover:bg-accent transition-colors min-w-0"
+              @click="showJson('Instant Actions', () => instantActionsInfo)"
+            >
+              <div class="flex items-center gap-2 min-w-0 flex-shrink">
+                <Icon icon="material-symbols:bolt" class="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                <span class="text-sm truncate">Count</span>
+              </div>
+              <div class="flex items-center gap-1 min-w-0 flex-shrink">
+                <span class="text-sm font-medium truncate max-w-[120px]">{{ instantActionsCount }}</span>
+                <Icon icon="material-symbols:chevron-right" class="w-4 h-4 text-muted-foreground flex-shrink-0" />
+              </div>
+            </div>
+            <div 
+              v-for="(action, index) in instantActionsArray.slice(0, 3)" 
+              :key="index"
+              class="flex items-center justify-between py-1.5 px-2 rounded-md cursor-pointer hover:bg-accent transition-colors min-w-0"
+              @click="showJson(`Instant Action ${index + 1}`, () => instantActionsArray[index])"
+            >
+              <div class="flex items-center gap-2 min-w-0 flex-shrink">
+                <Icon icon="material-symbols:flash-on" class="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                <span class="text-sm truncate">Action {{ index + 1 }}</span>
+              </div>
+              <div class="flex items-center gap-1 min-w-0 flex-shrink">
+                <span v-if="action.instantActionId" class="text-sm font-medium truncate max-w-[150px]">{{ action.instantActionId }}</span>
+                <Icon icon="material-symbols:chevron-right" class="w-4 h-4 text-muted-foreground flex-shrink-0" />
+              </div>
+            </div>
+            <div 
+              v-if="instantActionsCount > 3" 
+              class="flex items-center justify-between py-1.5 px-2 rounded-md cursor-pointer hover:bg-accent transition-colors min-w-0"
+              @click="showJson('All Instant Actions', () => instantActionsArray)"
+            >
+              <div class="flex items-center gap-2 min-w-0 flex-shrink">
+                <Icon icon="material-symbols:more-horiz" class="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                <span class="text-sm truncate">More Actions</span>
+              </div>
+              <div class="flex items-center gap-1 min-w-0 flex-shrink">
+                <span class="text-sm font-medium truncate max-w-[120px]">+{{ instantActionsCount - 3 }} more</span>
+                <Icon icon="material-symbols:chevron-right" class="w-4 h-4 text-muted-foreground flex-shrink-0" />
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -501,14 +596,26 @@ watch(selectedAgv, () => {
             <Icon icon="material-symbols:code" class="w-4 h-4" />
             {{ selectedTitle }}
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            class="h-6 w-6 p-0"
-            @click="clearJson"
-          >
-            <Icon icon="material-symbols:close" class="w-4 h-4" />
-          </Button>
+          <div class="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              class="h-6 w-6 p-0"
+              @click="copyJsonToClipboard"
+              title="Copy JSON to clipboard"
+            >
+              <Icon icon="material-symbols:content-copy" class="w-4 h-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              class="h-6 w-6 p-0"
+              @click="clearJson"
+              title="Close JSON viewer"
+            >
+              <Icon icon="material-symbols:close" class="w-4 h-4" />
+            </Button>
+          </div>
         </div>
         <!-- Search Input -->
         <div class="relative">

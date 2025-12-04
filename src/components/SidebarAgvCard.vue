@@ -1,13 +1,13 @@
+
+
+
+
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed } from "vue";
 import { VDA5050Agv } from "@/controllers/vda5050-agv.controller";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { Button } from "@/components/ui/button";
 import { ConnectionState } from "@/types/vda5050.types";
-import { Icon } from '@iconify/vue';
 import { useMqttStore } from "@/stores/mqtt";
+import { useVDA5050 } from "@/composables/useVDA5050";
 
 const props = defineProps<{
   controller: VDA5050Agv;
@@ -19,6 +19,7 @@ const emit = defineEmits<{
 }>();
 
 const mqttStore = useMqttStore();
+const { selectedAgv } = useVDA5050();
 const agvId = props.controller.agvId;
 
 // Get AGV data from Pinia store
@@ -58,6 +59,10 @@ const orderId = computed(() => orderInfo.value?.orderId);
 const orderUpdateId = computed(() => orderInfo.value?.orderUpdateId);
 const orderHeaderId = computed(() => orderInfo.value?.headerId);
 const orderTimestamp = computed(() => orderInfo.value?.timestamp);
+
+// State information
+const stateInfo = computed(() => agvData.value?.stateInfo);
+const stateHeaderId = computed(() => stateInfo.value?.headerId);
 
 // Instant action information
 const instantActionsInfo = computed(() => agvData.value?.instantActionsInfo);
@@ -127,211 +132,246 @@ const sequenceProgress = computed(() => {
   };
 });
 
-const statusColor = computed(() => {
-  switch (connectionState.value) {
-    case ConnectionState.ONLINE: return 'bg-green-500 hover:bg-green-600';
-    case ConnectionState.OFFLINE: return 'bg-red-500 hover:bg-red-600';
-    case ConnectionState.CONNECTIONBROKEN: return 'bg-orange-500 hover:bg-orange-600';
-    default: return 'bg-gray-500 hover:bg-gray-600';
+// Order type - try to infer from order structure or use default
+const orderType = computed(() => {
+  if (!orderInfo.value) return null;
+  // Check if order has specific type field, otherwise infer from structure
+  if (orderInfo.value.orderType) return orderInfo.value.orderType;
+  // Infer from nodes/edges - if has actions, might be transport
+  if (orderInfo.value.nodes?.length > 0 || orderInfo.value.edges?.length > 0) {
+    return 'transport';
+  }
+  return null;
+});
+
+// Order state - from stateInfo or connectionState
+const orderState = computed(() => {
+  const state = agvData.value?.stateInfo?.orderState;
+  if (state) return state;
+  // Try to infer from driving state
+  if (agvData.value?.stateInfo?.driving) return 'RUNNING';
+  return null;
+});
+
+// Order state badge class
+const orderStateBadgeClass = computed(() => {
+  const state = orderState.value || connectionState.value;
+  switch (state) {
+    case ConnectionState.ONLINE:
+    case 'RUNNING':
+    case 'EXECUTING':
+      return 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300';
+    case ConnectionState.OFFLINE:
+    case 'FAILED':
+    case 'ERROR':
+      return 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300';
+    case ConnectionState.CONNECTIONBROKEN:
+    case 'PAUSED':
+      return 'bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-300';
+    default:
+      return 'bg-gray-100 text-gray-700 dark:bg-gray-500/20 dark:text-gray-300';
   }
 });
 
-const showOrderInfo = ref(false);
-const showInstantActions = ref(false);
+// Route display - from order nodes
+const routeDisplay = computed(() => {
+  if (!orderInfo.value?.nodes || orderInfo.value.nodes.length === 0) {
+    return 'N/A';
+  }
+  const nodes = orderInfo.value.nodes;
+  const firstNode = nodes[0];
+  const lastNode = nodes[nodes.length - 1];
+  return `${firstNode.nodeId || 'N/A'} → ${lastNode.nodeId || 'N/A'}`;
+});
 
-const toggleOrderInfo = (event: Event) => {
-  event.stopPropagation();
-  showOrderInfo.value = !showOrderInfo.value;
+// Route progress - remaining nodes / total nodes
+const routeProgress = computed(() => {
+  if (!sequenceProgress.value) return null;
+  const { current, total } = sequenceProgress.value;
+  const remaining = Math.max(0, total - current);
+  return {
+    remaining,
+    total,
+    display: `${remaining} / ${total}`
+  };
+});
+
+// Current step - from stateInfo or orderInfo
+const currentStep = computed(() => {
+  const currentNodeId = agvData.value?.stateInfo?.lastNodeId;
+  if (currentNodeId) return `${currentNodeId}`;
+  
+  const currentAction = agvData.value?.stateInfo?.actionStates?.[0];
+  if (currentAction?.actionType) return currentAction.actionType;
+  
+  return null;
+});
+
+// Priority - from orderInfo
+const priority = computed(() => {
+  return orderInfo.value?.priority || null;
+});
+
+// Battery percentage
+const batteryPercent = computed(() => {
+  const battery = agvData.value?.stateInfo?.batteryState;
+  if (battery?.batteryCharge !== undefined) {
+    return Math.round(battery.batteryCharge);
+  }
+  if (battery?.batteryVoltage !== undefined) {
+    // Estimate from voltage if charge not available
+    return null; // Could add voltage-based estimation if needed
+  }
+  return null;
+});
+
+// Speed - from velocity
+const speed = computed(() => {
+  if (!velocity.value) return null;
+  const vx = parseFloat(velocity.value.vx);
+  const vy = parseFloat(velocity.value.vy);
+  const speedValue = Math.sqrt(vx * vx + vy * vy);
+  return speedValue.toFixed(2);
+});
+
+// Alerts - from errors
+const alerts = computed(() => {
+  if (!errors.value || errors.value.length === 0) return [];
+  return errors.value.map((err: any) => {
+    const level = err.errorLevel || 'warning';
+    const type = err.errorType || 'Unknown';
+    return `${level}: ${type}`;
+  });
+});
+
+// Deadline - from orderInfo
+const deadline = computed(() => {
+  return orderInfo.value?.deadline || null;
+});
+
+// Format timestamp helper
+const formatTimestamp = (timestamp: string | number | null | undefined): string => {
+  if (!timestamp) return 'N/A';
+  try {
+    const date = typeof timestamp === 'number' 
+      ? new Date(timestamp) 
+      : new Date(timestamp);
+    return date.toLocaleString();
+  } catch {
+    return String(timestamp);
+  }
 };
 
-const toggleInstantActions = (event: Event) => {
+// Action handlers
+const handleAcknowledge = (event: Event) => {
   event.stopPropagation();
-  showInstantActions.value = !showInstantActions.value;
+  // TODO: Implement acknowledge functionality
+  console.log('Acknowledge clicked for', agvId);
+};
+
+const handleViewDetails = (event: Event) => {
+  event.stopPropagation();
+  // Select the AGV to open the details sidebar
+  selectedAgv.value = agvId;
 };
 </script>
 
 <template>
-  <div>
-  <Card 
-    class="cursor-pointer transition-all hover:shadow-md"
-    :class="{ 'border-primary ring-1 ring-primary': isSelected }"
-    @click="emit('select-agv')"
-  >
-    <CardHeader class="p-3 pb-2">
-      <CardTitle class="text-sm font-semibold flex items-center justify-between">
-        <span>{{ agvId.manufacturer }} / {{ agvId.serialNumber }}</span>
-        <Badge :class="statusColor" class="text-xs px-1 py-0 h-5">
-          {{ connectionState || 'UNKNOWN' }}
-        </Badge>
-      </CardTitle>
-    </CardHeader>
-    <CardContent class="p-3 pt-0 space-y-2">
-      <!-- Chips Row -->
-      <div class="flex flex-wrap gap-1">
-        <Badge variant="outline" class="text-xs px-1 h-5 gap-1" v-if="position">
-          <Icon icon="material-symbols:gps-fixed" class="w-3 h-3" />
-          x:{{ position.x }} y:{{ position.y }} θ:{{ position.theta }}
-        </Badge>
-        <Badge variant="outline" class="text-xs px-1 h-5 gap-1" v-if="velocity">
-          <Icon icon="material-symbols:speed" class="w-3 h-3" />
-          vx:{{ velocity.vx }} vy:{{ velocity.vy }}
-        </Badge>
-        <Badge variant="outline" class="text-xs px-1 h-5 gap-1" v-if="operatingMode">
-          <Icon icon="material-symbols:auto-mode" class="w-3 h-3" />
-          {{ operatingMode.toLowerCase() }}
-        </Badge>
-        <Badge variant="outline" class="text-xs px-1 h-5 gap-1" v-if="mapId">
-          <Icon icon="material-symbols:map" class="w-3 h-3" />
-          {{ mapId }}
-        </Badge>
-        <Badge variant="outline" class="text-xs px-1 h-5 gap-1" v-if="loadsCount > 0">
-          <Icon icon="material-symbols:view-in-ar" class="w-3 h-3" />
-          Loads: {{ loadsCount }}
-        </Badge>
-        <Badge variant="outline" class="text-xs px-1 h-5 gap-1" v-if="actionsCount > 0">
-          <Icon icon="material-symbols:pending-actions" class="w-3 h-3" />
-          Actions: {{ actionsCount }}
-        </Badge>
-        <Badge 
-          variant="outline" 
-          :class="[
-            'text-xs px-1 h-5 gap-1',
-            fatalErrorsCount > 0 ? 'border-red-500 text-red-600' : warningErrorsCount > 0 ? 'border-yellow-500 text-yellow-600' : ''
-          ]"
-          v-if="errorsCount > 0"
-        >
-          <Icon icon="material-symbols:error" class="w-3 h-3" />
-          Errors: {{ errorsCount }}
-          <span v-if="fatalErrorsCount > 0" class="ml-1">({{ fatalErrorsCount }} fatal)</span>
-          <span v-else-if="warningErrorsCount > 0" class="ml-1">({{ warningErrorsCount }} warnings)</span>
-        </Badge>
+  <div class="max-w-xl mx-auto p-1">
+    <div class="rounded-3xl shadow-lg  text-gray-900 dark:text-white p-3 border border-gray-200 dark:border-white/10">
+      <!-- Top Row -->
+      <div class="flex justify-between items-start mb-6">
+        <div class="min-w-0 flex-1">
+          <h2 class="text-xl tracking-tight">
+            <span class="font-light">{{ agvId.manufacturer }}</span> / <span class="font-semibold">{{ agvId.serialNumber }}</span>
+          </h2>
+          <p class="text-sm text-gray-600 dark:text-white/60 truncate">Order: <span class="text-gray-900 dark:text-white">{{ orderId || 'N/A' }}</span></p>
+        </div>
+
+        <div class="flex flex-col gap-2 items-end">
+          <span v-if="orderType" class="px-3 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300">
+            {{ orderType }}
+          </span>
+          <span :class="orderStateBadgeClass" class="px-3 py-1 rounded-full text-xs font-medium">
+            {{ orderState || connectionState || 'N/A' }}
+          </span>
+        </div>
       </div>
 
-      <!-- Order Information Toggle Button -->
-      <div v-if="orderInfo" class="pt-1 border-t">
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          class="w-full text-xs h-7 justify-between px-2"
-          @click="toggleOrderInfo"
-        >
-          <div class="flex items-center gap-1">
-            <Icon icon="material-symbols:list-alt" class="w-3 h-3" />
-            <span>Order Information</span>
+      <!-- Middle Stats Card -->
+      <div class="grid grid-cols-2 gap-6 mb-6">
+        <!-- Left -->
+        <div class="space-y-4">
+          <div>
+            <p class="text-xs text-gray-500 dark:text-white/50">Route</p>
+            <p v-if="routeProgress" class="text-base font-medium text-gray-900 dark:text-white">{{ routeProgress.display }}</p>
+            <p v-else class="text-base font-medium text-gray-900 dark:text-white">N/A</p>
           </div>
-          <Icon 
-            :icon="showOrderInfo ? 'material-symbols:expand-less' : 'material-symbols:expand-more'" 
-            class="w-4 h-4" 
-          />
-        </Button>
-      </div>
 
-      <!-- Order Information Content -->
-      <div v-if="orderInfo && showOrderInfo" class="space-y-1 pt-1 pl-2">
-        <div class="flex flex-wrap gap-1">
-          <Badge variant="secondary" class="text-xs px-1 h-5 gap-1" v-if="orderId">
-            <Icon icon="material-symbols:tag" class="w-3 h-3" />
-            ID: {{ orderId }}
-          </Badge>
-          <Badge variant="secondary" class="text-xs px-1 h-5 gap-1" v-if="orderUpdateId !== undefined">
-            <Icon icon="material-symbols:update" class="w-3 h-3" />
-            Update: {{ orderUpdateId }}
-          </Badge>
-          <Badge variant="secondary" class="text-xs px-1 h-5 gap-1" v-if="orderHeaderId">
-            <Icon icon="material-symbols:label" class="w-3 h-3" />
-            Header: {{ orderHeaderId }}
-          </Badge>
-        </div>
-        <div v-if="orderTimestamp" class="text-[10px] text-muted-foreground flex items-center gap-1">
-          <Icon icon="material-symbols:schedule" class="w-3 h-3" />
-          {{ orderTimestamp }}
-        </div>
-      </div>
-
-      <!-- Instant Actions Toggle Button -->
-      <div v-if="instantActionsInfo" class="pt-1 border-t">
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          class="w-full text-xs h-7 justify-between px-2"
-          @click="toggleInstantActions"
-        >
-          <div class="flex items-center gap-1">
-            <Icon icon="material-symbols:flash-on" class="w-3 h-3" />
-            <span>Instant Actions</span>
+          <div>
+            <p class="text-xs text-gray-500 dark:text-white/50">Current Step</p>
+            <p class="text-base font-medium text-gray-900 dark:text-white max-w-xs truncate">{{ currentStep || 'N/A' }}</p>
           </div>
-          <Icon 
-            :icon="showInstantActions ? 'material-symbols:expand-less' : 'material-symbols:expand-more'" 
-            class="w-4 h-4" 
-          />
-        </Button>
-      </div>
 
-      <!-- Instant Actions Content -->
-      <div v-if="instantActionsInfo && showInstantActions" class="space-y-1 pt-1 pl-2">
-        <div class="flex flex-wrap gap-1">
-          <Badge variant="secondary" class="text-xs px-1 h-5 gap-1" v-if="instantActionId">
-            <Icon icon="material-symbols:bolt" class="w-3 h-3" />
-            Action ID: {{ instantActionId }}
-          </Badge>
-          <Badge variant="secondary" class="text-xs px-1 h-5 gap-1" v-if="instantActionsCount > 0">
-            <Icon icon="material-symbols:format-list-numbered" class="w-3 h-3" />
-            Count: {{ instantActionsCount }}
-          </Badge>
+          <div>
+            <p class="text-xs text-gray-500 dark:text-white/50">Operating Mode</p>
+            <p class="text-base font-medium text-gray-900 dark:text-white capitalize max-w-xs truncate">{{ operatingMode || 'N/A' }}</p>
+          </div>
+        </div>
+
+        <!-- Right -->
+        <div class="space-y-4">
+          <div>
+            <p class="text-xs text-gray-500 dark:text-white/50">Position</p>
+            <p class="text-base font-medium text-gray-900 dark:text-white">
+              <span v-if="position">
+                x: {{ position.x }},
+                y: {{ position.y }},
+                θ: {{ position.theta }}
+              </span>
+              <span v-else>N/A</span>
+            </p>
+          </div>
+
+          <div>
+            <p class="text-xs text-gray-500 dark:text-white/50">Battery</p>
+            <div class="flex items-center gap-2">
+              <p class="text-base font-medium text-gray-900 dark:text-white">{{ batteryPercent !== null ? batteryPercent + '%' : 'N/A' }}</p>
+              <div v-if="batteryPercent !== null" class="w-full h-2 rounded-full bg-gray-200 dark:bg-white/10 overflow-hidden">
+                <div class="h-2 bg-emerald-500 dark:bg-emerald-400" :style="{ width: batteryPercent + '%' }"></div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <p class="text-xs text-gray-500 dark:text-white/50">Speed</p>
+            <p class="text-base font-medium text-gray-900 dark:text-white">{{ speed !== null ? speed + ' m/s' : 'N/A' }}</p>
+          </div>
         </div>
       </div>
 
-      <!-- Progress Bar -->
-      <div v-if="sequenceProgress && sequenceProgress.total > 0" class="space-y-1">
-        <div class="flex justify-between text-[10px] text-muted-foreground">
-          <span>Progress: {{ sequenceProgress.current }} / {{ sequenceProgress.total }}</span>
-          <span>{{ sequenceProgress.percentage }}%</span>
+      <!-- Alerts -->
+      <div class="mb-6" v-if="alerts.length > 0">
+        <p class="text-xs text-gray-500 dark:text-white/50 mb-1">Alerts</p>
+        <div v-if="alerts.length" class="text-red-600 dark:text-red-300 text-sm">
+          {{ alerts.join(', ') }}
         </div>
-        <Progress :model-value="sequenceProgress.percentage" class="h-1.5" />
+        <div v-else class="text-gray-500 dark:text-white/40 text-sm">None</div>
       </div>
-      
-      <div v-if="timestamp" class="text-[10px] text-muted-foreground flex items-center gap-1 justify-end">
-         <Icon icon="material-symbols:av-timer" class="w-3 h-3" />
-         {{ timestamp }}
-      </div>
-    </CardContent>
 
-  </Card>
+      <!-- Footer -->
+      <div class="flex justify-between text-xs text-gray-500 dark:text-white/40 border-t border-gray-200 dark:border-white/10 pt-4">
+        <div>
+          <p>Created: {{ formatTimestamp(orderTimestamp) }}</p>
+          <p>State Header ID: <span class="text-gray-900 dark:text-white">{{ stateHeaderId ? stateHeaderId : 'N/A' }}</span></p>
+        </div>
+        <div class="flex gap-2">
+          <button @click="handleViewDetails" class="px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 transition text-white text-xs">Details</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <style scoped>
-/* Ensure the details section content is visible */
-:deep(.card-header-div) {
-  padding: 8px 12px;
-  margin-bottom: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-:deep(.card-font-bold) {
-  font-weight: bold;
-  font-size: 14px;
-}
-
-:deep(.card-font) {
-  font-size: 12px;
-}
-
-:deep(.card-divider) {
-  margin: 8px 0;
-}
-
-/* Ensure BalmUI components are visible */
-:deep(ui-chips) {
-  display: flex;
-  gap: 4px;
-  flex-wrap: wrap;
-}
-
-:deep(ui-chip) {
-  display: inline-flex;
-  align-items: center;
-}
 </style>
