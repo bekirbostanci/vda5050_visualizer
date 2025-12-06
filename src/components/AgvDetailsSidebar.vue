@@ -1,17 +1,14 @@
 <script setup lang="ts">
 import { computed, ref, unref, watch } from "vue";
 import { useVDA5050 } from "@/composables/useVDA5050";
-import VueJsonPretty from 'vue-json-pretty';
-import 'vue-json-pretty/lib/styles.css';
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Icon } from '@iconify/vue';
-import { toast } from "@/components/ui/toast";
 import OrderPublisher from "@/components/OrderPublisher.vue";
 import InstantActionPublisher from "@/components/InstantActionPublisher.vue";
 
 const emit = defineEmits<{
   close: [];
+  showJson: [title: string, data: any];
 }>();
 
 const { selectedAgv, agvControllers, interfaceName } = useVDA5050();
@@ -82,115 +79,10 @@ const actionsCount = computed(() => {
   return Array.isArray(actionStates.value) ? actionStates.value.length : 0;
 });
 
-// JSON viewer state - store what to show, not the data itself
-const selectedViewType = ref<{
-  type: string;
-  title: string;
-  getData: () => any;
-} | null>(null);
-
-// Search functionality
-const searchQuery = ref('');
-
-// Search in JSON data
-const searchInJson = (json: any, query: string): any => {
-  if (!query || query.trim() === '') return json;
-  
-  const searchStr = query.toLowerCase();
-  
-  // Helper function to check if a value contains the search string
-  const containsSearchString = (value: any): boolean => {
-    if (value === null || value === undefined) return false;
-    return String(value).toLowerCase().includes(searchStr);
-  };
-  
-  // Recursive function to filter objects and arrays
-  const filterData = (data: any): any => {
-    if (typeof data !== 'object' || data === null) {
-      return containsSearchString(data) ? data : undefined;
-    }
-    
-    if (Array.isArray(data)) {
-      const filteredArray = data
-        .map(item => filterData(item))
-        .filter(item => item !== undefined);
-      return filteredArray.length > 0 ? filteredArray : undefined;
-    }
-    
-    const filteredObj: Record<string, any> = {};
-    let hasMatch = false;
-    
-    for (const key in data) {
-      if (containsSearchString(key)) {
-        filteredObj[key] = data[key];
-        hasMatch = true;
-        continue;
-      }
-      
-      const filteredValue = filterData(data[key]);
-      if (filteredValue !== undefined) {
-        filteredObj[key] = filteredValue;
-        hasMatch = true;
-      }
-    }
-    
-    return hasMatch ? filteredObj : undefined;
-  };
-  
-  const result = filterData(json);
-  return result !== undefined ? result : { message: "No matches found" };
-};
-
-// Computed property that always returns the latest data
-const selectedData = computed(() => {
-  if (!selectedViewType.value) return null;
-  const data = selectedViewType.value.getData();
-  return searchInJson(data, searchQuery.value);
-});
-
-const selectedTitle = computed(() => selectedViewType.value?.title || '');
-
-const clearSearch = () => {
-  searchQuery.value = '';
-};
-
+// Emit JSON getter function to parent component (App.vue) to show in JsonViewerSidebar
+// This allows the JSON viewer to reactively update when data changes
 const showJson = (title: string, getDataFn: () => any) => {
-  selectedViewType.value = {
-    type: title,
-    title,
-    getData: getDataFn,
-  };
-  // Clear search when switching to a different view
-  searchQuery.value = '';
-};
-
-const clearJson = () => {
-  selectedViewType.value = null;
-  searchQuery.value = '';
-};
-
-// Copy JSON to clipboard
-const copyJsonToClipboard = async () => {
-  if (!selectedViewType.value) return;
-  
-  try {
-    // Get the raw data (not filtered by search)
-    const rawData = selectedViewType.value.getData();
-    const jsonString = JSON.stringify(rawData, null, 2);
-    
-    await navigator.clipboard.writeText(jsonString);
-    toast({
-      title: "Copied to clipboard",
-      description: "JSON data has been copied to your clipboard",
-    });
-  } catch (error) {
-    console.error('Failed to copy to clipboard:', error);
-    toast({
-      title: "Copy failed",
-      description: "Failed to copy JSON to clipboard",
-      variant: "destructive",
-    });
-  }
+  emit('showJson', title, getDataFn);
 };
 
 // Publisher mode state
@@ -200,13 +92,11 @@ const publisherMode = ref<'order' | 'instantAction' | null>(null);
 const initOrderPublisher = (_useExisting: boolean = false) => {
   if (!selectedAgv.value) return;
   publisherMode.value = 'order';
-  selectedViewType.value = null;
 };
 
 const initInstantActionPublisher = (_useExisting: boolean = false) => {
   if (!selectedAgv.value) return;
   publisherMode.value = 'instantAction';
-  selectedViewType.value = null;
 };
 
 const closePublisher = () => {
@@ -221,9 +111,9 @@ const handlePublisherPublished = () => {
 watch([stateInfo, selectedAgv], ([newStateInfo], [oldStateInfo, oldSelectedAgv]) => {
   // Show state message if:
   // 1. State info is available AND
-  // 2. Either no view is selected OR AGV has changed (reset to default)
+  // 2. AGV has changed (reset to default)
   // 3. Publisher is not open
-  if (newStateInfo && (!selectedViewType.value || selectedAgv.value !== oldSelectedAgv) && !publisherMode.value) {
+  if (newStateInfo && selectedAgv.value !== oldSelectedAgv && !publisherMode.value) {
     showJson('State Message', () => stateInfo.value);
   }
 }, { immediate: true });
@@ -240,7 +130,7 @@ watch(selectedAgv, () => {
   <div class="h-full w-full border-r bg-background flex flex-col">
     <!-- Header -->
     <div class="p-4 border-b font-semibold flex items-center justify-between h-[68px]">
-      <span>{{ selectedAgv?.manufacturer || 'N/A' }} / {{ selectedAgv?.serialNumber || 'N/A' }}</span>
+      <span>{{ selectedAgv?.serialNumber || 'N/A' }}</span>
       <div class="flex items-center gap-2">
         <Button
           v-if="selectedAgv && !publisherMode"
@@ -263,7 +153,7 @@ watch(selectedAgv, () => {
           Instant Action
         </Button>
         <Button
-          variant="ghost"
+          variant="outline"
           size="sm"
           class="h-8 w-8 p-0"
           @click="emit('close')"
@@ -441,7 +331,7 @@ watch(selectedAgv, () => {
                 <span class="text-sm truncate">Order ID</span>
               </div>
               <div class="flex items-center gap-1 min-w-0 flex-shrink">
-                <span class="text-sm font-medium truncate max-w-[150px]">{{ orderId || 'N/A' }}</span>
+                <span class="text-sm font-medium truncate max-w-[200px]">{{ orderId || 'N/A' }}</span>
                 <Icon icon="material-symbols:chevron-right" class="w-4 h-4 text-muted-foreground flex-shrink-0" />
               </div>
             </div>
@@ -589,55 +479,6 @@ watch(selectedAgv, () => {
         Select an AGV to view details
       </div>
 
-      <!-- JSON Viewer Section -->
-      <div v-if="selectedData" class="mt-6 pt-6 border-t space-y-2">
-        <div class="flex items-center justify-between">
-          <div class="text-sm font-semibold flex items-center gap-2">
-            <Icon icon="material-symbols:code" class="w-4 h-4" />
-            {{ selectedTitle }}
-          </div>
-          <div class="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              class="h-6 w-6 p-0"
-              @click="copyJsonToClipboard"
-              title="Copy JSON to clipboard"
-            >
-              <Icon icon="material-symbols:content-copy" class="w-4 h-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              class="h-6 w-6 p-0"
-              @click="clearJson"
-              title="Close JSON viewer"
-            >
-              <Icon icon="material-symbols:close" class="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
-        <!-- Search Input -->
-        <div class="relative">
-          <Input
-            v-model="searchQuery"
-            placeholder="Search in JSON..."
-            class="pr-8"
-          />
-          <Button
-            v-if="searchQuery"
-            variant="ghost"
-            size="sm"
-            class="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 p-0"
-            @click="clearSearch"
-          >
-            <Icon icon="material-symbols:close" class="w-3 h-3" />
-          </Button>
-        </div>
-        <div class="border rounded-md p-3 bg-muted/50">
-          <vue-json-pretty :data="selectedData" :deep="10" />
-        </div>
-      </div>
     </div>
   </div>
 </template>

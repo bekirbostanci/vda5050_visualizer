@@ -23,6 +23,7 @@ import { useSettingsStore } from '@/stores/settings';
 const props = defineProps<{
   showLeftSidebar?: boolean;
   showRightSidebar?: boolean;
+  showJsonSidebar?: boolean;
   viewMode?: 'dashboard' | 'visualizer';
   showHelp?: boolean;
 }>();
@@ -30,6 +31,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   toggleLeftSidebar: [];
   toggleRightSidebar: [];
+  toggleJsonSidebar: [];
   toggleView: [];
   toggleHelp: [];
 }>();
@@ -127,7 +129,7 @@ const openGitHub = () => {
         variant="ghost"
         size="icon"
         class="h-8 w-8"
-        :title="showRightSidebar ? 'Hide Right Sidebar' : 'Show Right Sidebar'"
+        :title="showRightSidebar ? 'Hide AGV Details Sidebar' : 'Show AGV Details Sidebar'"
         @click="$emit('toggleRightSidebar')"
       >
         <Icon
@@ -136,6 +138,20 @@ const openGitHub = () => {
             'scale-x-[-1]',
             showRightSidebar ? 'opacity-100' : 'opacity-50'
           ]"
+          :height="18"
+        />
+      </Button>
+      <Button
+        v-if="viewMode === 'dashboard'"
+        variant="ghost"
+        size="icon"
+        class="h-8 w-8"
+        :title="showJsonSidebar ? 'Hide JSON Viewer Sidebar' : 'Show JSON Viewer Sidebar'"
+        @click="$emit('toggleJsonSidebar')"
+      >
+        <Icon
+          icon="material-symbols:code"
+          :class="showJsonSidebar ? 'opacity-100' : 'opacity-50'"
           :height="18"
         />
       </Button>

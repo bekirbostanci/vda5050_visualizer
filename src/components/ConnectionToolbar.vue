@@ -3,6 +3,7 @@ import { useVDA5050 } from "@/composables/useVDA5050";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Icon } from "@iconify/vue";
 
 const { 
   brokerIp, 
@@ -30,6 +31,7 @@ const {
       </Select>
       
       <Button @click="updateBroker" size="sm" variant="outline" class="h-8">
+        <Icon icon="ph:plug" class="mr-2 h-4 w-4" />
         Connect
       </Button>
     </div>

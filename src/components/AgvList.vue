@@ -50,7 +50,7 @@ function getController(agv: any) {
         />
       </template>
       <div v-if="filteredRobots.length === 0" class="flex items-center justify-center min-h-[200px]">
-        <Card class="w-full max-w-sm border-dashed">
+        <Card class="w-full max-w-sm border-2 border-dashed border-muted-foreground/20 bg-muted/30 hover:bg-muted/50">
           <CardHeader class="text-center">
             <div class="flex justify-center mb-4">
               <div class="rounded-full bg-muted p-3">

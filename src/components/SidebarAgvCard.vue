@@ -271,14 +271,18 @@ const handleAcknowledge = (event: Event) => {
 
 const handleViewDetails = (event: Event) => {
   event.stopPropagation();
-  // Select the AGV to open the details sidebar
-  selectedAgv.value = agvId;
+  // Always open the details sidebar by setting the selected AGV
+  // Create a new object reference to ensure Vue detects the change
+  selectedAgv.value = {
+    manufacturer: agvId.manufacturer,
+    serialNumber: agvId.serialNumber
+  };
 };
 </script>
 
 <template>
   <div class="max-w-xl mx-auto p-1">
-    <div class="rounded-3xl shadow-lg  text-gray-900 dark:text-white p-3 border border-gray-200 dark:border-white/10">
+    <div class="rounded-3xl shadow-sm  text-gray-900 dark:text-white p-3 border border-gray-200 dark:border-white/10">
       <!-- Top Row -->
       <div class="flex justify-between items-start mb-6">
         <div class="min-w-0 flex-1">
@@ -323,7 +327,7 @@ const handleViewDetails = (event: Event) => {
         <div class="space-y-4">
           <div>
             <p class="text-xs text-gray-500 dark:text-white/50">Position</p>
-            <p class="text-base font-medium text-gray-900 dark:text-white">
+            <p class="text-base font-medium text-gray-900 dark:text-white max-w-xs truncate">
               <span v-if="position">
                 x: {{ position.x }},
                 y: {{ position.y }},
