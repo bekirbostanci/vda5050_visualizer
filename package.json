@@ -94,6 +94,7 @@
   "build": {
     "appId": "com.vda5050-visualizer",
     "productName": "vda5050-visualizer",
+    "icon": "public/icon.png",
     "directories": {
       "output": "dist_electron",
       "buildResources": "build"
