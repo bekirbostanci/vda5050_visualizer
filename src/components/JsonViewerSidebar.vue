@@ -209,3 +209,18 @@ const copyJsonToClipboard = async () => {
 }
 </style>
 
+<style>
+/* Dark mode hover color fix for vue-json-pretty within JsonViewerSidebar */
+.dark .json-viewer-sidebar-content .vjs-tree-node:hover {
+  background-color: hsl(var(--muted) / 0.5) !important;
+}
+
+.dark .json-viewer-sidebar-content .vjs-tree-node:hover .vjs-key {
+  color: hsl(var(--foreground)) !important;
+}
+
+.dark .json-viewer-sidebar-content .vjs-tree-node:hover .vjs-value {
+  color: hsl(var(--foreground)) !important;
+}
+</style>
+
