@@ -150,12 +150,13 @@ function updateBroker() {
         mqttStatus.value = MqttClientState.CONNECTED;
         
         // Subscribe to topics after connecting
+        const interfaceNameToUse = interfaceName.value || "+";
         const topics = [
-          `${interfaceName.value}/+/+/+/connection`,
-          `${interfaceName.value}/+/+/+/instantActions`,
-          `${interfaceName.value}/+/+/+/order`,
-          `${interfaceName.value}/+/+/+/state`,
-          `${interfaceName.value}/+/+/+/visualization`,
+          `${interfaceNameToUse}/+/+/+/connection`,
+          `${interfaceNameToUse}/+/+/+/instantActions`,
+          `${interfaceNameToUse}/+/+/+/order`,
+          `${interfaceNameToUse}/+/+/+/state`,
+          `${interfaceNameToUse}/+/+/+/visualization`,
         ];
         
         websocketClient.value?.subscribe(topics, (err?: Error) => {

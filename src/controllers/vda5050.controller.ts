@@ -170,12 +170,13 @@ class VDA5050Controller implements IVDA5050Controller {
           }
           
           // Subscribe to topics
+          const interfaceNameToUse = interfaceName || "+";
           const topics = [
-            `${interfaceName}/+/+/+/connection`,
-            `${interfaceName}/+/+/+/instantActions`,
-            `${interfaceName}/+/+/+/order`,
-            `${interfaceName}/+/+/+/state`,
-            `${interfaceName}/+/+/+/visualization`,
+            `${interfaceNameToUse}/+/+/+/connection`,
+            `${interfaceNameToUse}/+/+/+/instantActions`,
+            `${interfaceNameToUse}/+/+/+/order`,
+            `${interfaceNameToUse}/+/+/+/state`,
+            `${interfaceNameToUse}/+/+/+/visualization`,
           ];
           
           sharedMqttClient.subscribe(topics);
@@ -192,6 +193,7 @@ class VDA5050Controller implements IVDA5050Controller {
           .replace(/^mqtt:\/\/|^tcp:\/\//, "")
           .replace(/:.*$/, "");
 
+        const interfaceNameToUse = interfaceName || "+";
         const config: MqttControllerConfig = {
           host: cleanHost, // Just the clean IP/hostname
           port: Number(mqttPort),
@@ -199,11 +201,11 @@ class VDA5050Controller implements IVDA5050Controller {
           username: username || undefined,
           password: password || undefined,
           topics: [
-            `${interfaceName}/+/+/+/connection`,
-            `${interfaceName}/+/+/+/instantActions`,
-            `${interfaceName}/+/+/+/order`,
-            `${interfaceName}/+/+/+/state`,
-            `${interfaceName}/+/+/+/visualization`,
+            `${interfaceNameToUse}/+/+/+/connection`,
+            `${interfaceNameToUse}/+/+/+/instantActions`,
+            `${interfaceNameToUse}/+/+/+/order`,
+            `${interfaceNameToUse}/+/+/+/state`,
+            `${interfaceNameToUse}/+/+/+/visualization`,
           ],
         };
 
@@ -272,12 +274,13 @@ class VDA5050Controller implements IVDA5050Controller {
     
     const agv = new VDA5050Agv(manufacturer, serialNumber, basePath, mqttConfig);
 
+    const interfaceNameToUse = interfaceName || "+";
     const topics = [
-      `${interfaceName}/${manufacturer}/${serialNumber}/${Topic.Connection}`,
-      `${interfaceName}/${manufacturer}/${serialNumber}/${Topic.InstantActions}`,
-      `${interfaceName}/${manufacturer}/${serialNumber}/${Topic.Order}`,
-      `${interfaceName}/${manufacturer}/${serialNumber}/${Topic.State}`,
-      `${interfaceName}/${manufacturer}/${serialNumber}/${Topic.Visualization}`,
+      `${interfaceNameToUse}/${manufacturer}/${serialNumber}/${Topic.Connection}`,
+      `${interfaceNameToUse}/${manufacturer}/${serialNumber}/${Topic.InstantActions}`,
+      `${interfaceNameToUse}/${manufacturer}/${serialNumber}/${Topic.Order}`,
+      `${interfaceNameToUse}/${manufacturer}/${serialNumber}/${Topic.State}`,
+      `${interfaceNameToUse}/${manufacturer}/${serialNumber}/${Topic.Visualization}`,
     ];
 
     // Store AGV instance with credentials

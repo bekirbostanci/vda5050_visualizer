@@ -114,7 +114,7 @@ const scrollToSection = (id: string) => {
                   <ul class="list-disc list-inside ml-6 mt-1 space-y-1">
                     <li><strong>Broker IP/Host:</strong> Your MQTT broker address (e.g., <code class="bg-muted px-1 rounded">localhost</code> or <code class="bg-muted px-1 rounded">192.168.1.100</code>)</li>
                     <li><strong>Port:</strong> WebSocket port (typically <code class="bg-muted px-1 rounded">9001</code> for WebSocket connections)</li>
-                    <li><strong>Interface Name:</strong> Your VDA5050 interface name (e.g., <code class="bg-muted px-1 rounded">vda5050</code>)</li>
+                    <li><strong>Interface Name:</strong> Optional VDA5050 interface name (e.g., <code class="bg-muted px-1 rounded">vda5050</code>). Leave empty to subscribe to all interfaces.</li>
                     <li><strong>Basepath:</strong> Optional MQTT basepath (leave empty if not needed)</li>
                     <li><strong>Username/Password:</strong> Optional authentication credentials</li>
                   </ul>

@@ -103,10 +103,6 @@ const handleConnect = async () => {
     errorMessage.value = 'Port is required';
     return;
   }
-  if (!formData.value.interfaceName.trim()) {
-    errorMessage.value = 'Interface Name is required';
-    return;
-  }
 
   errorMessage.value = '';
   isConnecting.value = true;
@@ -220,11 +216,11 @@ const isConnected = computed(() => {
 
         <!-- Interface Name -->
         <div class="grid gap-2">
-          <Label for="interfaceName">Interface Name *</Label>
+          <Label for="interfaceName">Interface Name (Optional)</Label>
           <Input
             id="interfaceName"
             v-model="formData.interfaceName"
-            placeholder="e.g., vda5050"
+            placeholder="e.g., vda5050 (leave empty to subscribe to all)"
             :disabled="isConnecting"
           />
         </div>

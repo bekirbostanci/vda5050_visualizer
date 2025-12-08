@@ -120,12 +120,13 @@ export class VDA5050Visualizer {
         );
         
         // Subscribe to connection topics
+        const interfaceNameToUse = this.mqttConfig.interfaceName || "+";
         const topics = [
-          `${this.mqttConfig.interfaceName}/+/+/+/connection`,
-          `${this.mqttConfig.interfaceName}/+/+/+/instantActions`,
-          `${this.mqttConfig.interfaceName}/+/+/+/order`,
-          `${this.mqttConfig.interfaceName}/+/+/+/state`,
-          `${this.mqttConfig.interfaceName}/+/+/+/visualization`,
+          `${interfaceNameToUse}/+/+/+/connection`,
+          `${interfaceNameToUse}/+/+/+/instantActions`,
+          `${interfaceNameToUse}/+/+/+/order`,
+          `${interfaceNameToUse}/+/+/+/state`,
+          `${interfaceNameToUse}/+/+/+/visualization`,
         ];
         
         sharedMqttClient.subscribe(topics);

@@ -107,7 +107,7 @@ export function useVDA5050() {
             interfaceName: interfaceName.value,
             username: username.value,
             password: password.value,
-            connectionType: connectionType.value,
+            connectionType: connectionType.value as "mqtt" | "websocket",
         };
         
         saveConfig(config);
@@ -180,17 +180,18 @@ export function useVDA5050() {
             websocketClient.value.on("message", handleMessage);
         } catch (error) {
             console.error("Failed to connect to WebSocket:", error);
-            mqttStatus.value = MqttClientState.OFFLINE;
+            mqttStore.setConnectionState(MqttClientState.OFFLINE);
         }
     }
 
     function subscribeTopics() {
+        const interfaceNameToUse = interfaceName.value || "+";
         const topics = [
-            `${interfaceName.value}/+/+/+/connection`,
-            `${interfaceName.value}/+/+/+/instantActions`,
-            `${interfaceName.value}/+/+/+/order`,
-            `${interfaceName.value}/+/+/+/state`,
-            `${interfaceName.value}/+/+/+/visualization`,
+            `${interfaceNameToUse}/+/+/+/connection`,
+            `${interfaceNameToUse}/+/+/+/instantActions`,
+            `${interfaceNameToUse}/+/+/+/order`,
+            `${interfaceNameToUse}/+/+/+/state`,
+            `${interfaceNameToUse}/+/+/+/visualization`,
         ];
         websocketClient.value?.subscribe(topics, (err?: Error) => {
             if (err) console.error("WebSocket Subscription error:", err);
