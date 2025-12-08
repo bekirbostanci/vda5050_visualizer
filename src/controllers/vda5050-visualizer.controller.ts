@@ -57,13 +57,15 @@ export class VDA5050Visualizer {
         this.messageUnsubscriber();
         this.messageUnsubscriber = null;
       }
-      
+
       // Subscribe to messages with the new unsubscribe function
-      this.messageUnsubscriber = sharedMqttClient.subscribeToMessages((topic, message) => {
-        if (topic.includes("/connection")) {
-          this.handleConnectionMessage(topic);
+      this.messageUnsubscriber = sharedMqttClient.subscribeToMessages(
+        (topic, message) => {
+          if (topic.includes("/connection")) {
+            this.handleConnectionMessage(topic);
+          }
         }
-      });
+      );
     }
   }
 
@@ -118,7 +120,7 @@ export class VDA5050Visualizer {
           username,
           password
         );
-        
+
         // Subscribe to connection topics
         const interfaceNameToUse = this.mqttConfig.interfaceName || "+";
         const topics = [
@@ -128,7 +130,7 @@ export class VDA5050Visualizer {
           `${interfaceNameToUse}/+/+/+/state`,
           `${interfaceNameToUse}/+/+/+/visualization`,
         ];
-        
+
         sharedMqttClient.subscribe(topics);
       } catch (error) {
         console.error("Failed to connect to WebSocket MQTT:", error);
@@ -141,7 +143,7 @@ export class VDA5050Visualizer {
       const agvId = this.extractAgvIdFromTopic(topic);
       if (agvId && !this.robotExists(agvId)) {
         this.robotList.value.push(agvId);
-        
+
         // Also add to Pinia store
         try {
           const store = useMqttStore();
@@ -172,7 +174,7 @@ export class VDA5050Visualizer {
         robot.manufacturer === agvId.manufacturer
     );
   }
-  
+
   // Clean up resources when the component is destroyed
   public disconnect(): void {
     // Clean up message subscription
@@ -180,7 +182,7 @@ export class VDA5050Visualizer {
       this.messageUnsubscriber();
       this.messageUnsubscriber = null;
     }
-    
+
     // Note: We don't disconnect the shared client here
     // as other components might still be using it
   }

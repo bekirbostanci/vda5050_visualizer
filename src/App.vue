@@ -1,27 +1,27 @@
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue';
-import { RouterView } from 'vue-router';
-import Toaster from '@/components/ui/toast/Toaster.vue';
-import { Analytics } from '@vercel/analytics/vue';
-import TopBar from '@/components/TopBar.vue';
-import ToolBar from '@/components/ToolBar.vue';
-import SideBar from '@/components/SideBar.vue';
-import AgvDetailsSidebar from '@/components/AgvDetailsSidebar.vue';
-import JsonViewerSidebar from '@/components/JsonViewerSidebar.vue';
+import { ref, watch, computed } from "vue";
+import { RouterView } from "vue-router";
+import Toaster from "@/components/ui/toast/Toaster.vue";
+import { Analytics } from "@vercel/analytics/vue";
+import TopBar from "@/components/TopBar.vue";
+import ToolBar from "@/components/ToolBar.vue";
+import SideBar from "@/components/SideBar.vue";
+import AgvDetailsSidebar from "@/components/AgvDetailsSidebar.vue";
+import JsonViewerSidebar from "@/components/JsonViewerSidebar.vue";
 import {
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
-} from '@/components/ui/resizable';
+} from "@/components/ui/resizable";
 import NetworkGraph from "@/components/NetworkGraph.vue";
 import HelpPage from "@/components/HelpPage.vue";
-import { useVDA5050 } from '@/composables/useVDA5050';
-import { useColorMode } from '@vueuse/core';
+import { useVDA5050 } from "@/composables/useVDA5050";
+import { useColorMode } from "@vueuse/core";
 
 const showLeftSidebar = ref(true);
 const showRightSidebar = ref(false);
 const showJsonSidebar = ref(false);
-const viewMode = ref<'dashboard' | 'visualizer'>('dashboard');
+const viewMode = ref<"dashboard" | "visualizer">("dashboard");
 const showHelp = ref(false);
 
 // JSON viewer state - store getter function for reactive updates
@@ -31,20 +31,24 @@ const { selectedAgv } = useVDA5050();
 
 // Color mode management
 const mode = useColorMode({
-  selector: 'html',
-  attribute: 'class',
+  selector: "html",
+  attribute: "class",
   modes: {
-    dark: 'dark',
-    light: '',
+    dark: "dark",
+    light: "",
   },
 });
 
 // Automatically show sidebar when an AGV is selected
-watch(selectedAgv, (newAgv) => {
-  if (newAgv) {
-    showRightSidebar.value = true;
-  }
-}, { immediate: true });
+watch(
+  selectedAgv,
+  (newAgv) => {
+    if (newAgv) {
+      showRightSidebar.value = true;
+    }
+  },
+  { immediate: true }
+);
 
 // Computed sizes for panels
 // Left panel (AGV List + AGV Details) - size based on what's shown
@@ -62,9 +66,9 @@ const leftPanelMinSize = computed(() => {
 });
 
 // JSON viewer panel size (within right panel)
-const jsonViewerPanelSize = computed(() => showJsonSidebar.value ? 50 : 0);
+const jsonViewerPanelSize = computed(() => (showJsonSidebar.value ? 50 : 0));
 // Map panel size (within right panel)
-const mapPanelSize = computed(() => showJsonSidebar.value ? 50 : 100);
+const mapPanelSize = computed(() => (showJsonSidebar.value ? 50 : 100));
 
 const toggleLeftSidebar = () => {
   showLeftSidebar.value = !showLeftSidebar.value;
@@ -97,11 +101,11 @@ const handleCloseJsonSidebar = () => {
 };
 
 const toggleView = () => {
-  const newMode = viewMode.value === 'dashboard' ? 'visualizer' : 'dashboard';
+  const newMode = viewMode.value === "dashboard" ? "visualizer" : "dashboard";
   viewMode.value = newMode;
   // Set light mode when switching to visualizer (old design only works with light mode)
-  if (newMode === 'visualizer') {
-    mode.value = 'light';
+  if (newMode === "visualizer") {
+    mode.value = "light";
   }
 };
 </script>
@@ -143,14 +147,17 @@ const toggleView = () => {
               v-if="showRightSidebar"
               class="hidden md:block w-[450px] flex-shrink-0 border-r"
             >
-              <AgvDetailsSidebar @close="toggleRightSidebar" @show-json="handleShowJson" />
+              <AgvDetailsSidebar
+                @close="toggleRightSidebar"
+                @show-json="handleShowJson"
+              />
             </div>
           </div>
         </div>
         <!-- Right Panel: JSON Viewer + Map (resizable between them) -->
         <div class="flex-1 h-full min-w-0">
-          <ResizablePanelGroup 
-            direction="horizontal" 
+          <ResizablePanelGroup
+            direction="horizontal"
             class="h-full"
             :key="`json-panels-${showJsonSidebar}`"
           >
@@ -161,21 +168,16 @@ const toggleView = () => {
               :collapsible="true"
               class="hidden md:block"
             >
-              <JsonViewerSidebar 
+              <JsonViewerSidebar
                 v-if="jsonViewerData"
                 :title="jsonViewerData.title"
                 :get-data="jsonViewerData.getData"
                 @close="handleCloseJsonSidebar"
               />
             </ResizablePanel>
-            <ResizableHandle 
-              v-show="showJsonSidebar" 
-              class="hidden md:block"
-            />
+            <ResizableHandle v-show="showJsonSidebar" class="hidden md:block" />
             <!-- Map/Network Graph -->
-            <ResizablePanel 
-              :default-size="mapPanelSize"
-            >
+            <ResizablePanel :default-size="mapPanelSize">
               <div class="h-full p-0 overflow-hidden">
                 <HelpPage v-if="showHelp" @close="showHelp = false" />
                 <NetworkGraph v-else />

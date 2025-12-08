@@ -17,7 +17,9 @@ const mode = useColorMode({
 });
 
 // Create reactive configs based on dark mode and grid settings
-const config = computed(() => createConfigs(mode.value === "dark", settingsStore.showGrid));
+const config = computed(() =>
+  createConfigs(mode.value === "dark", settingsStore.showGrid)
+);
 </script>
 
 <template>

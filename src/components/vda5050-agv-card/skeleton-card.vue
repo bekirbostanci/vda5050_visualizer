@@ -332,7 +332,3 @@ export default {
   row-gap: 7px;
 }
 </style>
-
-
-
-

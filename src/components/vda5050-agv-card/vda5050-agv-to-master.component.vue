@@ -11,7 +11,7 @@ const stateShow = ref(false);
 const errorsShow = ref(false);
 const actionsStateShow = ref(false);
 const messageHistoryShow = ref(false);
-const activeHistoryTab = ref('state');
+const activeHistoryTab = ref("state");
 
 // Message history
 const MAX_HISTORY_ITEMS = 5;
@@ -20,74 +20,81 @@ const actionsHistory = ref<any[]>([]);
 const errorsHistory = ref<any[]>([]);
 
 // Search functionality
-const stateSearchQuery = ref('');
-const errorsSearchQuery = ref('');
-const actionsSearchQuery = ref('');
-const isSearching = computed(() => stateSearchQuery.value || errorsSearchQuery.value || actionsSearchQuery.value);
+const stateSearchQuery = ref("");
+const errorsSearchQuery = ref("");
+const actionsSearchQuery = ref("");
+const isSearching = computed(
+  () =>
+    stateSearchQuery.value ||
+    errorsSearchQuery.value ||
+    actionsSearchQuery.value
+);
 
 // Function to copy JSON data to clipboard
 const copyToClipboard = (data: any) => {
   const jsonString = JSON.stringify(data, null, 2);
-  navigator.clipboard.writeText(jsonString)
+  navigator.clipboard
+    .writeText(jsonString)
     .then(() => {
-      alert('JSON copied to clipboard!');
+      alert("JSON copied to clipboard!");
     })
-    .catch(err => {
-      console.error('Failed to copy: ', err);
+    .catch((err) => {
+      console.error("Failed to copy: ", err);
     });
 };
 
 // Copy specific data based on type
 const copyStateData = () => copyToClipboard(props.agv.stateInfo.value);
-const copyActionsData = () => copyToClipboard(props.agv.stateInfo.value?.actionStates);
+const copyActionsData = () =>
+  copyToClipboard(props.agv.stateInfo.value?.actionStates);
 const copyErrorsData = () => copyToClipboard(props.agv.stateInfo.value?.errors);
 const copyHistoryItem = (item: any) => copyToClipboard(item);
 
 // Search in JSON data
 const searchInJson = (json: any, query: string): any => {
-  if (!query || query.trim() === '') return json;
-  
+  if (!query || query.trim() === "") return json;
+
   const searchStr = query.toLowerCase();
-  
+
   // Helper function to check if a value contains the search string
   const containsSearchString = (value: any): boolean => {
     if (value === null || value === undefined) return false;
     return String(value).toLowerCase().includes(searchStr);
   };
-  
+
   // Recursive function to filter objects and arrays
   const filterData = (data: any): any => {
-    if (typeof data !== 'object' || data === null) {
+    if (typeof data !== "object" || data === null) {
       return containsSearchString(data) ? data : undefined;
     }
-    
+
     if (Array.isArray(data)) {
       const filteredArray = data
-        .map(item => filterData(item))
-        .filter(item => item !== undefined);
+        .map((item) => filterData(item))
+        .filter((item) => item !== undefined);
       return filteredArray.length > 0 ? filteredArray : undefined;
     }
-    
+
     const filteredObj: Record<string, any> = {};
     let hasMatch = false;
-    
+
     for (const key in data) {
       if (containsSearchString(key)) {
         filteredObj[key] = data[key];
         hasMatch = true;
         continue;
       }
-      
+
       const filteredValue = filterData(data[key]);
       if (filteredValue !== undefined) {
         filteredObj[key] = filteredValue;
         hasMatch = true;
       }
     }
-    
+
     return hasMatch ? filteredObj : undefined;
   };
-  
+
   const result = filterData(json);
   return result !== undefined ? result : { message: "No matches found" };
 };
@@ -98,73 +105,86 @@ const filteredStateData = computed(() => {
 });
 
 const filteredActionsData = computed(() => {
-  return searchInJson(props.agv.stateInfo.value?.actionStates, actionsSearchQuery.value);
+  return searchInJson(
+    props.agv.stateInfo.value?.actionStates,
+    actionsSearchQuery.value
+  );
 });
 
 const filteredErrorsData = computed(() => {
-  return searchInJson(props.agv.stateInfo.value?.errors, errorsSearchQuery.value);
+  return searchInJson(
+    props.agv.stateInfo.value?.errors,
+    errorsSearchQuery.value
+  );
 });
 
 // Clear search
 const clearStateSearch = () => {
-  stateSearchQuery.value = '';
+  stateSearchQuery.value = "";
 };
 
 const clearActionsSearch = () => {
-  actionsSearchQuery.value = '';
+  actionsSearchQuery.value = "";
 };
 
 const clearErrorsSearch = () => {
-  errorsSearchQuery.value = '';
+  errorsSearchQuery.value = "";
 };
 
 // Watch for changes in state data to update history
-watch(() => props.agv.stateInfo.value, (newValue) => {
-  if (newValue) {
-    // Create a timestamp for the history item
-    const historyItem = {
-      timestamp: new Date().toISOString(),
-      data: JSON.parse(JSON.stringify(newValue)),
-      type: 'state'
-    };
-    
-    // Add to history and maintain max length
-    stateHistory.value.unshift(historyItem);
-    if (stateHistory.value.length > MAX_HISTORY_ITEMS) {
-      stateHistory.value = stateHistory.value.slice(0, MAX_HISTORY_ITEMS);
-    }
-    
-    // Also track action states if they exist
-    if (newValue.actionStates && newValue.actionStates.length > 0) {
-      const actionsItem = {
+watch(
+  () => props.agv.stateInfo.value,
+  (newValue) => {
+    if (newValue) {
+      // Create a timestamp for the history item
+      const historyItem = {
         timestamp: new Date().toISOString(),
-        data: JSON.parse(JSON.stringify(newValue.actionStates)),
-        type: 'actions',
-        stateId: newValue.headerId
+        data: JSON.parse(JSON.stringify(newValue)),
+        type: "state",
       };
-      
-      actionsHistory.value.unshift(actionsItem);
-      if (actionsHistory.value.length > MAX_HISTORY_ITEMS) {
-        actionsHistory.value = actionsHistory.value.slice(0, MAX_HISTORY_ITEMS);
+
+      // Add to history and maintain max length
+      stateHistory.value.unshift(historyItem);
+      if (stateHistory.value.length > MAX_HISTORY_ITEMS) {
+        stateHistory.value = stateHistory.value.slice(0, MAX_HISTORY_ITEMS);
+      }
+
+      // Also track action states if they exist
+      if (newValue.actionStates && newValue.actionStates.length > 0) {
+        const actionsItem = {
+          timestamp: new Date().toISOString(),
+          data: JSON.parse(JSON.stringify(newValue.actionStates)),
+          type: "actions",
+          stateId: newValue.headerId,
+        };
+
+        actionsHistory.value.unshift(actionsItem);
+        if (actionsHistory.value.length > MAX_HISTORY_ITEMS) {
+          actionsHistory.value = actionsHistory.value.slice(
+            0,
+            MAX_HISTORY_ITEMS
+          );
+        }
+      }
+
+      // Also track errors if they exist
+      if (newValue.errors && newValue.errors.length > 0) {
+        const errorsItem = {
+          timestamp: new Date().toISOString(),
+          data: JSON.parse(JSON.stringify(newValue.errors)),
+          type: "errors",
+          stateId: newValue.headerId,
+        };
+
+        errorsHistory.value.unshift(errorsItem);
+        if (errorsHistory.value.length > MAX_HISTORY_ITEMS) {
+          errorsHistory.value = errorsHistory.value.slice(0, MAX_HISTORY_ITEMS);
+        }
       }
     }
-    
-    // Also track errors if they exist
-    if (newValue.errors && newValue.errors.length > 0) {
-      const errorsItem = {
-        timestamp: new Date().toISOString(),
-        data: JSON.parse(JSON.stringify(newValue.errors)),
-        type: 'errors',
-        stateId: newValue.headerId
-      };
-      
-      errorsHistory.value.unshift(errorsItem);
-      if (errorsHistory.value.length > MAX_HISTORY_ITEMS) {
-        errorsHistory.value = errorsHistory.value.slice(0, MAX_HISTORY_ITEMS);
-      }
-    }
-  }
-}, { deep: true });
+  },
+  { deep: true }
+);
 
 // Format timestamp for display
 const formatTimestamp = (timestamp: string) => {
@@ -178,24 +198,32 @@ onMounted(() => {
     stateHistory.value.push({
       timestamp: new Date().toISOString(),
       data: JSON.parse(JSON.stringify(props.agv.stateInfo.value)),
-      type: 'state'
+      type: "state",
     });
-    
-    if (props.agv.stateInfo.value.actionStates && props.agv.stateInfo.value.actionStates.length > 0) {
+
+    if (
+      props.agv.stateInfo.value.actionStates &&
+      props.agv.stateInfo.value.actionStates.length > 0
+    ) {
       actionsHistory.value.push({
         timestamp: new Date().toISOString(),
-        data: JSON.parse(JSON.stringify(props.agv.stateInfo.value.actionStates)),
-        type: 'actions',
-        stateId: props.agv.stateInfo.value.headerId
+        data: JSON.parse(
+          JSON.stringify(props.agv.stateInfo.value.actionStates)
+        ),
+        type: "actions",
+        stateId: props.agv.stateInfo.value.headerId,
       });
     }
-    
-    if (props.agv.stateInfo.value.errors && props.agv.stateInfo.value.errors.length > 0) {
+
+    if (
+      props.agv.stateInfo.value.errors &&
+      props.agv.stateInfo.value.errors.length > 0
+    ) {
       errorsHistory.value.push({
         timestamp: new Date().toISOString(),
         data: JSON.parse(JSON.stringify(props.agv.stateInfo.value.errors)),
-        type: 'errors',
-        stateId: props.agv.stateInfo.value.headerId
+        type: "errors",
+        stateId: props.agv.stateInfo.value.headerId,
       });
     }
   }
@@ -214,7 +242,13 @@ onMounted(() => {
       </div>
     </div>
     <ui-chips class="flex-right">
-      <ui-chip icon="raw_on" @click="stateShow = !stateShow" @dblclick="copyStateData"> State </ui-chip>
+      <ui-chip
+        icon="raw_on"
+        @click="stateShow = !stateShow"
+        @dblclick="copyStateData"
+      >
+        State
+      </ui-chip>
       <ui-chip icon="history" @click="messageHistoryShow = !messageHistoryShow">
         History
       </ui-chip>
@@ -268,8 +302,8 @@ onMounted(() => {
       >
         Actions : {{ props.agv.stateInfo.value?.actionStates?.length }}
       </ui-chip>
-      <ui-chip 
-        icon="errors" 
+      <ui-chip
+        icon="errors"
         @click="errorsShow = !errorsShow"
         @dblclick="copyErrorsData"
       >
@@ -277,47 +311,57 @@ onMounted(() => {
       </ui-chip>
     </ui-chips>
   </div>
-  
+
   <!-- Message History Section -->
   <div v-if="messageHistoryShow" class="history-container">
     <div class="history-header">
       <span>Message History (Last {{ MAX_HISTORY_ITEMS }})</span>
     </div>
-    
+
     <div class="history-tabs">
-      <button 
-        class="history-tab" 
-        :class="{ active: activeHistoryTab === 'state' }" 
+      <button
+        class="history-tab"
+        :class="{ active: activeHistoryTab === 'state' }"
         @click="activeHistoryTab = 'state'"
       >
         States ({{ stateHistory.length }})
       </button>
-      <button 
-        class="history-tab" 
-        :class="{ active: activeHistoryTab === 'actions' }" 
+      <button
+        class="history-tab"
+        :class="{ active: activeHistoryTab === 'actions' }"
         @click="activeHistoryTab = 'actions'"
       >
         Actions ({{ actionsHistory.length }})
       </button>
-      <button 
-        class="history-tab" 
-        :class="{ active: activeHistoryTab === 'errors' }" 
+      <button
+        class="history-tab"
+        :class="{ active: activeHistoryTab === 'errors' }"
         @click="activeHistoryTab = 'errors'"
       >
         Errors ({{ errorsHistory.length }})
       </button>
     </div>
-    
+
     <div v-if="activeHistoryTab === 'state'" class="history-list">
       <div v-if="stateHistory.length === 0" class="no-history">
         No state history available
       </div>
-      <div v-for="(item, index) in stateHistory" :key="index" class="history-item">
+      <div
+        v-for="(item, index) in stateHistory"
+        :key="index"
+        class="history-item"
+      >
         <div class="history-item-header">
           <div class="history-item-info">
-            <span class="history-timestamp">{{ formatTimestamp(item.timestamp) }}</span>
-            <span class="history-id" v-if="item.data.headerId">Header ID: {{ item.data.headerId }}</span>
-            <span class="history-id" v-if="item.data.orderId">Order ID: {{ item.data.orderId }}</span>
+            <span class="history-timestamp">{{
+              formatTimestamp(item.timestamp)
+            }}</span>
+            <span class="history-id" v-if="item.data.headerId"
+              >Header ID: {{ item.data.headerId }}</span
+            >
+            <span class="history-id" v-if="item.data.orderId"
+              >Order ID: {{ item.data.orderId }}</span
+            >
           </div>
           <button class="copy-btn" @click="copyHistoryItem(item.data)">
             <i class="material-icons">content_copy</i>
@@ -332,16 +376,24 @@ onMounted(() => {
         />
       </div>
     </div>
-    
+
     <div v-if="activeHistoryTab === 'actions'" class="history-list">
       <div v-if="actionsHistory.length === 0" class="no-history">
         No actions history available
       </div>
-      <div v-for="(item, index) in actionsHistory" :key="index" class="history-item">
+      <div
+        v-for="(item, index) in actionsHistory"
+        :key="index"
+        class="history-item"
+      >
         <div class="history-item-header">
           <div class="history-item-info">
-            <span class="history-timestamp">{{ formatTimestamp(item.timestamp) }}</span>
-            <span class="history-id" v-if="item.stateId">State ID: {{ item.stateId }}</span>
+            <span class="history-timestamp">{{
+              formatTimestamp(item.timestamp)
+            }}</span>
+            <span class="history-id" v-if="item.stateId"
+              >State ID: {{ item.stateId }}</span
+            >
           </div>
           <button class="copy-btn" @click="copyHistoryItem(item.data)">
             <i class="material-icons">content_copy</i>
@@ -356,16 +408,24 @@ onMounted(() => {
         />
       </div>
     </div>
-    
+
     <div v-if="activeHistoryTab === 'errors'" class="history-list">
       <div v-if="errorsHistory.length === 0" class="no-history">
         No errors history available
       </div>
-      <div v-for="(item, index) in errorsHistory" :key="index" class="history-item">
+      <div
+        v-for="(item, index) in errorsHistory"
+        :key="index"
+        class="history-item"
+      >
         <div class="history-item-header">
           <div class="history-item-info">
-            <span class="history-timestamp">{{ formatTimestamp(item.timestamp) }}</span>
-            <span class="history-id" v-if="item.stateId">State ID: {{ item.stateId }}</span>
+            <span class="history-timestamp">{{
+              formatTimestamp(item.timestamp)
+            }}</span>
+            <span class="history-id" v-if="item.stateId"
+              >State ID: {{ item.stateId }}</span
+            >
           </div>
           <button class="copy-btn" @click="copyHistoryItem(item.data)">
             <i class="material-icons">content_copy</i>
@@ -381,19 +441,23 @@ onMounted(() => {
       </div>
     </div>
   </div>
-  
+
   <div v-if="stateShow" class="json-container">
     <div class="json-header">
       <span>State Data</span>
       <div class="json-actions">
         <div class="search-container">
-          <input 
-            type="text" 
-            v-model="stateSearchQuery" 
-            placeholder="Search in JSON..." 
+          <input
+            type="text"
+            v-model="stateSearchQuery"
+            placeholder="Search in JSON..."
             class="search-input"
           />
-          <button v-if="stateSearchQuery" @click="clearStateSearch" class="clear-search-btn">
+          <button
+            v-if="stateSearchQuery"
+            @click="clearStateSearch"
+            class="clear-search-btn"
+          >
             <i class="material-icons">close</i>
           </button>
         </div>
@@ -403,7 +467,11 @@ onMounted(() => {
       </div>
     </div>
     <vue-json-pretty
-      :data="stateSearchQuery ? { key: filteredStateData } : { key: props.agv.stateInfo.value }"
+      :data="
+        stateSearchQuery
+          ? { key: filteredStateData }
+          : { key: props.agv.stateInfo.value }
+      "
       :show-double-quotes="true"
       :show-length="true"
       :show-line="true"
@@ -412,19 +480,23 @@ onMounted(() => {
       :collapsed-on-click-brackets="true"
     />
   </div>
-  
+
   <div v-if="actionsStateShow" class="json-container">
     <div class="json-header">
       <span>Action States</span>
       <div class="json-actions">
         <div class="search-container">
-          <input 
-            type="text" 
-            v-model="actionsSearchQuery" 
-            placeholder="Search in JSON..." 
+          <input
+            type="text"
+            v-model="actionsSearchQuery"
+            placeholder="Search in JSON..."
             class="search-input"
           />
-          <button v-if="actionsSearchQuery" @click="clearActionsSearch" class="clear-search-btn">
+          <button
+            v-if="actionsSearchQuery"
+            @click="clearActionsSearch"
+            class="clear-search-btn"
+          >
             <i class="material-icons">close</i>
           </button>
         </div>
@@ -434,7 +506,11 @@ onMounted(() => {
       </div>
     </div>
     <vue-json-pretty
-      :data="actionsSearchQuery ? { key: filteredActionsData } : { key: props.agv.stateInfo.value?.actionStates }"
+      :data="
+        actionsSearchQuery
+          ? { key: filteredActionsData }
+          : { key: props.agv.stateInfo.value?.actionStates }
+      "
       :show-double-quotes="true"
       :show-length="true"
       :show-line="true"
@@ -443,19 +519,23 @@ onMounted(() => {
       :collapsed-on-click-brackets="true"
     />
   </div>
-  
+
   <div v-if="errorsShow" class="json-container">
     <div class="json-header">
       <span>Errors</span>
       <div class="json-actions">
         <div class="search-container">
-          <input 
-            type="text" 
-            v-model="errorsSearchQuery" 
-            placeholder="Search in JSON..." 
+          <input
+            type="text"
+            v-model="errorsSearchQuery"
+            placeholder="Search in JSON..."
             class="search-input"
           />
-          <button v-if="errorsSearchQuery" @click="clearErrorsSearch" class="clear-search-btn">
+          <button
+            v-if="errorsSearchQuery"
+            @click="clearErrorsSearch"
+            class="clear-search-btn"
+          >
             <i class="material-icons">close</i>
           </button>
         </div>
@@ -465,7 +545,11 @@ onMounted(() => {
       </div>
     </div>
     <vue-json-pretty
-      :data="errorsSearchQuery ? { key: filteredErrorsData } : { key: props.agv.stateInfo.value?.errors }"
+      :data="
+        errorsSearchQuery
+          ? { key: filteredErrorsData }
+          : { key: props.agv.stateInfo.value?.errors }
+      "
       :show-double-quotes="true"
       :show-length="true"
       :show-line="true"
@@ -477,7 +561,8 @@ onMounted(() => {
 </template>
 
 <style lang="scss" scoped>
-.json-container, .history-container {
+.json-container,
+.history-container {
   position: relative;
   margin-top: 10px;
   border: 1px solid #eee;
@@ -485,7 +570,8 @@ onMounted(() => {
   overflow: hidden;
 }
 
-.json-header, .history-header {
+.json-header,
+.history-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -515,7 +601,7 @@ onMounted(() => {
   font-size: 14px;
   width: 200px;
   transition: all 0.2s;
-  
+
   &:focus {
     outline: none;
     border-color: #aaa;
@@ -533,11 +619,11 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   padding: 0;
-  
+
   i {
     font-size: 16px;
     color: #999;
-    
+
     &:hover {
       color: #333;
     }
@@ -554,11 +640,11 @@ onMounted(() => {
   padding: 4px;
   border-radius: 4px;
   transition: background-color 0.2s;
-  
+
   &:hover {
     background-color: rgba(0, 0, 0, 0.05);
   }
-  
+
   i {
     font-size: 18px;
   }
@@ -579,13 +665,13 @@ onMounted(() => {
   cursor: pointer;
   font-size: 14px;
   transition: all 0.2s;
-  
+
   &:hover {
     background-color: #f0f0f0;
   }
-  
+
   &.active {
-    border-bottom-color: #2196F3;
+    border-bottom-color: #2196f3;
     font-weight: bold;
   }
 }
@@ -601,7 +687,7 @@ onMounted(() => {
   border: 1px solid #eee;
   border-radius: 4px;
   overflow: hidden;
-  
+
   &:last-child {
     margin-bottom: 0;
   }
@@ -643,10 +729,12 @@ onMounted(() => {
 // Add tooltip for chips with double-click functionality
 ui-chip {
   position: relative;
-  
-  &[icon="raw_on"], &[icon="pending_actions"], &[icon="errors"] {
+
+  &[icon="raw_on"],
+  &[icon="pending_actions"],
+  &[icon="errors"] {
     cursor: pointer;
-    
+
     &:after {
       content: "Double-click to copy";
       position: absolute;
@@ -664,7 +752,7 @@ ui-chip {
       white-space: nowrap;
       z-index: 10;
     }
-    
+
     &:hover:after {
       opacity: 1;
     }

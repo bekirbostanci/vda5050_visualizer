@@ -9,10 +9,10 @@ import {
 import mqtt from "mqtt";
 import { sharedMqttClient } from "../utils/shared-mqtt-client";
 import { useMqttStore } from "../stores/mqtt";
-import type { 
-  AGVControllerInstance, 
-  MqttControllerConfig, 
-  IVDA5050Controller 
+import type {
+  AGVControllerInstance,
+  MqttControllerConfig,
+  IVDA5050Controller,
 } from "../types/vda5050-controller.types";
 
 class VDA5050Controller implements IVDA5050Controller {
@@ -40,7 +40,7 @@ class VDA5050Controller implements IVDA5050Controller {
       window.electron.ipcRenderer.on("mqtt-connected", () => {
         console.log("MQTT Connected");
         this.clientState.value = MqttClientState.CONNECTED;
-        
+
         // Update Pinia store
         try {
           const store = useMqttStore();
@@ -58,7 +58,7 @@ class VDA5050Controller implements IVDA5050Controller {
       window.electron.ipcRenderer.on("mqtt-error", (error) => {
         console.error("MQTT Error:", error);
         this.clientState.value = MqttClientState.OFFLINE;
-        
+
         // Update Pinia store
         try {
           const store = useMqttStore();
@@ -71,7 +71,7 @@ class VDA5050Controller implements IVDA5050Controller {
       window.electron.ipcRenderer.on("mqtt-reconnect", () => {
         console.log("MQTT Reconnecting");
         this.clientState.value = MqttClientState.RECONNECTING;
-        
+
         // Update Pinia store
         try {
           const store = useMqttStore();
@@ -84,7 +84,7 @@ class VDA5050Controller implements IVDA5050Controller {
       window.electron.ipcRenderer.on("mqtt-close", () => {
         console.log("MQTT Connection Closed");
         this.clientState.value = MqttClientState.OFFLINE;
-        
+
         // Update Pinia store
         try {
           const store = useMqttStore();
@@ -109,7 +109,7 @@ class VDA5050Controller implements IVDA5050Controller {
 
   public subscribeToMessages(callback: MessageSubscriber): () => void {
     this.subscribers.value.push(callback);
-    
+
     // Return a function to unsubscribe
     return () => {
       const index = this.subscribers.value.indexOf(callback);
@@ -150,7 +150,7 @@ class VDA5050Controller implements IVDA5050Controller {
             this.messageUnsubscriber();
             this.messageUnsubscriber = null;
           }
-          
+
           const client = await sharedMqttClient.connect(
             mqttIp,
             mqttPort,
@@ -158,9 +158,9 @@ class VDA5050Controller implements IVDA5050Controller {
             username || undefined,
             password || undefined
           );
-          
+
           this.clientState.value = MqttClientState.CONNECTED;
-          
+
           // Update Pinia store
           try {
             const store = useMqttStore();
@@ -168,7 +168,7 @@ class VDA5050Controller implements IVDA5050Controller {
           } catch (error) {
             console.debug("MQTT store not available:", error);
           }
-          
+
           // Subscribe to topics
           const interfaceNameToUse = interfaceName || "+";
           const topics = [
@@ -178,17 +178,18 @@ class VDA5050Controller implements IVDA5050Controller {
             `${interfaceNameToUse}/+/+/+/state`,
             `${interfaceNameToUse}/+/+/+/visualization`,
           ];
-          
+
           sharedMqttClient.subscribe(topics);
-          
+
           // Set up message handling
-          this.messageUnsubscriber = sharedMqttClient.subscribeToMessages((topic, message) => {
-            this.notifySubscribers(topic, message);
-            this.forwardMessageToAgv(topic, message);
-          });
+          this.messageUnsubscriber = sharedMqttClient.subscribeToMessages(
+            (topic, message) => {
+              this.notifySubscribers(topic, message);
+              this.forwardMessageToAgv(topic, message);
+            }
+          );
         }
-      }
-      else if (connectionType === "mqtt") {
+      } else if (connectionType === "mqtt") {
         const cleanHost = mqttIp
           .replace(/^mqtt:\/\/|^tcp:\/\//, "")
           .replace(/:.*$/, "");
@@ -217,11 +218,10 @@ class VDA5050Controller implements IVDA5050Controller {
         this.mqttConfig.value = config;
         window.electron.ipcRenderer.send("connect-mqtt", config);
         this.setupMqttListeners();
-      }
-      else {
+      } else {
         console.error("Invalid connection type:", connectionType);
         this.clientState.value = MqttClientState.OFFLINE;
-        
+
         // Update Pinia store
         try {
           const store = useMqttStore();
@@ -233,7 +233,7 @@ class VDA5050Controller implements IVDA5050Controller {
     } catch (error) {
       console.error("MQTT Connection Error:", error);
       this.clientState.value = MqttClientState.OFFLINE;
-      
+
       // Update Pinia store
       try {
         const store = useMqttStore();
@@ -268,11 +268,17 @@ class VDA5050Controller implements IVDA5050Controller {
     connectionType: string = "mqtt"
   ): Promise<IVDA5050Agv> {
     // Create AGV with MQTT config if using WebSocket
-    const mqttConfig = connectionType === "websocket" 
-      ? { host: mqttIp, port: mqttPort, username, password }
-      : undefined;
-    
-    const agv = new VDA5050Agv(manufacturer, serialNumber, basePath, mqttConfig);
+    const mqttConfig =
+      connectionType === "websocket"
+        ? { host: mqttIp, port: mqttPort, username, password }
+        : undefined;
+
+    const agv = new VDA5050Agv(
+      manufacturer,
+      serialNumber,
+      basePath,
+      mqttConfig
+    );
 
     const interfaceNameToUse = interfaceName || "+";
     const topics = [
@@ -314,17 +320,17 @@ class VDA5050Controller implements IVDA5050Controller {
       this.messageUnsubscriber();
       this.messageUnsubscriber = null;
     }
-    
+
     // Note: We don't disconnect the shared client here
     // as other components might still be using it
-    
+
     // Disconnect all AGVs
-    this.agvs.value.forEach(instance => {
+    this.agvs.value.forEach((instance) => {
       if (instance.agv.disconnect) {
         instance.agv.disconnect();
       }
     });
-    
+
     // Clear AGV list
     this.agvs.value = [];
   }

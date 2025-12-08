@@ -1,7 +1,3 @@
-
-
-
-
 <script setup lang="ts">
 import { computed } from "vue";
 import { VDA5050Agv } from "@/controllers/vda5050-agv.controller";
@@ -15,7 +11,7 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  'select-agv': [];
+  "select-agv": [];
 }>();
 
 const mqttStore = useMqttStore();
@@ -48,7 +44,9 @@ const velocity = computed(() => {
     : null;
 });
 
-const connectionState = computed(() => agvData.value?.connectionInfo?.connectionState);
+const connectionState = computed(
+  () => agvData.value?.connectionInfo?.connectionState
+);
 const operatingMode = computed(() => agvData.value?.stateInfo?.operatingMode);
 const mapId = computed(() => agvData.value?.stateInfo?.agvPosition?.mapId);
 const timestamp = computed(() => agvData.value?.visualizationInfo?.timestamp);
@@ -68,8 +66,8 @@ const stateHeaderId = computed(() => stateInfo.value?.headerId);
 const instantActionsInfo = computed(() => agvData.value?.instantActionsInfo);
 const instantActionId = computed(() => {
   if (Array.isArray(instantActionsInfo.value?.instantActions)) {
-    return instantActionsInfo.value.instantActions.length > 0 
-      ? instantActionsInfo.value.instantActions[0]?.instantActionId 
+    return instantActionsInfo.value.instantActions.length > 0
+      ? instantActionsInfo.value.instantActions[0]?.instantActionId
       : null;
   }
   return instantActionsInfo.value?.instantActionId || null;
@@ -98,11 +96,11 @@ const errorsCount = computed(() => {
 });
 const fatalErrorsCount = computed(() => {
   if (!Array.isArray(errors.value)) return 0;
-  return errors.value.filter((err: any) => err.errorLevel === 'fatal').length;
+  return errors.value.filter((err: any) => err.errorLevel === "fatal").length;
 });
 const warningErrorsCount = computed(() => {
   if (!Array.isArray(errors.value)) return 0;
-  return errors.value.filter((err: any) => err.errorLevel === 'warning').length;
+  return errors.value.filter((err: any) => err.errorLevel === "warning").length;
 });
 
 const sequenceProgress = computed(() => {
@@ -139,7 +137,7 @@ const orderType = computed(() => {
   if (orderInfo.value.orderType) return orderInfo.value.orderType;
   // Infer from nodes/edges - if has actions, might be transport
   if (orderInfo.value.nodes?.length > 0 || orderInfo.value.edges?.length > 0) {
-    return 'transport';
+    return "transport";
   }
   return null;
 });
@@ -149,7 +147,7 @@ const orderState = computed(() => {
   const state = agvData.value?.stateInfo?.orderState;
   if (state) return state;
   // Try to infer from driving state
-  if (agvData.value?.stateInfo?.driving) return 'RUNNING';
+  if (agvData.value?.stateInfo?.driving) return "RUNNING";
   return null;
 });
 
@@ -158,30 +156,30 @@ const orderStateBadgeClass = computed(() => {
   const state = orderState.value || connectionState.value;
   switch (state) {
     case ConnectionState.ONLINE:
-    case 'RUNNING':
-    case 'EXECUTING':
-      return 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300';
+    case "RUNNING":
+    case "EXECUTING":
+      return "bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300";
     case ConnectionState.OFFLINE:
-    case 'FAILED':
-    case 'ERROR':
-      return 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300';
+    case "FAILED":
+    case "ERROR":
+      return "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300";
     case ConnectionState.CONNECTIONBROKEN:
-    case 'PAUSED':
-      return 'bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-300';
+    case "PAUSED":
+      return "bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-300";
     default:
-      return 'bg-gray-100 text-gray-700 dark:bg-gray-500/20 dark:text-gray-300';
+      return "bg-gray-100 text-gray-700 dark:bg-gray-500/20 dark:text-gray-300";
   }
 });
 
 // Route display - from order nodes
 const routeDisplay = computed(() => {
   if (!orderInfo.value?.nodes || orderInfo.value.nodes.length === 0) {
-    return 'N/A';
+    return "N/A";
   }
   const nodes = orderInfo.value.nodes;
   const firstNode = nodes[0];
   const lastNode = nodes[nodes.length - 1];
-  return `${firstNode.nodeId || 'N/A'} → ${lastNode.nodeId || 'N/A'}`;
+  return `${firstNode.nodeId || "N/A"} → ${lastNode.nodeId || "N/A"}`;
 });
 
 // Route progress - remaining nodes / total nodes
@@ -192,7 +190,7 @@ const routeProgress = computed(() => {
   return {
     remaining,
     total,
-    display: `${remaining} / ${total}`
+    display: `${remaining} / ${total}`,
   };
 });
 
@@ -200,10 +198,10 @@ const routeProgress = computed(() => {
 const currentStep = computed(() => {
   const currentNodeId = agvData.value?.stateInfo?.lastNodeId;
   if (currentNodeId) return `${currentNodeId}`;
-  
+
   const currentAction = agvData.value?.stateInfo?.actionStates?.[0];
   if (currentAction?.actionType) return currentAction.actionType;
-  
+
   return null;
 });
 
@@ -238,8 +236,8 @@ const speed = computed(() => {
 const alerts = computed(() => {
   if (!errors.value || errors.value.length === 0) return [];
   return errors.value.map((err: any) => {
-    const level = err.errorLevel || 'warning';
-    const type = err.errorType || 'Unknown';
+    const level = err.errorLevel || "warning";
+    const type = err.errorType || "Unknown";
     return `${level}: ${type}`;
   });
 });
@@ -250,12 +248,13 @@ const deadline = computed(() => {
 });
 
 // Format timestamp helper
-const formatTimestamp = (timestamp: string | number | null | undefined): string => {
-  if (!timestamp) return 'N/A';
+const formatTimestamp = (
+  timestamp: string | number | null | undefined
+): string => {
+  if (!timestamp) return "N/A";
   try {
-    const date = typeof timestamp === 'number' 
-      ? new Date(timestamp) 
-      : new Date(timestamp);
+    const date =
+      typeof timestamp === "number" ? new Date(timestamp) : new Date(timestamp);
     return date.toLocaleString();
   } catch {
     return String(timestamp);
@@ -266,7 +265,7 @@ const formatTimestamp = (timestamp: string | number | null | undefined): string 
 const handleAcknowledge = (event: Event) => {
   event.stopPropagation();
   // TODO: Implement acknowledge functionality
-  console.log('Acknowledge clicked for', agvId);
+  console.log("Acknowledge clicked for", agvId);
 };
 
 const handleViewDetails = (event: Event) => {
@@ -275,29 +274,43 @@ const handleViewDetails = (event: Event) => {
   // Create a new object reference to ensure Vue detects the change
   selectedAgv.value = {
     manufacturer: agvId.manufacturer,
-    serialNumber: agvId.serialNumber
+    serialNumber: agvId.serialNumber,
   };
 };
 </script>
 
 <template>
   <div class="max-w-xl mx-auto p-1">
-    <div class="rounded-3xl shadow-sm  text-gray-900 dark:text-white p-3 border border-gray-200 dark:border-white/10">
+    <div
+      class="rounded-3xl shadow-sm text-gray-900 dark:text-white p-3 border border-gray-200 dark:border-white/10"
+    >
       <!-- Top Row -->
       <div class="flex justify-between items-start mb-6">
         <div class="min-w-0 flex-1">
           <h2 class="text-xl tracking-tight">
-            <span class="font-light">{{ agvId.manufacturer }}</span> / <span class="font-semibold">{{ agvId.serialNumber }}</span>
+            <span class="font-light">{{ agvId.manufacturer }}</span> /
+            <span class="font-semibold">{{ agvId.serialNumber }}</span>
           </h2>
-          <p class="text-sm text-gray-600 dark:text-white/60 truncate">Order: <span class="text-gray-900 dark:text-white">{{ orderId || 'N/A' }}</span></p>
+          <p class="text-sm text-gray-600 dark:text-white/60 truncate">
+            Order:
+            <span class="text-gray-900 dark:text-white">{{
+              orderId || "N/A"
+            }}</span>
+          </p>
         </div>
 
         <div class="flex flex-col gap-2 items-end">
-          <span v-if="orderType" class="px-3 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300">
+          <span
+            v-if="orderType"
+            class="px-3 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300"
+          >
             {{ orderType }}
           </span>
-          <span :class="orderStateBadgeClass" class="px-3 py-1 rounded-full text-xs font-medium">
-            {{ orderState || connectionState || 'N/A' }}
+          <span
+            :class="orderStateBadgeClass"
+            class="px-3 py-1 rounded-full text-xs font-medium"
+          >
+            {{ orderState || connectionState || "N/A" }}
           </span>
         </div>
       </div>
@@ -308,18 +321,38 @@ const handleViewDetails = (event: Event) => {
         <div class="space-y-4">
           <div>
             <p class="text-xs text-gray-500 dark:text-white/50">Route</p>
-            <p v-if="routeProgress" class="text-base font-medium text-gray-900 dark:text-white">{{ routeProgress.display }}</p>
-            <p v-else class="text-base font-medium text-gray-900 dark:text-white">N/A</p>
+            <p
+              v-if="routeProgress"
+              class="text-base font-medium text-gray-900 dark:text-white"
+            >
+              {{ routeProgress.display }}
+            </p>
+            <p
+              v-else
+              class="text-base font-medium text-gray-900 dark:text-white"
+            >
+              N/A
+            </p>
           </div>
 
           <div>
             <p class="text-xs text-gray-500 dark:text-white/50">Current Step</p>
-            <p class="text-base font-medium text-gray-900 dark:text-white max-w-xs truncate">{{ currentStep || 'N/A' }}</p>
+            <p
+              class="text-base font-medium text-gray-900 dark:text-white max-w-xs truncate"
+            >
+              {{ currentStep || "N/A" }}
+            </p>
           </div>
 
           <div>
-            <p class="text-xs text-gray-500 dark:text-white/50">Operating Mode</p>
-            <p class="text-base font-medium text-gray-900 dark:text-white capitalize max-w-xs truncate">{{ operatingMode || 'N/A' }}</p>
+            <p class="text-xs text-gray-500 dark:text-white/50">
+              Operating Mode
+            </p>
+            <p
+              class="text-base font-medium text-gray-900 dark:text-white capitalize max-w-xs truncate"
+            >
+              {{ operatingMode || "N/A" }}
+            </p>
           </div>
         </div>
 
@@ -327,11 +360,12 @@ const handleViewDetails = (event: Event) => {
         <div class="space-y-4">
           <div>
             <p class="text-xs text-gray-500 dark:text-white/50">Position</p>
-            <p class="text-base font-medium text-gray-900 dark:text-white max-w-xs truncate">
+            <p
+              class="text-base font-medium text-gray-900 dark:text-white max-w-xs truncate"
+            >
               <span v-if="position">
-                x: {{ position.x }},
-                y: {{ position.y }},
-                θ: {{ position.theta }}
+                x: {{ position.x }}, y: {{ position.y }}, θ:
+                {{ position.theta }}
               </span>
               <span v-else>N/A</span>
             </p>
@@ -340,16 +374,26 @@ const handleViewDetails = (event: Event) => {
           <div>
             <p class="text-xs text-gray-500 dark:text-white/50">Battery</p>
             <div class="flex items-center gap-2">
-              <p class="text-base font-medium text-gray-900 dark:text-white">{{ batteryPercent !== null ? batteryPercent + '%' : 'N/A' }}</p>
-              <div v-if="batteryPercent !== null" class="w-full h-2 rounded-full bg-gray-200 dark:bg-white/10 overflow-hidden">
-                <div class="h-2 bg-emerald-500 dark:bg-emerald-400" :style="{ width: batteryPercent + '%' }"></div>
+              <p class="text-base font-medium text-gray-900 dark:text-white">
+                {{ batteryPercent !== null ? batteryPercent + "%" : "N/A" }}
+              </p>
+              <div
+                v-if="batteryPercent !== null"
+                class="w-full h-2 rounded-full bg-gray-200 dark:bg-white/10 overflow-hidden"
+              >
+                <div
+                  class="h-2 bg-emerald-500 dark:bg-emerald-400"
+                  :style="{ width: batteryPercent + '%' }"
+                ></div>
               </div>
             </div>
           </div>
 
           <div>
             <p class="text-xs text-gray-500 dark:text-white/50">Speed</p>
-            <p class="text-base font-medium text-gray-900 dark:text-white">{{ speed !== null ? speed + ' m/s' : 'N/A' }}</p>
+            <p class="text-base font-medium text-gray-900 dark:text-white">
+              {{ speed !== null ? speed + " m/s" : "N/A" }}
+            </p>
           </div>
         </div>
       </div>
@@ -357,25 +401,39 @@ const handleViewDetails = (event: Event) => {
       <!-- Alerts -->
       <div class="mb-6" v-if="alerts.length > 0">
         <p class="text-xs text-gray-500 dark:text-white/50 mb-1">Alerts</p>
-        <div v-if="alerts.length" class="text-red-600 dark:text-red-300 text-sm">
-          {{ alerts.join(', ') }}
+        <div
+          v-if="alerts.length"
+          class="text-red-600 dark:text-red-300 text-sm"
+        >
+          {{ alerts.join(", ") }}
         </div>
         <div v-else class="text-gray-500 dark:text-white/40 text-sm">None</div>
       </div>
 
       <!-- Footer -->
-      <div class="flex justify-between text-xs text-gray-500 dark:text-white/40 border-t border-gray-200 dark:border-white/10 pt-4">
+      <div
+        class="flex justify-between text-xs text-gray-500 dark:text-white/40 border-t border-gray-200 dark:border-white/10 pt-4"
+      >
         <div>
           <p>Created: {{ formatTimestamp(orderTimestamp) }}</p>
-          <p>State Header ID: <span class="text-gray-900 dark:text-white">{{ stateHeaderId ? stateHeaderId : 'N/A' }}</span></p>
+          <p>
+            State Header ID:
+            <span class="text-gray-900 dark:text-white">{{
+              stateHeaderId ? stateHeaderId : "N/A"
+            }}</span>
+          </p>
         </div>
         <div class="flex gap-2">
-          <button @click="handleViewDetails" class="px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 transition text-white text-xs">Details</button>
+          <button
+            @click="handleViewDetails"
+            class="px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 transition text-white text-xs"
+          >
+            Details
+          </button>
         </div>
       </div>
     </div>
   </div>
 </template>
 
-<style scoped>
-</style>
+<style scoped></style>

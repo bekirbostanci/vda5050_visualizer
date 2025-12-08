@@ -23,19 +23,19 @@ The application uses a shared MQTT client to optimize connection management and 
 ### Usage Example
 
 ```typescript
-import { sharedMqttClient } from './utils/shared-mqtt-client';
+import { sharedMqttClient } from "./utils/shared-mqtt-client";
 
 // Connect to the MQTT broker
 await sharedMqttClient.connect(
-  'localhost',
-  '9001',
-  'client_id',
-  'username',
-  'password'
+  "localhost",
+  "9001",
+  "client_id",
+  "username",
+  "password"
 );
 
 // Subscribe to topics
-sharedMqttClient.subscribe(['topic1', 'topic2']);
+sharedMqttClient.subscribe(["topic1", "topic2"]);
 
 // Subscribe to messages
 const unsubscribe = sharedMqttClient.subscribeToMessages((topic, message) => {
@@ -43,7 +43,7 @@ const unsubscribe = sharedMqttClient.subscribeToMessages((topic, message) => {
 });
 
 // Publish a message
-sharedMqttClient.publish('topic', { data: 'value' });
+sharedMqttClient.publish("topic", { data: "value" });
 
 // Unsubscribe from messages when done
 unsubscribe();
@@ -85,6 +85,7 @@ npm run electron:build
 ```
 
 This will create platform-specific installers in the `dist_electron` directory. The application is configured to build for:
+
 - Windows (.exe installer)
 - macOS (.dmg)
 - Linux (AppImage)
@@ -118,10 +119,9 @@ npm run dev
 npm run build
 ```
 
-
 ## VDA5050 Visualizer
-The purpose of this package is to view and visualize vda5050 messages more quickly without looking at the json data. After running the application, you need to press the start button.
 
+The purpose of this package is to view and visualize vda5050 messages more quickly without looking at the json data. After running the application, you need to press the start button.
 
 ![Web Interface](docs/1.png)
 
@@ -130,10 +130,11 @@ The purpose of this package is to view and visualize vda5050 messages more quick
 - Display all robots on the one graph
 - Displaying the real-time position of multiple robots
 - Displaying the vda5050 actions that robots perform
-- Displaying data from the master controller to the robot and from the robot to the master controller 
+- Displaying data from the master controller to the robot and from the robot to the master controller
 - Display of raw json data
 
 ### Updates
+
 - Actions are listing on the path
 - Action nodes and edges color are changing
 
@@ -141,24 +142,26 @@ The purpose of this package is to view and visualize vda5050 messages more quick
 
 Check out the live demo of this project [here](https://vda5050-visualizer.vercel.app/).
 
-
 ## Install
-Before than run app, please go to folder and install npm packages 
-``` 
-npm install 
+
+Before than run app, please go to folder and install npm packages
+
+```
+npm install
 ```
 
-## Run 
+## Run
+
 ```
 npm run dev
 ```
 
-## MQTT Broker Settings 
-Note Modern web browsers (google  chrome, firefox, opera etc.) cannot access the mqtt protocol directly. Therefore, if you want to use this application, please first enable the use of web sockets in your mqtt broker settings 
+## MQTT Broker Settings
 
-`
- sudo nano /etc/mosquitto/mosquitto.conf 
-`
+Note Modern web browsers (google chrome, firefox, opera etc.) cannot access the mqtt protocol directly. Therefore, if you want to use this application, please first enable the use of web sockets in your mqtt broker settings
+
+` sudo nano /etc/mosquitto/mosquitto.conf `
+
 ```
 per_listener_settings true
 listener 1883
@@ -169,25 +172,32 @@ protocol websockets
 allow_anonymous true
 ```
 
-## Docker 
+## Docker
+
 ### Development
+
 Building docker container for development.
+
 ```
 docker build -t vda-visualizer:dev -f Dockerfile.dev .
 ```
 
-Run docker container 
+Run docker container
+
 ```
 docker run -p 8082:8082 -v $(pwd):/app -v /app/node_modules --rm vda-visualizer:dev
 ```
 
-### Production 
-Building docker container for production 
+### Production
+
+Building docker container for production
+
 ```
 docker build -t vda-visualizer:prod -f Dockerfile.prod .
 ```
 
-Run docker container 
+Run docker container
+
 ```
 docker run -p 4173:4173 --rm vda-visualizer:prod
 ```

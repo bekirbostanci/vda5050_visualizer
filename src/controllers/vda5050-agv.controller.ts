@@ -1,10 +1,7 @@
 import type { Edges, Layouts, Nodes } from "v-network-graph";
 import { ref } from "vue";
 import randomColor from "randomcolor";
-import type {
-  IVDA5050Agv,
-  ColorSchema,
-} from "../types/vda5050.types";
+import type { IVDA5050Agv, ColorSchema } from "../types/vda5050.types";
 import { Topic } from "../types/mqtt.types";
 import mqtt from "mqtt";
 import { sharedMqttClient } from "../utils/shared-mqtt-client";
@@ -30,22 +27,30 @@ export class VDA5050Agv implements IVDA5050Agv {
     manufacturer: string,
     serialNumber: string,
     private readonly basePath: string = "vda5050",
-    private readonly mqttConfig?: { host: string; port: string; username?: string; password?: string }
+    private readonly mqttConfig?: {
+      host: string;
+      port: string;
+      username?: string;
+      password?: string;
+    }
   ) {
     this.agvId = { manufacturer, serialNumber };
     this.mqttTopic = `${this.basePath}/${this.agvId.manufacturer}/${this.agvId.serialNumber}`;
     this.color = randomColor();
     this.colors = this.generateColors();
-    
+
     // Initialize AGV data in Pinia store
     try {
       const store = useMqttStore();
       store.initializeAgvData(this.agvId, this.color, this.colors);
       store.addRobot(this.agvId);
     } catch (error) {
-      console.debug("MQTT store not available during AGV initialization:", error);
+      console.debug(
+        "MQTT store not available during AGV initialization:",
+        error
+      );
     }
-    
+
     this.subscribeToTopics();
   }
 
@@ -77,18 +82,22 @@ export class VDA5050Agv implements IVDA5050Agv {
   private setupSharedMqttClient(topics: string[]): void {
     // Subscribe to topics using the shared client
     sharedMqttClient.subscribe(topics);
-    
+
     // Subscribe to messages
     sharedMqttClient.subscribeToMessages((topic, message) => {
       // Only process messages for this AGV
       // Use a more precise matching method to avoid substring matching issues
       // Split the topic into parts and check for exact matches of manufacturer and serialNumber
-      const topicParts = topic.split('/');
-      const manufacturerIndex = topicParts.findIndex(part => part === this.agvId.manufacturer);
-      
-      if (manufacturerIndex !== -1 && 
-          manufacturerIndex + 1 < topicParts.length && 
-          topicParts[manufacturerIndex + 1] === this.agvId.serialNumber) {
+      const topicParts = topic.split("/");
+      const manufacturerIndex = topicParts.findIndex(
+        (part) => part === this.agvId.manufacturer
+      );
+
+      if (
+        manufacturerIndex !== -1 &&
+        manufacturerIndex + 1 < topicParts.length &&
+        topicParts[manufacturerIndex + 1] === this.agvId.serialNumber
+      ) {
         this.handleMqttMessage(topic, message);
       }
     });
@@ -96,21 +105,29 @@ export class VDA5050Agv implements IVDA5050Agv {
 
   private connectWebSocketMqtt(topics: string[]): void {
     if (!this.mqttConfig) return;
-    
+
     const { host, port, username, password } = this.mqttConfig;
-    
+
     // Use the shared MQTT client
-    sharedMqttClient.connect(
-      host, 
-      port, 
-      `vda5050_client_${this.agvId.serialNumber}_${Math.random().toString(16).slice(2, 8)}`,
-      username,
-      password
-    ).then(() => {
-      this.setupSharedMqttClient(topics);
-    }).catch(error => {
-      console.error(`Failed to connect to WebSocket MQTT for AGV ${this.agvId.serialNumber}:`, error);
-    });
+    sharedMqttClient
+      .connect(
+        host,
+        port,
+        `vda5050_client_${this.agvId.serialNumber}_${Math.random()
+          .toString(16)
+          .slice(2, 8)}`,
+        username,
+        password
+      )
+      .then(() => {
+        this.setupSharedMqttClient(topics);
+      })
+      .catch((error) => {
+        console.error(
+          `Failed to connect to WebSocket MQTT for AGV ${this.agvId.serialNumber}:`,
+          error
+        );
+      });
   }
 
   private cleanupOldData(): void {
@@ -133,7 +150,7 @@ export class VDA5050Agv implements IVDA5050Agv {
     try {
       const store = useMqttStore();
       store.updateAgvMessage(this.agvId, topic, message);
-      
+
       // Also update graph data in store
       store.updateAgvData(this.agvId, {
         nodes: this.nodes.value,
@@ -204,7 +221,7 @@ export class VDA5050Agv implements IVDA5050Agv {
     } catch (error) {
       console.debug("MQTT store not available during disconnect:", error);
     }
-    
+
     // No need to disconnect the shared client
     // Just unsubscribe from messages if needed
     if (sharedMqttClient.connected) {
@@ -215,11 +232,11 @@ export class VDA5050Agv implements IVDA5050Agv {
         `${this.mqttTopic}/${Topic.Connection}`,
         `${this.mqttTopic}/${Topic.Visualization}`,
       ];
-      
+
       // Unsubscribe from topics if needed
       // Note: We don't actually unsubscribe here to avoid affecting other components
       // that might be using the same topics
-      
+
       console.log(`Disconnected AGV ${this.agvId.serialNumber}`);
     }
   }
@@ -334,12 +351,15 @@ export class VDA5050Agv implements IVDA5050Agv {
    */
   public publishOrder(order: Order, interfaceName?: string): void {
     const store = useMqttStore();
-    const actualInterfaceName = interfaceName || store.config.interfaceName || this.basePath;
-    
+    const actualInterfaceName =
+      interfaceName || store.config.interfaceName || this.basePath;
+
     // Extract major version from order version (e.g., "2.0.0" -> "v2")
-    const majorVersion = order.version ? `v${order.version.split('.')[0]}` : 'v2';
+    const majorVersion = order.version
+      ? `v${order.version.split(".")[0]}`
+      : "v2";
     const topic = `${actualInterfaceName}/${majorVersion}/${this.agvId.manufacturer}/${this.agvId.serialNumber}/${Topic.Order}`;
-    
+
     if (sharedMqttClient.connected) {
       sharedMqttClient.publish(topic, order);
       console.log("Order published:", topic, order);
@@ -358,14 +378,20 @@ export class VDA5050Agv implements IVDA5050Agv {
   /**
    * Publish an InstantActions message to the AGV
    */
-  public publishInstantActions(instantActions: InstantActions, interfaceName?: string): void {
+  public publishInstantActions(
+    instantActions: InstantActions,
+    interfaceName?: string
+  ): void {
     const store = useMqttStore();
-    const actualInterfaceName = interfaceName || store.config.interfaceName || this.basePath;
-    
+    const actualInterfaceName =
+      interfaceName || store.config.interfaceName || this.basePath;
+
     // Extract major version from instantActions version (e.g., "2.0.0" -> "v2")
-    const majorVersion = instantActions.version ? `v${instantActions.version.split('.')[0]}` : 'v2';
+    const majorVersion = instantActions.version
+      ? `v${instantActions.version.split(".")[0]}`
+      : "v2";
     const topic = `${actualInterfaceName}/${majorVersion}/${this.agvId.manufacturer}/${this.agvId.serialNumber}/${Topic.InstantActions}`;
-    
+
     if (sharedMqttClient.connected) {
       sharedMqttClient.publish(topic, instantActions);
       console.log("InstantActions published:", topic, instantActions);
@@ -374,7 +400,11 @@ export class VDA5050Agv implements IVDA5050Agv {
         topic,
         message: JSON.stringify(instantActions),
       });
-      console.log("InstantActions published via Electron:", topic, instantActions);
+      console.log(
+        "InstantActions published via Electron:",
+        topic,
+        instantActions
+      );
     } else {
       console.error("Cannot publish instantActions: MQTT client not connected");
       throw new Error("MQTT client not connected");

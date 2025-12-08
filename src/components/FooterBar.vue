@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {Menubar, MenubarMenu, MenubarLabel} from '@/components/ui/menubar';
+import { Menubar, MenubarMenu, MenubarLabel } from "@/components/ui/menubar";
 </script>
 
 <template>

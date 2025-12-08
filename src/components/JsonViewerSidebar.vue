@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import VueJsonPretty from 'vue-json-pretty';
-import 'vue-json-pretty/lib/styles.css';
+import VueJsonPretty from "vue-json-pretty";
+import "vue-json-pretty/lib/styles.css";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Icon } from '@iconify/vue';
+import { Icon } from "@iconify/vue";
 import { toast } from "@/components/ui/toast";
 
 const props = defineProps<{
@@ -18,53 +18,53 @@ const emit = defineEmits<{
 }>();
 
 // Search functionality
-const searchQuery = ref('');
+const searchQuery = ref("");
 
 // Search in JSON data
 const searchInJson = (json: any, query: string): any => {
-  if (!query || query.trim() === '') return json;
-  
+  if (!query || query.trim() === "") return json;
+
   const searchStr = query.toLowerCase();
-  
+
   // Helper function to check if a value contains the search string
   const containsSearchString = (value: any): boolean => {
     if (value === null || value === undefined) return false;
     return String(value).toLowerCase().includes(searchStr);
   };
-  
+
   // Recursive function to filter objects and arrays
   const filterData = (data: any): any => {
-    if (typeof data !== 'object' || data === null) {
+    if (typeof data !== "object" || data === null) {
       return containsSearchString(data) ? data : undefined;
     }
-    
+
     if (Array.isArray(data)) {
       const filteredArray = data
-        .map(item => filterData(item))
-        .filter(item => item !== undefined);
+        .map((item) => filterData(item))
+        .filter((item) => item !== undefined);
       return filteredArray.length > 0 ? filteredArray : undefined;
     }
-    
+
     const filteredObj: Record<string, any> = {};
     let hasMatch = false;
-    
+
     for (const key in data) {
       if (containsSearchString(key)) {
         filteredObj[key] = data[key];
         hasMatch = true;
         continue;
       }
-      
+
       const filteredValue = filterData(data[key]);
       if (filteredValue !== undefined) {
         filteredObj[key] = filteredValue;
         hasMatch = true;
       }
     }
-    
+
     return hasMatch ? filteredObj : undefined;
   };
-  
+
   const result = filterData(json);
   return result !== undefined ? result : { message: "No matches found" };
 };
@@ -85,14 +85,14 @@ const filteredData = computed(() => {
 });
 
 const clearSearch = () => {
-  searchQuery.value = '';
+  searchQuery.value = "";
 };
 
 // Copy JSON to clipboard
 const copyJsonToClipboard = async () => {
   const data = reactiveData.value;
   if (!data) return;
-  
+
   try {
     const jsonString = JSON.stringify(data, null, 2);
     await navigator.clipboard.writeText(jsonString);
@@ -101,7 +101,7 @@ const copyJsonToClipboard = async () => {
       description: "JSON data has been copied to your clipboard",
     });
   } catch (error) {
-    console.error('Failed to copy to clipboard:', error);
+    console.error("Failed to copy to clipboard:", error);
     toast({
       title: "Copy failed",
       description: "Failed to copy JSON to clipboard",
@@ -114,8 +114,10 @@ const copyJsonToClipboard = async () => {
 <template>
   <div class="h-full w-full border-r bg-background flex flex-col">
     <!-- Header -->
-    <div class="p-4 border-b font-semibold flex items-center justify-between h-[68px]">
-      <span class="truncate">{{ title || 'JSON Viewer' }}</span>
+    <div
+      class="p-4 border-b font-semibold flex items-center justify-between h-[68px]"
+    >
+      <span class="truncate">{{ title || "JSON Viewer" }}</span>
       <div class="flex items-center gap-2">
         <Button
           v-if="reactiveData"
@@ -223,4 +225,3 @@ const copyJsonToClipboard = async () => {
   color: hsl(var(--foreground)) !important;
 }
 </style>
-

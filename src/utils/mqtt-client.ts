@@ -11,7 +11,9 @@ export class MqttWebSocketClient {
   constructor(
     private readonly host: string,
     private readonly port: string,
-    private readonly clientId: string = `mqtt_client_${Math.random().toString(16).slice(2, 8)}`,
+    private readonly clientId: string = `mqtt_client_${Math.random()
+      .toString(16)
+      .slice(2, 8)}`,
     private readonly username?: string,
     private readonly password?: string
   ) {}
@@ -22,7 +24,7 @@ export class MqttWebSocketClient {
 
     try {
       const mqttUrl = `ws://${this.host}:${this.port}/ws`;
-      
+
       this.client = mqtt.connect(mqttUrl, {
         clientId: this.clientId,
         username: this.username,
@@ -83,7 +85,8 @@ export class MqttWebSocketClient {
     }
 
     try {
-      const messageStr = typeof message === 'object' ? JSON.stringify(message) : message;
+      const messageStr =
+        typeof message === "object" ? JSON.stringify(message) : message;
       this.client.publish(topic, messageStr, (error?: Error) => {
         if (error) {
           console.error(`Failed to publish to ${topic}:`, error);
@@ -128,11 +131,17 @@ export const createMqttWebSocketClient = (
   password?: string
 ): MqttWebSocketClient => {
   if (!mqttWebSocketClient) {
-    mqttWebSocketClient = new MqttWebSocketClient(host, port, clientId, username, password);
+    mqttWebSocketClient = new MqttWebSocketClient(
+      host,
+      port,
+      clientId,
+      username,
+      password
+    );
   }
   return mqttWebSocketClient;
 };
 
 export const getMqttWebSocketClient = (): MqttWebSocketClient | null => {
   return mqttWebSocketClient;
-}; 
+};

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref } from "vue";
 import {
   Menubar,
   MenubarContent,
@@ -7,24 +7,24 @@ import {
   MenubarMenu,
   MenubarTrigger,
   MenubarCheckboxItem,
-} from '@/components/ui/menubar';
-import {Button} from '@/components/ui/button';
-import {Icon} from '@iconify/vue';
-import {useColorMode} from '@vueuse/core';
+} from "@/components/ui/menubar";
+import { Button } from "@/components/ui/button";
+import { Icon } from "@iconify/vue";
+import { useColorMode } from "@vueuse/core";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import ConnectionModal from '@/components/ConnectionModal.vue';
-import { useSettingsStore } from '@/stores/settings';
+} from "@/components/ui/dropdown-menu";
+import ConnectionModal from "@/components/ConnectionModal.vue";
+import { useSettingsStore } from "@/stores/settings";
 
 const props = defineProps<{
   showLeftSidebar?: boolean;
   showRightSidebar?: boolean;
   showJsonSidebar?: boolean;
-  viewMode?: 'dashboard' | 'visualizer';
+  viewMode?: "dashboard" | "visualizer";
   showHelp?: boolean;
 }>();
 
@@ -38,11 +38,11 @@ const emit = defineEmits<{
 
 // Pass { disableTransition: false } to enable transitions
 const mode = useColorMode({
-  selector: 'html',
-  attribute: 'class',
+  selector: "html",
+  attribute: "class",
   modes: {
-    dark: 'dark',
-    light: '',
+    dark: "dark",
+    light: "",
   },
 });
 
@@ -51,7 +51,7 @@ const settingsStore = useSettingsStore();
 const isConnectionModalOpen = ref(false);
 
 const openGitHub = () => {
-  window.open('https://github.com/bekirbostanci/vda5050_visualizer', '_blank');
+  window.open("https://github.com/bekirbostanci/vda5050_visualizer", "_blank");
 };
 </script>
 
@@ -62,7 +62,11 @@ const openGitHub = () => {
         <img src="/bekir.svg" alt="logo" class="w-7 h-7" />
       </div>
       <MenubarMenu>
-        <MenubarTrigger class="font-normal" @click="isConnectionModalOpen = true">Connect</MenubarTrigger>
+        <MenubarTrigger
+          class="font-normal"
+          @click="isConnectionModalOpen = true"
+          >Connect</MenubarTrigger
+        >
       </MenubarMenu>
       <MenubarMenu>
         <MenubarTrigger class="font-normal">View</MenubarTrigger>
@@ -81,7 +85,7 @@ const openGitHub = () => {
           <MenubarItem @click="emit('toggleHelp')">
             <Icon icon="ph:question" class="mr-2 h-4 w-4" />
             <span :class="{ 'font-semibold': props.showHelp }">
-              {{ props.showHelp ? 'Hide Help Page' : 'Show Help Page' }}
+              {{ props.showHelp ? "Hide Help Page" : "Show Help Page" }}
             </span>
           </MenubarItem>
           <MenubarItem @click="openGitHub">
@@ -129,14 +133,18 @@ const openGitHub = () => {
         variant="ghost"
         size="icon"
         class="h-8 w-8"
-        :title="showRightSidebar ? 'Hide AGV Details Sidebar' : 'Show AGV Details Sidebar'"
+        :title="
+          showRightSidebar
+            ? 'Hide AGV Details Sidebar'
+            : 'Show AGV Details Sidebar'
+        "
         @click="$emit('toggleRightSidebar')"
       >
         <Icon
           icon="ph:sidebar-simple"
           :class="[
             'scale-x-[-1]',
-            showRightSidebar ? 'opacity-100' : 'opacity-50'
+            showRightSidebar ? 'opacity-100' : 'opacity-50',
           ]"
           :height="18"
         />
@@ -146,7 +154,11 @@ const openGitHub = () => {
         variant="ghost"
         size="icon"
         class="h-8 w-8"
-        :title="showJsonSidebar ? 'Hide JSON Viewer Sidebar' : 'Show JSON Viewer Sidebar'"
+        :title="
+          showJsonSidebar
+            ? 'Hide JSON Viewer Sidebar'
+            : 'Show JSON Viewer Sidebar'
+        "
         @click="$emit('toggleJsonSidebar')"
       >
         <Icon
@@ -159,7 +171,11 @@ const openGitHub = () => {
         variant="ghost"
         size="icon"
         class="h-8 w-8"
-        :title="viewMode === 'dashboard' ? 'Switch to Visualizer View' : 'Switch to Dashboard View'"
+        :title="
+          viewMode === 'dashboard'
+            ? 'Switch to Visualizer View'
+            : 'Switch to Dashboard View'
+        "
         @click="$emit('toggleView')"
       >
         <Icon

@@ -3,7 +3,13 @@ import { ref, computed } from "vue";
 import { useVDA5050 } from "@/composables/useVDA5050";
 import SidebarAgvCard from "@/components/SidebarAgvCard.vue";
 import { Input } from "@/components/ui/input";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@iconify/vue";
 import ConnectionModal from "@/components/ConnectionModal.vue";
@@ -18,8 +24,12 @@ const filteredRobots = computed(() => {
   if (filterText.value) {
     filtered = filtered.filter(
       (robot) =>
-        robot.serialNumber.toLowerCase().includes(filterText.value.toLowerCase()) ||
-        robot.manufacturer.toLowerCase().includes(filterText.value.toLowerCase())
+        robot.serialNumber
+          .toLowerCase()
+          .includes(filterText.value.toLowerCase()) ||
+        robot.manufacturer
+          .toLowerCase()
+          .includes(filterText.value.toLowerCase())
     );
   }
   return filtered;
@@ -49,8 +59,13 @@ function getController(agv: any) {
           @select-agv="selectAgv(agv)"
         />
       </template>
-      <div v-if="filteredRobots.length === 0" class="flex items-center justify-center min-h-[200px]">
-        <Card class="w-full max-w-sm border-2 border-dashed border-muted-foreground/20 bg-muted/30 hover:bg-muted/50">
+      <div
+        v-if="filteredRobots.length === 0"
+        class="flex items-center justify-center min-h-[200px]"
+      >
+        <Card
+          class="w-full max-w-sm border-2 border-dashed border-muted-foreground/20 bg-muted/30 hover:bg-muted/50"
+        >
           <CardHeader class="text-center">
             <div class="flex justify-center mb-4">
               <div class="rounded-full bg-muted p-3">
@@ -59,15 +74,12 @@ function getController(agv: any) {
             </div>
             <CardTitle class="text-lg">No Robots Found</CardTitle>
             <CardDescription class="mt-2">
-              Connect to an MQTT broker to discover and monitor VDA5050 robots. 
+              Connect to an MQTT broker to discover and monitor VDA5050 robots.
               Once connected, robots will appear in this list.
             </CardDescription>
           </CardHeader>
           <CardContent class="pt-0">
-            <Button 
-              class="w-full" 
-              @click="isConnectionModalOpen = true"
-            >
+            <Button class="w-full" @click="isConnectionModalOpen = true">
               <Icon icon="ph:plug" class="mr-2 h-4 w-4" />
               Connect Broker
             </Button>

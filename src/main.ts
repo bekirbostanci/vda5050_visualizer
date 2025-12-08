@@ -33,7 +33,7 @@ window.Buffer = Buffer;
 const pinia = createPinia();
 
 const app = createApp({
-  setup() { },
+  setup() {},
   render: () => h(App),
 });
 

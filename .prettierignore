@@ -1,0 +1,14 @@
+node_modules
+dist
+dist_electron
+build
+coverage
+*.log
+.DS_Store
+.vscode
+.vercel
+cypress/videos
+cypress/screenshots
+public/maps
+src/components/ui
+

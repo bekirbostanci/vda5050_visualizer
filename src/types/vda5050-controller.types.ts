@@ -56,4 +56,4 @@ export interface IVDA5050Controller {
     connectionType?: string
   ): Promise<void>;
   disconnect(): void;
-} 
+}

@@ -1,10 +1,10 @@
-import { defineStore } from 'pinia';
-import { ref, computed } from 'vue';
-import type { Ref } from 'vue';
-import type { Edges, Layouts, Nodes } from 'v-network-graph';
-import { MqttClientState } from '@/types/mqtt.types';
-import type { AgvId } from '@/types/vda5050.types';
-import { Topic } from '@/types/mqtt.types';
+import { defineStore } from "pinia";
+import { ref, computed } from "vue";
+import type { Ref } from "vue";
+import type { Edges, Layouts, Nodes } from "v-network-graph";
+import { MqttClientState } from "@/types/mqtt.types";
+import type { AgvId } from "@/types/vda5050.types";
+import { Topic } from "@/types/mqtt.types";
 
 export interface MqttMessage {
   topic: string;
@@ -32,38 +32,40 @@ export interface AgvData {
   };
 }
 
-export const useMqttStore = defineStore('mqtt', () => {
+export const useMqttStore = defineStore("mqtt", () => {
   // Connection state
   const connectionState = ref<MqttClientState>(MqttClientState.OFFLINE);
-  
+
   // All MQTT messages
   const messages = ref<MqttMessage[]>([]);
-  
+
   // Robot list
   const robotList = ref<AgvId[]>([]);
-  
+
   // AGV data map: key is "manufacturer/serialNumber"
   const agvDataMap = ref<Map<string, AgvData>>(new Map());
-  
+
   // Selected AGV
   const selectedAgv = ref<AgvId | null>(null);
-  
+
   // Connection configuration
   const config = ref({
-    brokerIp: '',
-    brokerPort: '',
-    basepath: '',
-    interfaceName: '',
-    username: '',
-    password: '',
-    connectionType: 'websocket' as 'mqtt' | 'websocket',
+    brokerIp: "",
+    brokerPort: "",
+    basepath: "",
+    interfaceName: "",
+    username: "",
+    password: "",
+    connectionType: "websocket" as "mqtt" | "websocket",
   });
 
   // Computed properties
-  const connected = computed(() => connectionState.value === MqttClientState.CONNECTED);
-  
+  const connected = computed(
+    () => connectionState.value === MqttClientState.CONNECTED
+  );
+
   const agvList = computed(() => Array.from(agvDataMap.value.values()));
-  
+
   const getAgvData = computed(() => (agvId: AgvId) => {
     const key = `${agvId.manufacturer}/${agvId.serialNumber}`;
     return agvDataMap.value.get(key);
@@ -81,7 +83,7 @@ export const useMqttStore = defineStore('mqtt', () => {
       timestamp: Date.now(),
     };
     messages.value.push(mqttMessage);
-    
+
     // Keep only last 1000 messages to prevent memory issues
     if (messages.value.length > 1000) {
       messages.value = messages.value.slice(-1000);
@@ -94,7 +96,7 @@ export const useMqttStore = defineStore('mqtt', () => {
         robot.serialNumber === agvId.serialNumber &&
         robot.manufacturer === agvId.manufacturer
     );
-    
+
     if (!exists) {
       robotList.value.push(agvId);
     }
@@ -106,19 +108,23 @@ export const useMqttStore = defineStore('mqtt', () => {
         robot.serialNumber === agvId.serialNumber &&
         robot.manufacturer === agvId.manufacturer
     );
-    
+
     if (index !== -1) {
       robotList.value.splice(index, 1);
     }
-    
+
     // Also remove from agvDataMap
     const key = `${agvId.manufacturer}/${agvId.serialNumber}`;
     agvDataMap.value.delete(key);
   }
 
-  function initializeAgvData(agvId: AgvId, color: string, colors: AgvData['colors']) {
+  function initializeAgvData(
+    agvId: AgvId,
+    color: string,
+    colors: AgvData["colors"]
+  ) {
     const key = `${agvId.manufacturer}/${agvId.serialNumber}`;
-    
+
     if (!agvDataMap.value.has(key)) {
       agvDataMap.value.set(key, {
         agvId,
@@ -138,21 +144,21 @@ export const useMqttStore = defineStore('mqtt', () => {
 
   function updateAgvData(
     agvId: AgvId,
-    updates: Partial<Omit<AgvData, 'agvId' | 'color' | 'colors'>>
+    updates: Partial<Omit<AgvData, "agvId" | "color" | "colors">>
   ) {
     const key = `${agvId.manufacturer}/${agvId.serialNumber}`;
     const agvData = agvDataMap.value.get(key);
-    
+
     if (agvData) {
       Object.assign(agvData, updates);
     }
   }
 
   function updateAgvMessage(agvId: AgvId, topic: string, message: any) {
-    const topicType = topic.split('/').pop() as Topic;
+    const topicType = topic.split("/").pop() as Topic;
     const key = `${agvId.manufacturer}/${agvId.serialNumber}`;
     const agvData = agvDataMap.value.get(key);
-    
+
     if (!agvData) {
       console.warn(`AGV data not found for ${key}`);
       return;
@@ -204,12 +210,12 @@ export const useMqttStore = defineStore('mqtt', () => {
     agvDataMap,
     selectedAgv,
     config,
-    
+
     // Computed
     connected,
     agvList,
     getAgvData,
-    
+
     // Actions
     setConnectionState,
     addMessage,
@@ -224,4 +230,3 @@ export const useMqttStore = defineStore('mqtt', () => {
     clearAll,
   };
 });
-

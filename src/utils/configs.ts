@@ -36,10 +36,18 @@ function getLuminance(hex: string): number {
  */
 function adjustColorForDarkMode(color: string): string {
   // Handle common color values
-  if (color === "#000" || color === "#000000" || color.toLowerCase() === "black") {
+  if (
+    color === "#000" ||
+    color === "#000000" ||
+    color.toLowerCase() === "black"
+  ) {
     return "#ffffff"; // White for dark mode
   }
-  if (color === "#fff" || color === "#ffffff" || color.toLowerCase() === "white") {
+  if (
+    color === "#fff" ||
+    color === "#ffffff" ||
+    color.toLowerCase() === "white"
+  ) {
     return "#e5e7eb"; // Light gray for dark mode
   }
 
@@ -53,7 +61,9 @@ function adjustColorForDarkMode(color: string): string {
       const r = Math.round(rgb.r * factor);
       const g = Math.round(rgb.g * factor);
       const b = Math.round(rgb.b * factor);
-      return `#${[r, g, b].map((x) => x.toString(16).padStart(2, "0")).join("")}`;
+      return `#${[r, g, b]
+        .map((x) => x.toString(16).padStart(2, "0"))
+        .join("")}`;
     }
   }
   return color;
@@ -65,7 +75,10 @@ function adjustColorForDarkMode(color: string): string {
  * @param showGrid - Whether to show the grid
  * @returns Network graph configuration
  */
-export function createConfigs(isDark: boolean = false, showGrid: boolean = true): Configs {
+export function createConfigs(
+  isDark: boolean = false,
+  showGrid: boolean = true
+): Configs {
   return defineConfigs({
     node: {
       draggable: false,

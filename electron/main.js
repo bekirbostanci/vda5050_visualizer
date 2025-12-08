@@ -1,7 +1,7 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
-const { autoUpdater } = require('electron-updater');
-const path = require('path');
-const mqtt = require('mqtt');
+const { app, BrowserWindow, ipcMain } = require("electron");
+const { autoUpdater } = require("electron-updater");
+const path = require("path");
+const mqtt = require("mqtt");
 const isDev = !app.isPackaged;
 
 let mainWindow;
@@ -9,48 +9,48 @@ let mqttClient;
 
 // Configure auto updater
 autoUpdater.autoDownload = false;
-autoUpdater.logger = require('electron-log');
-autoUpdater.logger.transports.file.level = 'info';
+autoUpdater.logger = require("electron-log");
+autoUpdater.logger.transports.file.level = "info";
 
 // Auto-updater events
-autoUpdater.on('checking-for-update', () => {
-  mainWindow.webContents.send('update-status', 'Checking for updates...');
+autoUpdater.on("checking-for-update", () => {
+  mainWindow.webContents.send("update-status", "Checking for updates...");
 });
 
-autoUpdater.on('update-available', (info) => {
-  mainWindow.webContents.send('update-available', info);
+autoUpdater.on("update-available", (info) => {
+  mainWindow.webContents.send("update-available", info);
 });
 
-autoUpdater.on('update-not-available', (info) => {
-  mainWindow.webContents.send('update-not-available', info);
+autoUpdater.on("update-not-available", (info) => {
+  mainWindow.webContents.send("update-not-available", info);
 });
 
-autoUpdater.on('error', (err) => {
-  mainWindow.webContents.send('update-error', err.message);
+autoUpdater.on("error", (err) => {
+  mainWindow.webContents.send("update-error", err.message);
 });
 
-autoUpdater.on('download-progress', (progressObj) => {
-  mainWindow.webContents.send('download-progress', progressObj);
+autoUpdater.on("download-progress", (progressObj) => {
+  mainWindow.webContents.send("download-progress", progressObj);
 });
 
-autoUpdater.on('update-downloaded', (info) => {
-  mainWindow.webContents.send('update-downloaded', info);
+autoUpdater.on("update-downloaded", (info) => {
+  mainWindow.webContents.send("update-downloaded", info);
 });
 
 // IPC handlers for updates
-ipcMain.handle('check-for-updates', async () => {
+ipcMain.handle("check-for-updates", async () => {
   if (!isDev) {
     return await autoUpdater.checkForUpdates();
   }
 });
 
-ipcMain.handle('start-download', async () => {
+ipcMain.handle("start-download", async () => {
   if (!isDev) {
     return await autoUpdater.downloadUpdate();
   }
 });
 
-ipcMain.handle('quit-and-install', () => {
+ipcMain.handle("quit-and-install", () => {
   autoUpdater.quitAndInstall(false, true);
 });
 
@@ -61,35 +61,38 @@ function createWindow() {
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: true,
-      preload: path.join(__dirname, 'preload.js'),
-      webSecurity: false
-    }
+      preload: path.join(__dirname, "preload.js"),
+      webSecurity: false,
+    },
   });
 
   // Add this for debugging
-  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
-    console.error('Failed to load:', {
-      errorCode,
-      errorDescription,
-      validatedURL
-    });
-  });
+  mainWindow.webContents.on(
+    "did-fail-load",
+    (event, errorCode, errorDescription, validatedURL) => {
+      console.error("Failed to load:", {
+        errorCode,
+        errorDescription,
+        validatedURL,
+      });
+    }
+  );
 
   if (isDev) {
-    mainWindow.loadURL('http://localhost:8082');
+    mainWindow.loadURL("http://localhost:8082");
     // mainWindow.webContents.openDevTools(); // Open DevTools in dev mode
   } else {
-    const indexPath = path.resolve(__dirname, '..', 'dist', 'index.html');
-    console.log('Loading from:', indexPath);
-    mainWindow.loadFile(indexPath).catch(err => {
-      console.error('Failed to load index.html:', err);
+    const indexPath = path.resolve(__dirname, "..", "dist", "index.html");
+    console.log("Loading from:", indexPath);
+    mainWindow.loadFile(indexPath).catch((err) => {
+      console.error("Failed to load index.html:", err);
     });
     // mainWindow.webContents.openDevTools(); // Temporarily open DevTools in prod to debug
   }
 
   // Only open DevTools in development mode
-  if (process.env.NODE_ENV === 'development') {
-    mainWindow.webContents.openDevTools()
+  if (process.env.NODE_ENV === "development") {
+    mainWindow.webContents.openDevTools();
   }
 
   // Check for updates after window is created (only in production)
@@ -107,8 +110,8 @@ function connectMQTT(connectionOptions) {
   }
 
   const { host, port, username, password, clientId } = connectionOptions;
-  
-  console.log('Attempting MQTT connection:', { host, port, clientId });
+
+  console.log("Attempting MQTT connection:", { host, port, clientId });
 
   const options = {
     host: host,
@@ -120,20 +123,20 @@ function connectMQTT(connectionOptions) {
     reconnectPeriod: 5000,
     connectTimeout: 30000,
     rejectUnauthorized: false,
-    protocol: 'mqtt'
+    protocol: "mqtt",
   };
 
   try {
     const url = `mqtt://${host}:${port}`;
-    console.log('MQTT URL:', url);
+    console.log("MQTT URL:", url);
     mqttClient = mqtt.connect(url, options);
 
-    mqttClient.on('connect', () => {
-      console.log('MQTT Connected successfully');
-      mainWindow.webContents.send('mqtt-connected');
+    mqttClient.on("connect", () => {
+      console.log("MQTT Connected successfully");
+      mainWindow.webContents.send("mqtt-connected");
 
       if (connectionOptions.topics && connectionOptions.topics.length > 0) {
-        connectionOptions.topics.forEach(topic => {
+        connectionOptions.topics.forEach((topic) => {
           mqttClient.subscribe(topic, (err) => {
             if (err) {
               console.error(`Failed to subscribe to ${topic}:`, err);
@@ -143,98 +146,107 @@ function connectMQTT(connectionOptions) {
       }
     });
 
-    mqttClient.on('message', (topic, message) => {
+    mqttClient.on("message", (topic, message) => {
       try {
         const parsedMessage = JSON.parse(message.toString());
-        mainWindow.webContents.send('mqtt-message', {
+        mainWindow.webContents.send("mqtt-message", {
           topic,
-          message: parsedMessage
+          message: parsedMessage,
         });
       } catch (e) {
-        console.error('Failed to parse MQTT message:', e);
-        mainWindow.webContents.send('mqtt-message', {
+        console.error("Failed to parse MQTT message:", e);
+        mainWindow.webContents.send("mqtt-message", {
           topic,
-          message: message.toString()
+          message: message.toString(),
         });
       }
     });
 
-    mqttClient.on('error', (error) => {
-      console.error('MQTT Error:', error);
-      mainWindow.webContents.send('mqtt-error', error.message);
+    mqttClient.on("error", (error) => {
+      console.error("MQTT Error:", error);
+      mainWindow.webContents.send("mqtt-error", error.message);
     });
 
-    mqttClient.on('disconnect', () => {
-      console.log('MQTT Disconnected');
-      mainWindow.webContents.send('mqtt-disconnected');
+    mqttClient.on("disconnect", () => {
+      console.log("MQTT Disconnected");
+      mainWindow.webContents.send("mqtt-disconnected");
     });
 
-    mqttClient.on('reconnect', () => {
-      console.log('MQTT Attempting to reconnect');
-      mainWindow.webContents.send('mqtt-reconnecting');
+    mqttClient.on("reconnect", () => {
+      console.log("MQTT Attempting to reconnect");
+      mainWindow.webContents.send("mqtt-reconnecting");
     });
-
   } catch (error) {
-    console.error('MQTT Connection failed:', error);
-    mainWindow.webContents.send('mqtt-error', error.message);
+    console.error("MQTT Connection failed:", error);
+    mainWindow.webContents.send("mqtt-error", error.message);
   }
 }
 
 // IPC Handlers
-ipcMain.on('connect-mqtt', (event, connectionOptions) => {
+ipcMain.on("connect-mqtt", (event, connectionOptions) => {
   try {
     connectMQTT(connectionOptions);
   } catch (error) {
-    console.error('Failed to connect to MQTT:', error);
-    mainWindow.webContents.send('mqtt-error', error.message);
+    console.error("Failed to connect to MQTT:", error);
+    mainWindow.webContents.send("mqtt-error", error.message);
   }
 });
 
-ipcMain.on('subscribe-topic', (event, topic) => {
+ipcMain.on("subscribe-topic", (event, topic) => {
   if (mqttClient && mqttClient.connected) {
     mqttClient.subscribe(topic, (err) => {
       if (err) {
         console.error(`Failed to subscribe to ${topic}:`, err);
-        mainWindow.webContents.send('mqtt-error', `Failed to subscribe to ${topic}: ${err.message}`);
+        mainWindow.webContents.send(
+          "mqtt-error",
+          `Failed to subscribe to ${topic}: ${err.message}`
+        );
       }
     });
   } else {
-    console.error('MQTT client not connected');
-    mainWindow.webContents.send('mqtt-error', 'MQTT client not connected');
+    console.error("MQTT client not connected");
+    mainWindow.webContents.send("mqtt-error", "MQTT client not connected");
   }
 });
 
-ipcMain.on('publish-message', (event, { topic, message }) => {
+ipcMain.on("publish-message", (event, { topic, message }) => {
   if (mqttClient && mqttClient.connected) {
     try {
-      const messageStr = typeof message === 'object' ? JSON.stringify(message) : message;
+      const messageStr =
+        typeof message === "object" ? JSON.stringify(message) : message;
       mqttClient.publish(topic, messageStr, (err) => {
         if (err) {
           console.error(`Failed to publish to ${topic}:`, err);
-          mainWindow.webContents.send('mqtt-error', `Failed to publish to ${topic}: ${err.message}`);
+          mainWindow.webContents.send(
+            "mqtt-error",
+            `Failed to publish to ${topic}: ${err.message}`
+          );
         }
       });
     } catch (error) {
-      console.error('Failed to publish message:', error);
-      mainWindow.webContents.send('mqtt-error', `Failed to publish message: ${error.message}`);
+      console.error("Failed to publish message:", error);
+      mainWindow.webContents.send(
+        "mqtt-error",
+        `Failed to publish message: ${error.message}`
+      );
     }
   } else {
-    console.error('MQTT client not connected');
-    mainWindow.webContents.send('mqtt-error', 'MQTT client not connected');
+    console.error("MQTT client not connected");
+    mainWindow.webContents.send("mqtt-error", "MQTT client not connected");
   }
 });
 
 app.whenReady().then(() => {
   createWindow();
 
-  app.on('activate', function () {
+  app.on("activate", function () {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
 });
 
-app.on('window-all-closed', function () {
+app.on("window-all-closed", function () {
   if (mqttClient) {
     mqttClient.end();
   }
-  if (process.platform !== 'darwin') app.quit();
-}); 
+  if (process.platform !== "darwin") app.quit();
+});

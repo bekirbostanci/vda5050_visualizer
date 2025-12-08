@@ -11,7 +11,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits<{
-  'send-instant-action': [];
+  "send-instant-action": [];
 }>();
 
 // Dark mode support for network graph
@@ -29,7 +29,7 @@ const orderShow = ref(false);
 const orderGraphShow = ref(false);
 const instantActionsShow = ref(false);
 const messageHistoryShow = ref(false);
-const activeHistoryTab = ref('orders');
+const activeHistoryTab = ref("orders");
 
 // Message history
 const MAX_HISTORY_ITEMS = 5;
@@ -37,72 +37,76 @@ const orderHistory = ref<any[]>([]);
 const instantActionsHistory = ref<any[]>([]);
 
 // Search functionality
-const orderSearchQuery = ref('');
-const instantActionsSearchQuery = ref('');
-const isSearching = computed(() => orderSearchQuery.value || instantActionsSearchQuery.value);
+const orderSearchQuery = ref("");
+const instantActionsSearchQuery = ref("");
+const isSearching = computed(
+  () => orderSearchQuery.value || instantActionsSearchQuery.value
+);
 
 // Function to copy JSON data to clipboard
 const copyToClipboard = (data: any) => {
   const jsonString = JSON.stringify(data, null, 2);
-  navigator.clipboard.writeText(jsonString)
+  navigator.clipboard
+    .writeText(jsonString)
     .then(() => {
-      alert('JSON copied to clipboard!');
+      alert("JSON copied to clipboard!");
     })
-    .catch(err => {
-      console.error('Failed to copy: ', err);
+    .catch((err) => {
+      console.error("Failed to copy: ", err);
     });
 };
 
 // Copy specific data based on type
 const copyOrderData = () => copyToClipboard(props.agv.orderInfo.value);
-const copyInstantActionsData = () => copyToClipboard(props.agv.instantActionsInfo.value);
+const copyInstantActionsData = () =>
+  copyToClipboard(props.agv.instantActionsInfo.value);
 const copyHistoryItem = (item: any) => copyToClipboard(item);
 
 // Search in JSON data
 const searchInJson = (json: any, query: string): any => {
-  if (!query || query.trim() === '') return json;
-  
+  if (!query || query.trim() === "") return json;
+
   const searchStr = query.toLowerCase();
-  
+
   // Helper function to check if a value contains the search string
   const containsSearchString = (value: any): boolean => {
     if (value === null || value === undefined) return false;
     return String(value).toLowerCase().includes(searchStr);
   };
-  
+
   // Recursive function to filter objects and arrays
   const filterData = (data: any): any => {
-    if (typeof data !== 'object' || data === null) {
+    if (typeof data !== "object" || data === null) {
       return containsSearchString(data) ? data : undefined;
     }
-    
+
     if (Array.isArray(data)) {
       const filteredArray = data
-        .map(item => filterData(item))
-        .filter(item => item !== undefined);
+        .map((item) => filterData(item))
+        .filter((item) => item !== undefined);
       return filteredArray.length > 0 ? filteredArray : undefined;
     }
-    
+
     const filteredObj: Record<string, any> = {};
     let hasMatch = false;
-    
+
     for (const key in data) {
       if (containsSearchString(key)) {
         filteredObj[key] = data[key];
         hasMatch = true;
         continue;
       }
-      
+
       const filteredValue = filterData(data[key]);
       if (filteredValue !== undefined) {
         filteredObj[key] = filteredValue;
         hasMatch = true;
       }
     }
-    
+
     return hasMatch ? filteredObj : undefined;
   };
-  
+
   const result = filterData(json);
   return result !== undefined ? result : { message: "No matches found" };
 };
@@ -113,52 +117,66 @@ const filteredOrderData = computed(() => {
 });
 
 const filteredInstantActionsData = computed(() => {
-  return searchInJson(props.agv.instantActionsInfo.value, instantActionsSearchQuery.value);
+  return searchInJson(
+    props.agv.instantActionsInfo.value,
+    instantActionsSearchQuery.value
+  );
 });
 
 // Clear search
 const clearOrderSearch = () => {
-  orderSearchQuery.value = '';
+  orderSearchQuery.value = "";
 };
 
 const clearInstantActionsSearch = () => {
-  instantActionsSearchQuery.value = '';
+  instantActionsSearchQuery.value = "";
 };
 
 // Watch for changes in order and instant actions data to update history
-watch(() => props.agv.orderInfo.value, (newValue) => {
-  if (newValue) {
-    // Create a timestamp for the history item
-    const historyItem = {
-      timestamp: new Date().toISOString(),
-      data: JSON.parse(JSON.stringify(newValue)),
-      type: 'order'
-    };
-    
-    // Add to history and maintain max length
-    orderHistory.value.unshift(historyItem);
-    if (orderHistory.value.length > MAX_HISTORY_ITEMS) {
-      orderHistory.value = orderHistory.value.slice(0, MAX_HISTORY_ITEMS);
-    }
-  }
-}, { deep: true });
+watch(
+  () => props.agv.orderInfo.value,
+  (newValue) => {
+    if (newValue) {
+      // Create a timestamp for the history item
+      const historyItem = {
+        timestamp: new Date().toISOString(),
+        data: JSON.parse(JSON.stringify(newValue)),
+        type: "order",
+      };
 
-watch(() => props.agv.instantActionsInfo.value, (newValue) => {
-  if (newValue) {
-    // Create a timestamp for the history item
-    const historyItem = {
-      timestamp: new Date().toISOString(),
-      data: JSON.parse(JSON.stringify(newValue)),
-      type: 'instantAction'
-    };
-    
-    // Add to history and maintain max length
-    instantActionsHistory.value.unshift(historyItem);
-    if (instantActionsHistory.value.length > MAX_HISTORY_ITEMS) {
-      instantActionsHistory.value = instantActionsHistory.value.slice(0, MAX_HISTORY_ITEMS);
+      // Add to history and maintain max length
+      orderHistory.value.unshift(historyItem);
+      if (orderHistory.value.length > MAX_HISTORY_ITEMS) {
+        orderHistory.value = orderHistory.value.slice(0, MAX_HISTORY_ITEMS);
+      }
     }
-  }
-}, { deep: true });
+  },
+  { deep: true }
+);
+
+watch(
+  () => props.agv.instantActionsInfo.value,
+  (newValue) => {
+    if (newValue) {
+      // Create a timestamp for the history item
+      const historyItem = {
+        timestamp: new Date().toISOString(),
+        data: JSON.parse(JSON.stringify(newValue)),
+        type: "instantAction",
+      };
+
+      // Add to history and maintain max length
+      instantActionsHistory.value.unshift(historyItem);
+      if (instantActionsHistory.value.length > MAX_HISTORY_ITEMS) {
+        instantActionsHistory.value = instantActionsHistory.value.slice(
+          0,
+          MAX_HISTORY_ITEMS
+        );
+      }
+    }
+  },
+  { deep: true }
+);
 
 // Format timestamp for display
 const formatTimestamp = (timestamp: string) => {
@@ -172,15 +190,15 @@ onMounted(() => {
     orderHistory.value.push({
       timestamp: new Date().toISOString(),
       data: JSON.parse(JSON.stringify(props.agv.orderInfo.value)),
-      type: 'order'
+      type: "order",
     });
   }
-  
+
   if (props.agv.instantActionsInfo.value) {
     instantActionsHistory.value.push({
       timestamp: new Date().toISOString(),
       data: JSON.parse(JSON.stringify(props.agv.instantActionsInfo.value)),
-      type: 'instantAction'
+      type: "instantAction",
     });
   }
 });
@@ -196,8 +214,18 @@ onMounted(() => {
       </div>
     </div>
     <ui-chips class="flex-right">
-      <ui-chip icon="raw_on" @click="orderShow = !orderShow" @dblclick="copyOrderData"> Order </ui-chip>
-      <ui-chip icon="raw_on" @click="instantActionsShow = !instantActionsShow" @dblclick="copyInstantActionsData">
+      <ui-chip
+        icon="raw_on"
+        @click="orderShow = !orderShow"
+        @dblclick="copyOrderData"
+      >
+        Order
+      </ui-chip>
+      <ui-chip
+        icon="raw_on"
+        @click="instantActionsShow = !instantActionsShow"
+        @dblclick="copyInstantActionsData"
+      >
         Instant Actions
       </ui-chip>
       <ui-chip
@@ -238,33 +266,41 @@ onMounted(() => {
     <div class="history-header">
       <span>Message History (Last {{ MAX_HISTORY_ITEMS }})</span>
     </div>
-    
+
     <div class="history-tabs">
-      <button 
-        class="history-tab" 
-        :class="{ active: activeHistoryTab === 'orders' }" 
+      <button
+        class="history-tab"
+        :class="{ active: activeHistoryTab === 'orders' }"
         @click="activeHistoryTab = 'orders'"
       >
         Orders ({{ orderHistory.length }})
       </button>
-      <button 
-        class="history-tab" 
-        :class="{ active: activeHistoryTab === 'instantActions' }" 
+      <button
+        class="history-tab"
+        :class="{ active: activeHistoryTab === 'instantActions' }"
         @click="activeHistoryTab = 'instantActions'"
       >
         Instant Actions ({{ instantActionsHistory.length }})
       </button>
     </div>
-    
+
     <div v-if="activeHistoryTab === 'orders'" class="history-list">
       <div v-if="orderHistory.length === 0" class="no-history">
         No order history available
       </div>
-      <div v-for="(item, index) in orderHistory" :key="index" class="history-item">
+      <div
+        v-for="(item, index) in orderHistory"
+        :key="index"
+        class="history-item"
+      >
         <div class="history-item-header">
           <div class="history-item-info">
-            <span class="history-timestamp">{{ formatTimestamp(item.timestamp) }}</span>
-            <span class="history-id" v-if="item.data.orderId">Order ID: {{ item.data.orderId }}</span>
+            <span class="history-timestamp">{{
+              formatTimestamp(item.timestamp)
+            }}</span>
+            <span class="history-id" v-if="item.data.orderId"
+              >Order ID: {{ item.data.orderId }}</span
+            >
           </div>
           <button class="copy-btn" @click="copyHistoryItem(item.data)">
             <i class="material-icons">content_copy</i>
@@ -279,16 +315,24 @@ onMounted(() => {
         />
       </div>
     </div>
-    
+
     <div v-if="activeHistoryTab === 'instantActions'" class="history-list">
       <div v-if="instantActionsHistory.length === 0" class="no-history">
         No instant actions history available
       </div>
-      <div v-for="(item, index) in instantActionsHistory" :key="index" class="history-item">
+      <div
+        v-for="(item, index) in instantActionsHistory"
+        :key="index"
+        class="history-item"
+      >
         <div class="history-item-header">
           <div class="history-item-info">
-            <span class="history-timestamp">{{ formatTimestamp(item.timestamp) }}</span>
-            <span class="history-id" v-if="item.data.instantActionId">Action ID: {{ item.data.instantActionId }}</span>
+            <span class="history-timestamp">{{
+              formatTimestamp(item.timestamp)
+            }}</span>
+            <span class="history-id" v-if="item.data.instantActionId"
+              >Action ID: {{ item.data.instantActionId }}</span
+            >
           </div>
           <button class="copy-btn" @click="copyHistoryItem(item.data)">
             <i class="material-icons">content_copy</i>
@@ -335,22 +379,30 @@ onMounted(() => {
       >
     </template>
   </v-network-graph>
-  
+
   <div v-if="orderShow" class="json-container">
     <div class="json-header">
       <span>Order Data</span>
       <div class="json-actions">
         <div class="search-container">
-          <input 
-            type="text" 
-            v-model="orderSearchQuery" 
-            placeholder="Search in JSON..." 
+          <input
+            type="text"
+            v-model="orderSearchQuery"
+            placeholder="Search in JSON..."
             class="search-input"
           />
-          <button v-if="orderSearchQuery" @click="clearOrderSearch" class="clear-search-btn">
+          <button
+            v-if="orderSearchQuery"
+            @click="clearOrderSearch"
+            class="clear-search-btn"
+          >
             <i class="material-icons">close</i>
           </button>
-          <span class="action-badge" @click="emit('send-instant-action')" title="Send Instant Action">
+          <span
+            class="action-badge"
+            @click="emit('send-instant-action')"
+            title="Send Instant Action"
+          >
             <i class="material-icons">send</i>
           </span>
         </div>
@@ -360,7 +412,11 @@ onMounted(() => {
       </div>
     </div>
     <vue-json-pretty
-      :data="orderSearchQuery ? { key: filteredOrderData } : { key: props.agv.orderInfo.value }"
+      :data="
+        orderSearchQuery
+          ? { key: filteredOrderData }
+          : { key: props.agv.orderInfo.value }
+      "
       :show-double-quotes="true"
       :show-length="true"
       :show-line="true"
@@ -369,22 +425,30 @@ onMounted(() => {
       :collapsed-on-click-brackets="true"
     />
   </div>
-  
+
   <div v-if="instantActionsShow" class="json-container">
     <div class="json-header">
       <span>Instant Actions Data</span>
       <div class="json-actions">
         <div class="search-container">
-          <input 
-            type="text" 
-            v-model="instantActionsSearchQuery" 
-            placeholder="Search in JSON..." 
+          <input
+            type="text"
+            v-model="instantActionsSearchQuery"
+            placeholder="Search in JSON..."
             class="search-input"
           />
-          <button v-if="instantActionsSearchQuery" @click="clearInstantActionsSearch" class="clear-search-btn">
+          <button
+            v-if="instantActionsSearchQuery"
+            @click="clearInstantActionsSearch"
+            class="clear-search-btn"
+          >
             <i class="material-icons">close</i>
           </button>
-          <span class="action-badge" @click="emit('send-instant-action')" title="Send Instant Action">
+          <span
+            class="action-badge"
+            @click="emit('send-instant-action')"
+            title="Send Instant Action"
+          >
             <i class="material-icons">send</i>
           </span>
         </div>
@@ -394,7 +458,11 @@ onMounted(() => {
       </div>
     </div>
     <vue-json-pretty
-      :data="instantActionsSearchQuery ? { key: filteredInstantActionsData } : { key: props.agv.instantActionsInfo.value }"
+      :data="
+        instantActionsSearchQuery
+          ? { key: filteredInstantActionsData }
+          : { key: props.agv.instantActionsInfo.value }
+      "
       :show-double-quotes="true"
       :show-length="true"
       :show-line="true"
@@ -406,7 +474,8 @@ onMounted(() => {
 </template>
 
 <style lang="scss" scoped>
-.json-container, .history-container {
+.json-container,
+.history-container {
   position: relative;
   margin-top: 10px;
   border: 1px solid #eee;
@@ -414,7 +483,8 @@ onMounted(() => {
   overflow: hidden;
 }
 
-.json-header, .history-header {
+.json-header,
+.history-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -448,11 +518,11 @@ onMounted(() => {
   border-radius: 4px;
   transition: background-color 0.2s;
   flex-shrink: 0;
-  
+
   &:hover {
     background-color: rgba(0, 0, 0, 0.05);
   }
-  
+
   i {
     font-size: 18px;
   }
@@ -466,7 +536,7 @@ onMounted(() => {
   font-size: 14px;
   width: 200px;
   transition: all 0.2s;
-  
+
   &:focus {
     outline: none;
     border-color: #aaa;
@@ -484,11 +554,11 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   padding: 0;
-  
+
   i {
     font-size: 16px;
     color: #999;
-    
+
     &:hover {
       color: #333;
     }
@@ -505,11 +575,11 @@ onMounted(() => {
   padding: 4px;
   border-radius: 4px;
   transition: background-color 0.2s;
-  
+
   &:hover {
     background-color: rgba(0, 0, 0, 0.05);
   }
-  
+
   i {
     font-size: 18px;
   }
@@ -530,13 +600,13 @@ onMounted(() => {
   cursor: pointer;
   font-size: 14px;
   transition: all 0.2s;
-  
+
   &:hover {
     background-color: #f0f0f0;
   }
-  
+
   &.active {
-    border-bottom-color: #2196F3;
+    border-bottom-color: #2196f3;
     font-weight: bold;
   }
 }
@@ -552,7 +622,7 @@ onMounted(() => {
   border: 1px solid #eee;
   border-radius: 4px;
   overflow: hidden;
-  
+
   &:last-child {
     margin-bottom: 0;
   }
@@ -594,10 +664,10 @@ onMounted(() => {
 // Add tooltip for chips with double-click functionality
 ui-chip {
   position: relative;
-  
+
   &[icon="raw_on"] {
     cursor: pointer;
-    
+
     &:after {
       content: "Double-click to copy";
       position: absolute;
@@ -615,7 +685,7 @@ ui-chip {
       white-space: nowrap;
       z-index: 10;
     }
-    
+
     &:hover:after {
       opacity: 1;
     }

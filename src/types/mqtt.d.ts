@@ -1,5 +1,5 @@
-declare module 'mqtt' {
-  import { EventEmitter } from 'events';
+declare module "mqtt" {
+  import { EventEmitter } from "events";
 
   export interface IClientOptions {
     clientId?: string;
@@ -27,35 +27,41 @@ declare module 'mqtt' {
 
   export class MqttClient extends EventEmitter {
     constructor(streamBuilder: any, options: IClientOptions);
-    
-    public on(event: 'connect', callback: () => void): this;
-    public on(event: 'reconnect', callback: () => void): this;
-    public on(event: 'close', callback: () => void): this;
-    public on(event: 'disconnect', callback: () => void): this;
-    public on(event: 'offline', callback: () => void): this;
-    public on(event: 'error', callback: (error: Error) => void): this;
-    public on(event: 'message', callback: (topic: string, message: Buffer) => void): this;
-    public on(event: 'packetsend' | 'packetreceive', callback: (packet: any) => void): this;
-    
+
+    public on(event: "connect", callback: () => void): this;
+    public on(event: "reconnect", callback: () => void): this;
+    public on(event: "close", callback: () => void): this;
+    public on(event: "disconnect", callback: () => void): this;
+    public on(event: "offline", callback: () => void): this;
+    public on(event: "error", callback: (error: Error) => void): this;
+    public on(
+      event: "message",
+      callback: (topic: string, message: Buffer) => void
+    ): this;
+    public on(
+      event: "packetsend" | "packetreceive",
+      callback: (packet: any) => void
+    ): this;
+
     public subscribe(
       topic: string | string[],
       options?: IClientSubscribeOptions | ((error?: Error) => void),
       callback?: (error?: Error) => void
     ): this;
-    
+
     public unsubscribe(
       topic: string | string[],
       options?: any,
       callback?: (error?: Error) => void
     ): this;
-    
+
     public publish(
       topic: string,
       message: string | Buffer,
       options?: IClientPublishOptions | ((error?: Error) => void),
       callback?: (error?: Error) => void
     ): this;
-    
+
     public end(force?: boolean, options?: any, callback?: () => void): this;
     public removeOutgoingMessage(mid: number): void;
     public reconnect(): void;
@@ -66,5 +72,8 @@ declare module 'mqtt' {
   }
 
   export function connect(url: string, options?: IClientOptions): MqttClient;
-  export function connectAsync(url: string, options?: IClientOptions): Promise<MqttClient>;
-} 
+  export function connectAsync(
+    url: string,
+    options?: IClientOptions
+  ): Promise<MqttClient>;
+}

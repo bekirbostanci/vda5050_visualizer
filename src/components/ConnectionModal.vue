@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, onMounted, computed } from 'vue';
+import { ref, watch, onMounted, computed } from "vue";
 import {
   Dialog,
   DialogContent,
@@ -7,30 +7,30 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Icon } from '@iconify/vue';
-import { useVDA5050 } from '@/composables/useVDA5050';
-import { loadSavedConfig } from '@/types/mqtt-config';
-import { useMqttStore } from '@/stores/mqtt';
-import { MqttClientState } from '@/types/mqtt.types';
-import { sharedMqttClient } from '@/utils/shared-mqtt-client';
+} from "@/components/ui/select";
+import { Icon } from "@iconify/vue";
+import { useVDA5050 } from "@/composables/useVDA5050";
+import { loadSavedConfig } from "@/types/mqtt-config";
+import { useMqttStore } from "@/stores/mqtt";
+import { MqttClientState } from "@/types/mqtt.types";
+import { sharedMqttClient } from "@/utils/shared-mqtt-client";
 
 const props = defineProps<{
   open: boolean;
 }>();
 
 const emits = defineEmits<{
-  'update:open': [value: boolean];
+  "update:open": [value: boolean];
 }>();
 
 const {
@@ -50,37 +50,41 @@ const mqttStore = useMqttStore();
 
 // Local form state
 const formData = ref({
-  brokerIp: '',
-  brokerPort: '',
-  basepath: '',
-  interfaceName: '',
-  username: '',
-  password: '',
-  connectionType: 'websocket' as 'mqtt' | 'websocket',
-  clientId: '',
+  brokerIp: "",
+  brokerPort: "",
+  basepath: "",
+  interfaceName: "",
+  username: "",
+  password: "",
+  connectionType: "websocket" as "mqtt" | "websocket",
+  clientId: "",
 });
 
 const showPassword = ref(false);
 const isConnecting = ref(false);
-const errorMessage = ref('');
+const errorMessage = ref("");
 
 // Load saved config when modal opens
-watch(() => props.open, (isOpen) => {
-  if (isOpen) {
-    const savedConfig = loadSavedConfig();
-    formData.value = {
-      brokerIp: savedConfig.brokerIp || '',
-      brokerPort: savedConfig.brokerPort || '',
-      basepath: savedConfig.basepath || '',
-      interfaceName: savedConfig.interfaceName || '',
-      username: savedConfig.username || '',
-      password: savedConfig.password || '',
-      connectionType: (savedConfig.connectionType as 'mqtt' | 'websocket') || 'websocket',
-      clientId: `mqtt_client_${Math.random().toString(16).slice(2, 8)}`,
-    };
-    errorMessage.value = '';
+watch(
+  () => props.open,
+  (isOpen) => {
+    if (isOpen) {
+      const savedConfig = loadSavedConfig();
+      formData.value = {
+        brokerIp: savedConfig.brokerIp || "",
+        brokerPort: savedConfig.brokerPort || "",
+        basepath: savedConfig.basepath || "",
+        interfaceName: savedConfig.interfaceName || "",
+        username: savedConfig.username || "",
+        password: savedConfig.password || "",
+        connectionType:
+          (savedConfig.connectionType as "mqtt" | "websocket") || "websocket",
+        clientId: `mqtt_client_${Math.random().toString(16).slice(2, 8)}`,
+      };
+      errorMessage.value = "";
+    }
   }
-});
+);
 
 // Sync with composable values on mount
 onMounted(() => {
@@ -96,15 +100,15 @@ onMounted(() => {
 const handleConnect = async () => {
   // Validation
   if (!formData.value.brokerIp.trim()) {
-    errorMessage.value = 'Broker IP/Host is required';
+    errorMessage.value = "Broker IP/Host is required";
     return;
   }
   if (!formData.value.brokerPort.trim()) {
-    errorMessage.value = 'Port is required';
+    errorMessage.value = "Port is required";
     return;
   }
 
-  errorMessage.value = '';
+  errorMessage.value = "";
   isConnecting.value = true;
 
   try {
@@ -123,11 +127,12 @@ const handleConnect = async () => {
     // Close modal after a short delay to show connection status
     setTimeout(() => {
       isConnecting.value = false;
-      emits('update:open', false);
+      emits("update:open", false);
     }, 500);
   } catch (error) {
-    console.error('Connection error:', error);
-    errorMessage.value = error instanceof Error ? error.message : 'Failed to connect';
+    console.error("Connection error:", error);
+    errorMessage.value =
+      error instanceof Error ? error.message : "Failed to connect";
     isConnecting.value = false;
   }
 };
@@ -135,27 +140,31 @@ const handleConnect = async () => {
 const handleDisconnect = () => {
   try {
     // Disconnect based on connection type
-    if (connectionType.value === 'websocket') {
+    if (connectionType.value === "websocket") {
       // Disconnect shared MQTT client for WebSocket
       sharedMqttClient.disconnect();
-    } else if (connectionType.value === 'mqtt' && typeof window.electron !== 'undefined') {
+    } else if (
+      connectionType.value === "mqtt" &&
+      typeof window.electron !== "undefined"
+    ) {
       // For Electron MQTT, send disconnect message (if handler exists)
       // Note: This requires a disconnect-mqtt IPC handler in main.js
-      window.electron.ipcRenderer.send('disconnect-mqtt');
+      window.electron.ipcRenderer.send("disconnect-mqtt");
     }
-    
+
     // Disconnect visualizer if it exists
     if (vda5050Visualizer) {
       vda5050Visualizer.disconnect();
     }
-    
+
     // Update store state
     mqttStore.setConnectionState(MqttClientState.OFFLINE);
-    
-    emits('update:open', false);
+
+    emits("update:open", false);
   } catch (error) {
-    console.error('Error disconnecting:', error);
-    errorMessage.value = error instanceof Error ? error.message : 'Failed to disconnect';
+    console.error("Error disconnecting:", error);
+    errorMessage.value =
+      error instanceof Error ? error.message : "Failed to disconnect";
   }
 };
 
@@ -181,7 +190,11 @@ const isConnected = computed(() => {
           <Select v-model="formData.connectionType">
             <SelectTrigger id="connectionType">
               <SelectValue>
-                {{ formData.connectionType === 'mqtt' ? 'MQTT (Electron only)' : 'WebSocket' }}
+                {{
+                  formData.connectionType === "mqtt"
+                    ? "MQTT (Electron only)"
+                    : "WebSocket"
+                }}
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
@@ -286,19 +299,29 @@ const isConnected = computed(() => {
         </div>
 
         <!-- Error Message -->
-        <div v-if="errorMessage" class="rounded-md bg-destructive/15 p-3 text-sm text-destructive">
+        <div
+          v-if="errorMessage"
+          class="rounded-md bg-destructive/15 p-3 text-sm text-destructive"
+        >
           {{ errorMessage }}
         </div>
 
         <!-- Connection Status -->
-        <div v-if="isConnected" class="flex items-center gap-2 rounded-md bg-green-500/15 p-3 text-sm text-green-600 dark:text-green-400">
+        <div
+          v-if="isConnected"
+          class="flex items-center gap-2 rounded-md bg-green-500/15 p-3 text-sm text-green-600 dark:text-green-400"
+        >
           <Icon icon="ph:check-circle" class="h-4 w-4" />
           <span>Connected</span>
         </div>
       </div>
 
       <DialogFooter>
-        <Button variant="outline" @click="emits('update:open', false)" :disabled="isConnecting">
+        <Button
+          variant="outline"
+          @click="emits('update:open', false)"
+          :disabled="isConnecting"
+        >
           Cancel
         </Button>
         <Button
@@ -309,16 +332,15 @@ const isConnected = computed(() => {
         >
           Disconnect
         </Button>
-        <Button
-          v-else
-          @click="handleConnect"
-          :disabled="isConnecting"
-        >
-          <Icon v-if="isConnecting" icon="ph:spinner" class="mr-2 h-4 w-4 animate-spin" />
-          {{ isConnecting ? 'Connecting...' : 'Connect' }}
+        <Button v-else @click="handleConnect" :disabled="isConnecting">
+          <Icon
+            v-if="isConnecting"
+            icon="ph:spinner"
+            class="mr-2 h-4 w-4 animate-spin"
+          />
+          {{ isConnecting ? "Connecting..." : "Connect" }}
         </Button>
       </DialogFooter>
     </DialogContent>
   </Dialog>
 </template>
-

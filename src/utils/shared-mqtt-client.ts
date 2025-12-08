@@ -35,7 +35,7 @@ class SharedMqttClient {
     this.client = client;
     this.isConnected.value = true;
     this.reconnectAttempts = 0;
-    
+
     // Set up message handler
     this.client.on("message", (topic, message) => {
       try {
@@ -48,11 +48,13 @@ class SharedMqttClient {
         this.notifySubscribers(topic, message);
       }
     });
-    
+
     // Update Pinia store connection state
     try {
       const store = useMqttStore();
-      store.setConnectionState(require("../types/mqtt.types").MqttClientState.CONNECTED);
+      store.setConnectionState(
+        require("../types/mqtt.types").MqttClientState.CONNECTED
+      );
     } catch (error) {
       console.debug("MQTT store not available:", error);
     }
@@ -74,16 +76,16 @@ class SharedMqttClient {
     if (this.isConnecting) {
       throw new Error("Connection already in progress");
     }
-    
+
     if (this.isConnected.value && this.client) {
       return this.client;
     }
-    
+
     this.isConnecting = true;
 
     try {
       const mqttUrl = `ws://${host}:${port}/ws`;
-      
+
       this.client = mqtt.connect(mqttUrl, {
         clientId,
         username,
@@ -96,7 +98,7 @@ class SharedMqttClient {
         console.log("WebSocket MQTT connected");
         this.isConnected.value = true;
         this.reconnectAttempts = 0;
-        
+
         // Update Pinia store connection state
         try {
           const store = useMqttStore();
@@ -109,7 +111,7 @@ class SharedMqttClient {
       this.client.on("error", (error) => {
         console.error("WebSocket MQTT connection error:", error);
         this.isConnected.value = false;
-        
+
         // Update Pinia store connection state
         try {
           const store = useMqttStore();
@@ -122,7 +124,7 @@ class SharedMqttClient {
       this.client.on("close", () => {
         console.log("WebSocket MQTT connection closed");
         this.isConnected.value = false;
-        
+
         // Update Pinia store connection state
         try {
           const store = useMqttStore();
@@ -133,8 +135,10 @@ class SharedMqttClient {
       });
 
       this.client.on("reconnect", () => {
-        console.log(`WebSocket MQTT reconnecting (attempt ${++this.reconnectAttempts})`);
-        
+        console.log(
+          `WebSocket MQTT reconnecting (attempt ${++this.reconnectAttempts})`
+        );
+
         // Update Pinia store connection state
         try {
           const store = useMqttStore();
@@ -142,12 +146,14 @@ class SharedMqttClient {
         } catch (err) {
           console.debug("MQTT store not available:", err);
         }
-        
+
         if (this.reconnectAttempts > this.maxReconnectAttempts) {
-          console.error(`Maximum reconnect attempts (${this.maxReconnectAttempts}) reached. Stopping reconnect.`);
+          console.error(
+            `Maximum reconnect attempts (${this.maxReconnectAttempts}) reached. Stopping reconnect.`
+          );
           this.client?.end();
           this.client = null;
-          
+
           // Update Pinia store to offline when max attempts reached
           try {
             const store = useMqttStore();
@@ -180,7 +186,7 @@ class SharedMqttClient {
           } catch (err) {
             console.debug("MQTT store not available:", err);
           }
-          
+
           reject(new Error("Connection timeout"));
           this.client?.removeListener("connect", connectHandler);
           this.client?.removeListener("error", errorHandler);
@@ -195,7 +201,7 @@ class SharedMqttClient {
         const errorHandler = (err: Error) => {
           clearTimeout(connectTimeout);
           this.client?.removeListener("connect", connectHandler);
-          
+
           // Update Pinia store connection state
           try {
             const store = useMqttStore();
@@ -203,7 +209,7 @@ class SharedMqttClient {
           } catch (storeErr) {
             console.debug("MQTT store not available:", storeErr);
           }
-          
+
           reject(err);
         };
 
@@ -213,7 +219,7 @@ class SharedMqttClient {
     } catch (error) {
       console.error("Failed to connect to WebSocket MQTT:", error);
       this.isConnected.value = false;
-      
+
       // Update Pinia store connection state
       try {
         const store = useMqttStore();
@@ -221,7 +227,7 @@ class SharedMqttClient {
       } catch (err) {
         console.debug("MQTT store not available:", err);
       }
-      
+
       throw error;
     } finally {
       this.isConnecting = false;
@@ -235,7 +241,7 @@ class SharedMqttClient {
     }
 
     // Add topics to the set of subscribed topics
-    topics.forEach(topic => this.subscribedTopics.value.add(topic));
+    topics.forEach((topic) => this.subscribedTopics.value.add(topic));
 
     this.client.subscribe(topics, (error?: Error) => {
       if (error) {
@@ -253,7 +259,7 @@ class SharedMqttClient {
     }
 
     // Remove topics from the set of subscribed topics
-    topics.forEach(topic => this.subscribedTopics.value.delete(topic));
+    topics.forEach((topic) => this.subscribedTopics.value.delete(topic));
 
     this.client.unsubscribe(topics, (error?: Error) => {
       if (error) {
@@ -271,7 +277,8 @@ class SharedMqttClient {
     }
 
     try {
-      const messageStr = typeof message === 'object' ? JSON.stringify(message) : message;
+      const messageStr =
+        typeof message === "object" ? JSON.stringify(message) : message;
       this.client.publish(topic, messageStr, (error?: Error) => {
         if (error) {
           console.error(`Failed to publish to ${topic}:`, error);
@@ -288,7 +295,7 @@ class SharedMqttClient {
       this.client = null;
       this.isConnected.value = false;
       this.subscribedTopics.value.clear();
-      
+
       // Update Pinia store connection state
       try {
         const store = useMqttStore();
@@ -301,7 +308,7 @@ class SharedMqttClient {
 
   public subscribeToMessages(callback: MessageSubscriber): () => void {
     this.messageSubscribers.value.push(callback);
-    
+
     // Return a function to unsubscribe
     return () => {
       const index = this.messageSubscribers.value.indexOf(callback);
@@ -341,4 +348,4 @@ class SharedMqttClient {
 }
 
 // Export the singleton instance
-export const sharedMqttClient = SharedMqttClient.getInstance(); 
+export const sharedMqttClient = SharedMqttClient.getInstance();

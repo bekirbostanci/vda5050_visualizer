@@ -12,7 +12,6 @@ import { loadSavedConfig, saveConfig } from "@/types/mqtt-config";
 import mqtt from "mqtt";
 import { sharedMqttClient } from "@/utils/shared-mqtt-client";
 
-
 // Define interfaces locally to avoid import issues
 interface AgvId {
   manufacturer: string;
@@ -51,7 +50,7 @@ const mode = useColorMode({
 const config = computed(() => createConfigs(mode.value === "dark"));
 
 // Check if Electron is available
-const isElectronAvailable = ref(typeof window.electron !== 'undefined');
+const isElectronAvailable = ref(typeof window.electron !== "undefined");
 
 // Add new refs for MQTT status
 const mqttStatus = ref(MqttClientState.OFFLINE);
@@ -73,15 +72,13 @@ const connectionType = ref(isElectronAvailable.value ? "mqtt" : "websocket");
 
 // Add options for connection type based on Electron availability
 const connectionOptions = computed(() => {
-  const options = [
-    { label: "WebSocket", value: "websocket" }
-  ];
-  
+  const options = [{ label: "WebSocket", value: "websocket" }];
+
   // Only add MQTT option if Electron is available
   if (isElectronAvailable.value) {
     options.unshift({ label: "MQTT", value: "mqtt" });
   }
-  
+
   return options;
 });
 
@@ -133,7 +130,7 @@ function updateBroker() {
   } else if (connectionType.value === "websocket") {
     // Handle WebSocket connection using the shared MQTT client
     const mqttUrl = `ws://${brokerIp.value}:${brokerPort.value}/ws`;
-    
+
     try {
       // Create a new client
       websocketClient.value = mqtt.connect(mqttUrl, {
@@ -141,14 +138,14 @@ function updateBroker() {
         username: username.value || undefined,
         password: password.value || undefined,
       });
-      
+
       // Set the client in the shared service
       sharedMqttClient.setClient(websocketClient.value);
-      
+
       websocketClient.value.on("connect", () => {
         console.log("WebSocket connected");
         mqttStatus.value = MqttClientState.CONNECTED;
-        
+
         // Subscribe to topics after connecting
         const interfaceNameToUse = interfaceName.value || "+";
         const topics = [
@@ -158,7 +155,7 @@ function updateBroker() {
           `${interfaceNameToUse}/+/+/+/state`,
           `${interfaceNameToUse}/+/+/+/visualization`,
         ];
-        
+
         websocketClient.value?.subscribe(topics, (err?: Error) => {
           if (err) {
             console.error("WebSocket Subscription error:", err);
@@ -167,28 +164,28 @@ function updateBroker() {
           }
         });
       });
-      
+
       websocketClient.value.on("error", (error: Error) => {
         console.error("WebSocket connection error:", error);
         mqttStatus.value = MqttClientState.OFFLINE;
       });
-      
+
       websocketClient.value.on("close", () => {
         console.log("WebSocket connection closed");
         mqttStatus.value = MqttClientState.OFFLINE;
       });
-      
+
       websocketClient.value.on("reconnect", () => {
         console.log("WebSocket reconnecting");
         mqttStatus.value = MqttClientState.RECONNECTING;
       });
-      
+
       websocketClient.value.on("message", (topic: string, message: Buffer) => {
         try {
           const messageString = new TextDecoder().decode(message);
           const messageObject = JSON.parse(messageString);
           mqttMessages.value.push({ topic, message: messageObject });
-          
+
           // Handle connection messages to update robot list
           if (topic.includes("/connection") && vda5050Visualizer) {
             const agvId = extractAgvIdFromTopic(topic);
@@ -329,7 +326,8 @@ const actionTypes = [
   {
     actionType: "startPause",
     counterAction: "stopPause",
-    description: "Activates the pause mode. A linked state is required because many AGVs can be paused by using a hardware switch. No more AGV driving movements - reaching next node is not necessary. Actions can continue. Order is resumable.",
+    description:
+      "Activates the pause mode. A linked state is required because many AGVs can be paused by using a hardware switch. No more AGV driving movements - reaching next node is not necessary. Actions can continue. Order is resumable.",
     important: true,
     parameters: [],
     linkedState: "paused",
@@ -340,7 +338,8 @@ const actionTypes = [
   {
     actionType: "stopPause",
     counterAction: "startPause",
-    description: "Deactivates the pause mode. Movement and all other actions will be resumed (if any). A linked state is required because many AGVs can be paused by using a hardware switch. stopPause can also restart vehicles that were stopped with a hardware button that triggered startPause (if configured).",
+    description:
+      "Deactivates the pause mode. Movement and all other actions will be resumed (if any). A linked state is required because many AGVs can be paused by using a hardware switch. stopPause can also restart vehicles that were stopped with a hardware button that triggered startPause (if configured).",
     important: true,
     parameters: [],
     linkedState: "paused",
@@ -351,7 +350,8 @@ const actionTypes = [
   {
     actionType: "startCharging",
     counterAction: "stopCharging",
-    description: "Activates the charging process. Charging can be done on a charging spot (vehicle standing) or on a charging lane (while driving). Protection against overcharging is responsibility of the vehicle.",
+    description:
+      "Activates the charging process. Charging can be done on a charging spot (vehicle standing) or on a charging lane (while driving). Protection against overcharging is responsibility of the vehicle.",
     important: true,
     parameters: [],
     linkedState: ".batteryState.charging",
@@ -362,7 +362,8 @@ const actionTypes = [
   {
     actionType: "stopCharging",
     counterAction: "startCharging",
-    description: "Deactivates the charging process to send a new order. The charging process can also be interrupted by the vehicle / charging station e.g. if the battery is full. Battery state is only allowed to be \"false\" when AGV is ready to receive orders.",
+    description:
+      'Deactivates the charging process to send a new order. The charging process can also be interrupted by the vehicle / charging station e.g. if the battery is full. Battery state is only allowed to be "false" when AGV is ready to receive orders.',
     important: true,
     parameters: [],
     linkedState: ".batteryState.charging",
@@ -373,7 +374,8 @@ const actionTypes = [
   {
     actionType: "initPosition",
     counterAction: "",
-    description: "Resets (overrides) the pose of the AGV with the given paramaters.",
+    description:
+      "Resets (overrides) the pose of the AGV with the given paramaters.",
     important: true,
     parameters: [
       { key: "x", value: "0", type: "float64", optional: false },
@@ -382,7 +384,8 @@ const actionTypes = [
       { key: "mapId", value: "webots", type: "string", optional: false },
       { key: "lastNodeId", value: "node_001", type: "string", optional: false },
     ],
-    linkedState: ".agvPosition.x, .agvPosition.y, .agvPosition.theta, .agvPosition.mapId, .lastNodeId",
+    linkedState:
+      ".agvPosition.x, .agvPosition.y, .agvPosition.theta, .agvPosition.mapId, .lastNodeId",
     instant: true,
     node: true,
     edge: false,
@@ -403,9 +406,7 @@ const actionTypes = [
     counterAction: "",
     description: "Requests the AGV to generate and store a log report.",
     important: true,
-    parameters: [
-      { key: "reason", value: "", type: "string", optional: false },
-    ],
+    parameters: [{ key: "reason", value: "", type: "string", optional: false }],
     linkedState: "-",
     instant: true,
     node: false,
@@ -414,7 +415,8 @@ const actionTypes = [
   {
     actionType: "pick",
     counterAction: "drop",
-    description: "Request the AGV to pick a load. AGVs with multiple load handling devices can process multiple pick operations in parallel. In this case, the paramater lhd needs to be present (e.g. LHD1).",
+    description:
+      "Request the AGV to pick a load. AGVs with multiple load handling devices can process multiple pick operations in parallel. In this case, the paramater lhd needs to be present (e.g. LHD1).",
     important: false,
     parameters: [
       { key: "lhd", value: "", type: "String", optional: true },
@@ -434,7 +436,8 @@ const actionTypes = [
   {
     actionType: "drop",
     counterAction: "pick",
-    description: "Request the AGV to drop a load. See action pick for more details.",
+    description:
+      "Request the AGV to drop a load. See action pick for more details.",
     important: false,
     parameters: [
       { key: "lhd", value: "", type: "String", optional: true },
@@ -453,7 +456,8 @@ const actionTypes = [
   {
     actionType: "detectObject",
     counterAction: "",
-    description: "AGV detects object (e.g. load, charging spot, free parking position).",
+    description:
+      "AGV detects object (e.g. load, charging spot, free parking position).",
     important: true,
     parameters: [
       { key: "objectType", value: "", type: "String", optional: true },
@@ -466,7 +470,8 @@ const actionTypes = [
   {
     actionType: "finePositioning",
     counterAction: "",
-    description: "On a node, AGV will position exactly on a target. The AGV is allowed to deviate from its node position. On an edge, AGV will e.g. align on stationary equipment while traversing an edge. InstantAction: AGV starts positioning exactly on a target.",
+    description:
+      "On a node, AGV will position exactly on a target. The AGV is allowed to deviate from its node position. On an edge, AGV will e.g. align on stationary equipment while traversing an edge. InstantAction: AGV starts positioning exactly on a target.",
     important: true,
     parameters: [
       { key: "stationType", value: "", type: "String", optional: true },
@@ -480,7 +485,8 @@ const actionTypes = [
   {
     actionType: "waitForTrigger",
     counterAction: "",
-    description: "AGV has to wait for a trigger on the AGV (e.g. button press, manual loading). Master control is responsible to handle the timeout and has to cancel the order if necessary.",
+    description:
+      "AGV has to wait for a trigger on the AGV (e.g. button press, manual loading). Master control is responsible to handle the timeout and has to cancel the order if necessary.",
     important: true,
     parameters: [
       { key: "triggerType", value: "", type: "String", optional: false },
@@ -493,7 +499,8 @@ const actionTypes = [
   {
     actionType: "cancelOrder",
     counterAction: "",
-    description: "AGV stops as soon as possible. This could be immediately or on the next node. Then the order is deleted. All actions are canceled.",
+    description:
+      "AGV stops as soon as possible. This could be immediately or on the next node. Then the order is deleted. All actions are canceled.",
     important: true,
     parameters: [],
     linkedState: "-",
@@ -523,7 +530,12 @@ const instantActionData = ref({
         { key: "y", value: "0", type: "float64", optional: false },
         { key: "theta", value: "0.0", type: "float64", optional: false },
         { key: "mapId", value: "webots", type: "string", optional: false },
-        { key: "lastNodeId", value: "node_001", type: "string", optional: false },
+        {
+          key: "lastNodeId",
+          value: "node_001",
+          type: "string",
+          optional: false,
+        },
       ],
     },
   ],
@@ -536,13 +548,16 @@ function openInstantActionModal(agvId?: AgvId) {
   instantActionData.value.timestamp = new Date().toISOString();
   instantActionData.value.headerId = Math.floor(Math.random() * 100000);
   customActionType.value = "";
-  
+
   // If agvId is provided, use it; otherwise use the first available AGV
   if (agvId) {
     selectedAgv.value = agvId;
     instantActionData.value.manufacturer = agvId.manufacturer;
     instantActionData.value.serialNumber = agvId.serialNumber;
-  } else if (vda5050Visualizer && vda5050Visualizer.robotList.value.length > 0) {
+  } else if (
+    vda5050Visualizer &&
+    vda5050Visualizer.robotList.value.length > 0
+  ) {
     selectedAgv.value = vda5050Visualizer.robotList.value[0];
     instantActionData.value.manufacturer = selectedAgv.value.manufacturer;
     instantActionData.value.serialNumber = selectedAgv.value.serialNumber;
@@ -575,7 +590,7 @@ function sendInstantAction() {
     }
     finalActionType = customActionType.value.trim();
   }
-  
+
   // Validate action type
   if (!finalActionType || finalActionType.trim() === "") {
     alert("Please select or enter an action type");
@@ -595,7 +610,9 @@ function sendInstantAction() {
         ...instantActionData.value.actions[0],
         actionType: finalActionType,
         actionParameters: instantActionData.value.actions[0].actionParameters
-          .filter((param: { key: string; value: string }) => param.key && param.value)
+          .filter(
+            (param: { key: string; value: string }) => param.key && param.value
+          )
           .map((param: { key: string; value: string }) => ({
             key: param.key,
             value: param.value,
@@ -606,7 +623,7 @@ function sendInstantAction() {
 
   // Get VDA5050 version from env or default to 2.0.0
   const vdaVersion = import.meta.env.VITE_VDA_VERSION || "2.0.0";
-  const majorVersion = `v${vdaVersion.split('.')[0]}`;
+  const majorVersion = `v${vdaVersion.split(".")[0]}`;
 
   // Construct MQTT topic: interfaceName/majorVersion/manufacturer/serialNumber/instantActions
   const topic = `${interfaceName.value}/${majorVersion}/${selectedAgv.value.manufacturer}/${selectedAgv.value.serialNumber}/instantActions`;
@@ -661,28 +678,36 @@ function onActionTypeChange() {
     }
     return;
   }
-  
+
   // Reset custom action type when switching to standard action
   customActionType.value = "";
-  
+
   const selectedActionType = actionTypes.find(
-    (at: typeof actionTypes[0]) => at.actionType === instantActionData.value.actions[0].actionType
+    (at: (typeof actionTypes)[0]) =>
+      at.actionType === instantActionData.value.actions[0].actionType
   );
-  
+
   if (selectedActionType) {
     // Update description
-    instantActionData.value.actions[0].actionDescription = selectedActionType.description;
-    
+    instantActionData.value.actions[0].actionDescription =
+      selectedActionType.description;
+
     // Update parameters
-    instantActionData.value.actions[0].actionParameters = selectedActionType.parameters.map(
-      (param: { key: string; value: string; type: string; optional: boolean }) => ({
-        key: param.key,
-        value: param.value,
-        type: param.type,
-        optional: param.optional,
-      })
-    );
-    
+    instantActionData.value.actions[0].actionParameters =
+      selectedActionType.parameters.map(
+        (param: {
+          key: string;
+          value: string;
+          type: string;
+          optional: boolean;
+        }) => ({
+          key: param.key,
+          value: param.value,
+          type: param.type,
+          optional: param.optional,
+        })
+      );
+
     // If no parameters, ensure at least one empty parameter exists
     if (instantActionData.value.actions[0].actionParameters.length === 0) {
       instantActionData.value.actions[0].actionParameters.push({
@@ -714,7 +739,7 @@ function removeActionParameter(index: number) {
 
 // Get action type options for select
 const actionTypeOptions = [
-  ...actionTypes.map((at: typeof actionTypes[0]) => ({
+  ...actionTypes.map((at: (typeof actionTypes)[0]) => ({
     label: at.actionType,
     value: at.actionType,
   })),
@@ -723,23 +748,34 @@ const actionTypeOptions = [
 
 // Check if current action is custom
 const isCustomAction = computed(() => {
-  return instantActionData.value.actions[0].actionType === "custom" ||
-    !actionTypes.some((at: typeof actionTypes[0]) => at.actionType === instantActionData.value.actions[0].actionType);
+  return (
+    instantActionData.value.actions[0].actionType === "custom" ||
+    !actionTypes.some(
+      (at: (typeof actionTypes)[0]) =>
+        at.actionType === instantActionData.value.actions[0].actionType
+    )
+  );
 });
 
 // Computed property for preview JSON with custom action type
 const previewJson = computed(() => {
   const previewData = JSON.parse(JSON.stringify(instantActionData.value));
-  if (previewData.actions[0].actionType === "custom" && customActionType.value) {
+  if (
+    previewData.actions[0].actionType === "custom" &&
+    customActionType.value
+  ) {
     previewData.actions[0].actionType = customActionType.value;
   }
   // Filter out empty parameters and remove type/optional fields for preview
-  previewData.actions[0].actionParameters = previewData.actions[0].actionParameters
-    .filter((param: { key: string; value: string }) => param.key && param.value)
-    .map((param: { key: string; value: string }) => ({
-      key: param.key,
-      value: param.value,
-    }));
+  previewData.actions[0].actionParameters =
+    previewData.actions[0].actionParameters
+      .filter(
+        (param: { key: string; value: string }) => param.key && param.value
+      )
+      .map((param: { key: string; value: string }) => ({
+        key: param.key,
+        value: param.value,
+      }));
   return previewData;
 });
 
@@ -977,11 +1013,18 @@ function robotExists(agvId: AgvId): boolean {
     </div>
 
     <!-- Instant Action Modal -->
-    <div v-if="showInstantActionModal" class="modal-overlay" @click="closeInstantActionModal">
+    <div
+      v-if="showInstantActionModal"
+      class="modal-overlay"
+      @click="closeInstantActionModal"
+    >
       <div class="modal-content" @click.stop>
         <div class="modal-header">
           <h2>Send Instant Action</h2>
-          <ui-icon-button @click="closeInstantActionModal" icon="close"></ui-icon-button>
+          <ui-icon-button
+            @click="closeInstantActionModal"
+            icon="close"
+          ></ui-icon-button>
         </div>
         <div class="modal-body">
           <ui-grid>
@@ -991,33 +1034,52 @@ function robotExists(agvId: AgvId): boolean {
                 outlined
                 v-model="selectedAgv"
                 @change="onAgvSelected"
-                :options="(vda5050Visualizer?.robotList.value || []).map(robot => ({
-                  label: `${robot.manufacturer} - ${robot.serialNumber}`,
-                  value: robot
-                }))"
+                :options="
+                  (vda5050Visualizer?.robotList.value || []).map((robot) => ({
+                    label: `${robot.manufacturer} - ${robot.serialNumber}`,
+                    value: robot,
+                  }))
+                "
               >
                 Select AGV
               </ui-select>
             </ui-grid-cell>
             <ui-grid-cell columns="6">
-              <ui-textfield class="w100 mb" outlined v-model.number="instantActionData.headerId">
+              <ui-textfield
+                class="w100 mb"
+                outlined
+                v-model.number="instantActionData.headerId"
+              >
                 Header ID
               </ui-textfield>
             </ui-grid-cell>
             <ui-grid-cell columns="6">
-              <ui-textfield class="w100 mb" outlined v-model="instantActionData.version">
+              <ui-textfield
+                class="w100 mb"
+                outlined
+                v-model="instantActionData.version"
+              >
                 Version
               </ui-textfield>
             </ui-grid-cell>
             <ui-grid-cell columns="12">
-              <h3 style="margin-top: 20px; margin-bottom: 10px">Action Details</h3>
+              <h3 style="margin-top: 20px; margin-bottom: 10px">
+                Action Details
+              </h3>
             </ui-grid-cell>
             <ui-grid-cell columns="6">
-              <ui-textfield class="w100 mb" outlined v-model="instantActionData.actions[0].actionId">
+              <ui-textfield
+                class="w100 mb"
+                outlined
+                v-model="instantActionData.actions[0].actionId"
+              >
                 Action ID
               </ui-textfield>
             </ui-grid-cell>
-            <ui-grid-cell columns="6" v-if="instantActionData.actions[0].actionType !== 'custom'">
+            <ui-grid-cell
+              columns="6"
+              v-if="instantActionData.actions[0].actionType !== 'custom'"
+            >
               <ui-select
                 class="w100 mb"
                 outlined
@@ -1028,29 +1090,39 @@ function robotExists(agvId: AgvId): boolean {
                 Action Type
               </ui-select>
             </ui-grid-cell>
-            <ui-grid-cell columns="6" v-if="instantActionData.actions[0].actionType === 'custom'">
-              <ui-textfield 
-                class="w100 mb" 
-                outlined 
+            <ui-grid-cell
+              columns="6"
+              v-if="instantActionData.actions[0].actionType === 'custom'"
+            >
+              <ui-textfield
+                class="w100 mb"
+                outlined
                 v-model="customActionType"
                 placeholder="Enter custom action type"
               >
                 Custom Action Type
               </ui-textfield>
             </ui-grid-cell>
-            <ui-grid-cell columns="6" v-if="instantActionData.actions[0].actionType === 'custom'">
-              <ui-button 
-                outlined 
-                @click="instantActionData.actions[0].actionType = 'initPosition'; customActionType = ''; onActionTypeChange()"
-                style="height: 56px; width: 100%;"
+            <ui-grid-cell
+              columns="6"
+              v-if="instantActionData.actions[0].actionType === 'custom'"
+            >
+              <ui-button
+                outlined
+                @click="
+                  instantActionData.actions[0].actionType = 'initPosition';
+                  customActionType = '';
+                  onActionTypeChange();
+                "
+                style="height: 56px; width: 100%"
               >
                 Use Standard Action
               </ui-button>
             </ui-grid-cell>
             <ui-grid-cell columns="12">
-              <ui-textfield 
-                class="w100 mb" 
-                outlined 
+              <ui-textfield
+                class="w100 mb"
+                outlined
                 v-model="instantActionData.actions[0].actionDescription"
                 :disabled="!isCustomAction"
                 :placeholder="isCustomAction ? 'Enter action description' : ''"
@@ -1066,73 +1138,112 @@ function robotExists(agvId: AgvId): boolean {
                 :options="[
                   { label: 'HARD', value: 'HARD' },
                   { label: 'SOFT', value: 'SOFT' },
-                  { label: 'NONE', value: 'NONE' }
+                  { label: 'NONE', value: 'NONE' },
                 ]"
               >
                 Blocking Type
               </ui-select>
             </ui-grid-cell>
             <ui-grid-cell columns="12">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px; margin-bottom: 10px;">
-                <h3 style="margin: 0;">Action Parameters</h3>
-                <ui-button outlined icon="add" @click="addActionParameter" style="height: 36px;">
+              <div
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                  margin-top: 20px;
+                  margin-bottom: 10px;
+                "
+              >
+                <h3 style="margin: 0">Action Parameters</h3>
+                <ui-button
+                  outlined
+                  icon="add"
+                  @click="addActionParameter"
+                  style="height: 36px"
+                >
                   Add Parameter
                 </ui-button>
               </div>
             </ui-grid-cell>
-            <template v-for="(param, index) in instantActionData.actions[0].actionParameters" :key="index">
+            <template
+              v-for="(param, index) in instantActionData.actions[0]
+                .actionParameters"
+              :key="index"
+            >
               <ui-grid-cell columns="4">
-                <ui-textfield 
-                  class="w100 mb" 
-                  outlined 
-                  v-model="param.key" 
-                  :label="`Parameter ${index + 1} Key${param.type ? ' (' + param.type + ')' : ''}${param.optional ? ' (optional)' : ''}`"
+                <ui-textfield
+                  class="w100 mb"
+                  outlined
+                  v-model="param.key"
+                  :label="`Parameter ${index + 1} Key${
+                    param.type ? ' (' + param.type + ')' : ''
+                  }${param.optional ? ' (optional)' : ''}`"
                 >
                 </ui-textfield>
               </ui-grid-cell>
               <ui-grid-cell columns="4">
-                <ui-textfield 
-                  class="w100 mb" 
-                  outlined 
-                  v-model="param.value" 
+                <ui-textfield
+                  class="w100 mb"
+                  outlined
+                  v-model="param.value"
                   :label="`Parameter ${index + 1} Value`"
-                  :placeholder="param.type === 'float64' ? '0.0' : param.type === 'String' ? 'text' : ''"
+                  :placeholder="
+                    param.type === 'float64'
+                      ? '0.0'
+                      : param.type === 'String'
+                      ? 'text'
+                      : ''
+                  "
                 >
                 </ui-textfield>
               </ui-grid-cell>
               <ui-grid-cell columns="2">
-                <ui-textfield 
-                  class="w100 mb" 
-                  outlined 
-                  v-model="param.type" 
+                <ui-textfield
+                  class="w100 mb"
+                  outlined
+                  v-model="param.type"
                   label="Type"
                   disabled
-                  style="font-size: 12px;"
+                  style="font-size: 12px"
                 >
                 </ui-textfield>
               </ui-grid-cell>
               <ui-grid-cell columns="2">
-                <ui-button 
-                  outlined 
-                  icon="delete" 
-                  @click="removeActionParameter(index)" 
-                  style="height: 56px; width: 100%;"
-                  :disabled="instantActionData.actions[0].actionParameters.length <= 1 || (param.key && !param.optional)"
+                <ui-button
+                  outlined
+                  icon="delete"
+                  @click="removeActionParameter(index)"
+                  style="height: 56px; width: 100%"
+                  :disabled="
+                    instantActionData.actions[0].actionParameters.length <= 1 ||
+                    (param.key && !param.optional)
+                  "
                 >
                   Remove
                 </ui-button>
               </ui-grid-cell>
             </template>
             <ui-grid-cell columns="12">
-              <div style="margin-top: 20px; padding: 15px; background-color: #f5f5f5; border-radius: 4px;">
+              <div
+                style="
+                  margin-top: 20px;
+                  padding: 15px;
+                  background-color: #f5f5f5;
+                  border-radius: 4px;
+                "
+              >
                 <h4 style="margin-bottom: 10px">Preview JSON:</h4>
-                <pre style="overflow-x: auto; font-size: 12px;">{{ JSON.stringify(previewJson, null, 2) }}</pre>
+                <pre style="overflow-x: auto; font-size: 12px">{{
+                  JSON.stringify(previewJson, null, 2)
+                }}</pre>
               </div>
             </ui-grid-cell>
           </ui-grid>
         </div>
         <div class="modal-footer">
-          <ui-button outlined @click="closeInstantActionModal">Cancel</ui-button>
+          <ui-button outlined @click="closeInstantActionModal"
+            >Cancel</ui-button
+          >
           <ui-button raised @click="sendInstantAction">Send Action</ui-button>
         </div>
       </div>

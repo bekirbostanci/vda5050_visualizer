@@ -24,7 +24,6 @@ export default defineConfig(({ mode }) => {
         "balm-ui-css": "balm-ui/dist/balm-ui.css",
         process: "process/browser",
         mqtt: "mqtt/dist/mqtt.min.js", // Explicitly resolve the MQTT library
-
       },
     },
     optimizeDeps: {

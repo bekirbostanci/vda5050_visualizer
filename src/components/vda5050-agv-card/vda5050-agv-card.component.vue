@@ -12,7 +12,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits<{
-  'send-instant-action': [agvId: AgvId];
+  "send-instant-action": [agvId: AgvId];
 }>();
 
 const agvId: AgvId = {
@@ -102,51 +102,51 @@ defineExpose({
             {{ agvId.manufacturer }} -> {{ agvId.serialNumber }}
           </div>
           <ui-chips class="flex-right">
-              <ui-chip icon="gps_fixed" v-if="position">
-                x: {{ position.x }}, y: {{ position.y }}, θ: {{ position.theta }}
-              </ui-chip>
-              <ui-chip icon="speed" v-if="velocity">
-                x: {{ velocity.vx }}, y: {{ velocity.vy }}, ω:
-                {{ velocity.omega }}
-              </ui-chip>
-              <ui-chip
-                icon="signal_wifi_0_bar"
-                v-if="
-                  agv.connectionInfo.value?.connectionState ==
-                  ConnectionState.ONLINE
-                "
-                >Online</ui-chip
-              >
-              <ui-chip
-                icon="signal_wifi_bad"
-                v-else-if="
-                  agv.connectionInfo.value?.connectionState ==
-                  ConnectionState.OFFLINE
-                "
-                >Offline</ui-chip
-              >
-              <ui-chip
-                icon="signal_wifi_statusbar_null"
-                v-else-if="
-                  agv.connectionInfo.value?.connectionState ==
-                  ConnectionState.CONNECTIONBROKEN
-                "
-                >Connection Broken</ui-chip
-              >
-              <ui-chip icon="auto_mode" v-if="agv.stateInfo.value">
-                {{ agv.stateInfo.value?.operatingMode.toLocaleLowerCase() }}
-              </ui-chip>
-              <ui-chip icon="map" v-if="agv.stateInfo.value">
-                {{ agv.stateInfo.value?.agvPosition?.mapId }}
-              </ui-chip>
-              <ui-chip
-                icon="av_timer"
-                style="width: 230px"
-                v-if="agv.visualizationInfo.value"
-              >
-                {{ agv.visualizationInfo.value?.timestamp }}
-              </ui-chip>
-            </ui-chips>
+            <ui-chip icon="gps_fixed" v-if="position">
+              x: {{ position.x }}, y: {{ position.y }}, θ: {{ position.theta }}
+            </ui-chip>
+            <ui-chip icon="speed" v-if="velocity">
+              x: {{ velocity.vx }}, y: {{ velocity.vy }}, ω:
+              {{ velocity.omega }}
+            </ui-chip>
+            <ui-chip
+              icon="signal_wifi_0_bar"
+              v-if="
+                agv.connectionInfo.value?.connectionState ==
+                ConnectionState.ONLINE
+              "
+              >Online</ui-chip
+            >
+            <ui-chip
+              icon="signal_wifi_bad"
+              v-else-if="
+                agv.connectionInfo.value?.connectionState ==
+                ConnectionState.OFFLINE
+              "
+              >Offline</ui-chip
+            >
+            <ui-chip
+              icon="signal_wifi_statusbar_null"
+              v-else-if="
+                agv.connectionInfo.value?.connectionState ==
+                ConnectionState.CONNECTIONBROKEN
+              "
+              >Connection Broken</ui-chip
+            >
+            <ui-chip icon="auto_mode" v-if="agv.stateInfo.value">
+              {{ agv.stateInfo.value?.operatingMode.toLocaleLowerCase() }}
+            </ui-chip>
+            <ui-chip icon="map" v-if="agv.stateInfo.value">
+              {{ agv.stateInfo.value?.agvPosition?.mapId }}
+            </ui-chip>
+            <ui-chip
+              icon="av_timer"
+              style="width: 230px"
+              v-if="agv.visualizationInfo.value"
+            >
+              {{ agv.visualizationInfo.value?.timestamp }}
+            </ui-chip>
+          </ui-chips>
         </div>
 
         <!-- Add Order Progress Bar -->
