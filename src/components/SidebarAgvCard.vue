@@ -282,7 +282,7 @@ const handleViewDetails = (event: Event) => {
 <template>
   <div class="max-w-xl mx-auto p-1">
     <div
-      class="rounded-3xl shadow-sm text-gray-900 dark:text-white p-3 border border-gray-200 dark:border-white/10"
+      class="rounded-xl shadow-sm text-gray-900 dark:text-white p-3 border border-gray-200 dark:border-white/10"
     >
       <!-- Top Row -->
       <div class="flex justify-between items-start mb-6">
