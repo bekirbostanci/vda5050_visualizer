@@ -23,11 +23,9 @@ export default defineConfig(({ mode }) => {
         "balm-ui-plus": "balm-ui/dist/balm-ui-plus.esm.js",
         "balm-ui-css": "balm-ui/dist/balm-ui.css",
         process: "process/browser",
-        mqtt: "mqtt/dist/mqtt.min.js", // Explicitly resolve the MQTT library
       },
     },
     optimizeDeps: {
-      exclude: ["vda-5050-lib"],
       esbuildOptions: {
         define: {
           global: "globalThis",
@@ -44,9 +42,7 @@ export default defineConfig(({ mode }) => {
           manualChunks: undefined,
         },
       },
-      commonjsOptions: {
-        exclude: ["vda-5050-lib"],
-      },
+      commonjsOptions: {},
     },
     define: {
       __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: true,

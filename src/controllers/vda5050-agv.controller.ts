@@ -242,9 +242,29 @@ export class VDA5050Agv implements IVDA5050Agv {
   }
 
   private updateAgvPosition(position: { x: number; y: number }): void {
-    this.layouts.value.nodes[`robot_${this.agvId.serialNumber}`] = {
-      x: position.x,
-      y: -position.y,
+    const robotNodeId = `robot_${this.agvId.serialNumber}`;
+
+    // Ensure robot node exists in nodes (for graph to render it)
+    if (!this.nodes.value[robotNodeId]) {
+      this.nodes.value = {
+        ...this.nodes.value,
+        [robotNodeId]: {
+          name: this.agvId.serialNumber,
+          color: "#000",
+          zIndex: 100,
+        },
+      };
+    }
+
+    // Update position with reactive spread to trigger Vue updates
+    this.layouts.value = {
+      nodes: {
+        ...this.layouts.value.nodes,
+        [robotNodeId]: {
+          x: position.x,
+          y: -position.y,
+        },
+      },
     };
   }
 

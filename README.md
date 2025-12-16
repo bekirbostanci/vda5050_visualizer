@@ -160,7 +160,7 @@ npm run dev
 
 Note Modern web browsers (google chrome, firefox, opera etc.) cannot access the mqtt protocol directly. Therefore, if you want to use this application, please first enable the use of web sockets in your mqtt broker settings
 
-` sudo nano /etc/mosquitto/mosquitto.conf `
+`sudo nano /etc/mosquitto/mosquitto.conf`
 
 ```
 per_listener_settings true

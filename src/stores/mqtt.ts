@@ -150,7 +150,11 @@ export const useMqttStore = defineStore("mqtt", () => {
     const agvData = agvDataMap.value.get(key);
 
     if (agvData) {
-      Object.assign(agvData, updates);
+      // Create a new object to trigger Vue reactivity
+      const updatedData = { ...agvData, ...updates };
+      agvDataMap.value.set(key, updatedData);
+      // Force reactivity by creating a new Map reference
+      agvDataMap.value = new Map(agvDataMap.value);
     }
   }
 

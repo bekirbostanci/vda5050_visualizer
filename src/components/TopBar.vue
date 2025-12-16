@@ -18,6 +18,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import ConnectionModal from "@/components/ConnectionModal.vue";
+import SimulatorModal from "@/components/SimulatorModal.vue";
 import { useSettingsStore } from "@/stores/settings";
 
 const props = defineProps<{
@@ -49,6 +50,7 @@ const mode = useColorMode({
 const settingsStore = useSettingsStore();
 
 const isConnectionModalOpen = ref(false);
+const isSimulatorModalOpen = ref(false);
 
 const openGitHub = () => {
   window.open("https://github.com/bekirbostanci/vda5050_visualizer", "_blank");
@@ -66,6 +68,11 @@ const openGitHub = () => {
           class="font-normal"
           @click="isConnectionModalOpen = true"
           >Connect</MenubarTrigger
+        >
+      </MenubarMenu>
+      <MenubarMenu>
+        <MenubarTrigger class="font-normal" @click="isSimulatorModalOpen = true"
+          >Simulator</MenubarTrigger
         >
       </MenubarMenu>
       <MenubarMenu>
@@ -185,6 +192,7 @@ const openGitHub = () => {
       </Button>
     </div>
     <ConnectionModal v-model:open="isConnectionModalOpen" />
+    <SimulatorModal v-model:open="isSimulatorModalOpen" />
   </div>
 </template>
 <style scoped>
