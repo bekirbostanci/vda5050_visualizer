@@ -52,9 +52,7 @@ class SharedMqttClient {
     // Update Pinia store connection state
     try {
       const store = useMqttStore();
-      store.setConnectionState(
-        require("../types/mqtt.types").MqttClientState.CONNECTED
-      );
+      store.setConnectionState(MqttClientState.CONNECTED);
     } catch (error) {
       console.debug("MQTT store not available:", error);
     }

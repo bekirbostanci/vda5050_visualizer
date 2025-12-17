@@ -1,6 +1,5 @@
-import { ref, computed, toRaw, watch, unref } from "vue";
+import { ref, computed, toRaw } from "vue";
 import { VDA5050Visualizer } from "@/controllers/vda5050-visualizer.controller";
-import { VDA5050Agv } from "@/controllers/vda5050-agv.controller";
 import { MqttClientState } from "@/types/mqtt.types";
 import { loadSavedConfig, saveConfig } from "@/types/mqtt-config";
 import mqtt from "mqtt";
@@ -35,19 +34,22 @@ const connectionType = ref(
 const version = ref(0);
 const websocketClient = ref<mqtt.MqttClient | null>(null);
 
-// Graph state
-const totalNodes = ref({});
-const totalEdges = ref({});
-const totalLayouts = ref({ nodes: {} });
-
-// AGV Controllers Map
-const agvControllers = ref<Map<string, VDA5050Agv>>(new Map());
-
 let vda5050Visualizer: VDA5050Visualizer | undefined;
 
 export function useVDA5050() {
   const isElectronAvailable = typeof window.electron !== "undefined";
   const mqttStore = useMqttStore();
+
+  // Initialize store config with current values
+  mqttStore.setConfig({
+    brokerIp: brokerIp.value,
+    brokerPort: brokerPort.value,
+    basepath: basepath.value,
+    interfaceName: interfaceName.value,
+    username: username.value,
+    password: password.value,
+    connectionType: connectionType.value as "mqtt" | "websocket",
+  });
 
   // Initialize visualizer if needed
   if (!vda5050Visualizer) {
@@ -62,63 +64,11 @@ export function useVDA5050() {
     });
   }
 
-  // Use Pinia store for robot list, but also sync with visualizer
+  // Use Pinia store for robot list
   const robotList = computed(() => mqttStore.robotList);
 
-  // Watch visualizer robot list and sync to store
-  watch(
-    () => vda5050Visualizer?.robotList.value,
-    (newRobots) => {
-      if (newRobots) {
-        newRobots.forEach((robot) => {
-          mqttStore.addRobot(robot);
-        });
-      }
-    },
-    { deep: true, immediate: true }
-  );
-
-  // Watch for new robots and create controllers
-  watch(
-    robotList,
-    (newRobots) => {
-      newRobots.forEach((robot) => {
-        const key = `${robot.manufacturer}/${robot.serialNumber}`;
-        if (!agvControllers.value.has(key)) {
-          console.log(`Creating controller for new AGV: ${key}`);
-          const agv = new VDA5050Agv(
-            robot.manufacturer,
-            robot.serialNumber,
-            basepath.value,
-            {
-              host: brokerIp.value,
-              port: brokerPort.value,
-              username: username.value,
-              password: password.value,
-            }
-          );
-          // Cast to any to avoid strict type mismatch with Ref/Value
-          agvControllers.value.set(key, agv as any);
-
-          // If using Electron MQTT, we need to ensure the controller receives messages
-          if (connectionType.value === "mqtt" && isElectronAvailable) {
-            window.electron.ipcRenderer.on("mqtt-message", (data: any) => {
-              // Messages are already added to store by the controller's handleMqttMessage
-              // which calls store.updateAgvMessage, but we still need to route to controller
-              const topic = data.topic;
-              if (
-                topic.includes(robot.serialNumber) &&
-                topic.includes(robot.manufacturer)
-              ) {
-                agv.handleMqttMessage(topic, data.message);
-              }
-            });
-          }
-        }
-      });
-    },
-    { deep: true, immediate: true }
-  );
+  // Use Pinia store for AGV controllers
+  const agvControllers = computed(() => mqttStore.agvControllers);
 
   function updateBroker() {
     version.value += 1;
@@ -227,13 +177,14 @@ export function useVDA5050() {
       const messageString = new TextDecoder().decode(message);
       const messageObject = JSON.parse(messageString);
 
-      // Message is already added to store by sharedMqttClient
-      // But we still need to handle connection messages for robot list
+      // Handle connection messages for robot list
+      // Use store's addRobot with createController=true to create AGV controller
       if (topic.includes("/connection") && vda5050Visualizer) {
         const agvId = extractAgvIdFromTopic(topic);
         if (agvId && !robotExists(agvId)) {
           vda5050Visualizer.robotList.value.push(agvId);
-          mqttStore.addRobot(agvId);
+          // Add robot and create controller via Pinia store
+          mqttStore.addRobot(agvId, true);
         }
       }
     } catch (error) {
@@ -279,21 +230,27 @@ export function useVDA5050() {
   const totalNodes = computed(() => {
     const agvList = Array.from(mqttStore.agvDataMap.values());
     if (agvList.length === 0) return {};
-    const nodes = agvList.map((agv) => toRaw(agv.nodes));
+    const nodes = agvList
+      .filter((agv) => agv?.nodes)
+      .map((agv) => toRaw(agv.nodes));
     return convertToNestedObject(nodes);
   });
 
   const totalEdges = computed(() => {
     const agvList = Array.from(mqttStore.agvDataMap.values());
     if (agvList.length === 0) return {};
-    const edges = agvList.map((agv) => toRaw(agv.edges));
+    const edges = agvList
+      .filter((agv) => agv?.edges)
+      .map((agv) => toRaw(agv.edges));
     return convertToNestedObject(edges);
   });
 
   const totalLayouts = computed(() => {
     const agvList = Array.from(mqttStore.agvDataMap.values());
     if (agvList.length === 0) return { nodes: {} };
-    const layouts = agvList.map((agv) => toRaw(agv.layouts.nodes));
+    const layouts = agvList
+      .filter((agv) => agv?.layouts?.nodes)
+      .map((agv) => toRaw(agv.layouts.nodes));
     return { nodes: convertToNestedObject(layouts) };
   });
 

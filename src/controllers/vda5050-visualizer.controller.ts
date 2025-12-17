@@ -144,10 +144,10 @@ export class VDA5050Visualizer {
       if (agvId && !this.robotExists(agvId)) {
         this.robotList.value.push(agvId);
 
-        // Also add to Pinia store
+        // Also add to Pinia store and create controller
         try {
           const store = useMqttStore();
-          store.addRobot(agvId);
+          store.addRobot(agvId, true);
         } catch (error) {
           console.debug("MQTT store not available:", error);
         }

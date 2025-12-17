@@ -1,10 +1,11 @@
 import { defineStore } from "pinia";
-import { ref, computed } from "vue";
+import { ref, computed, markRaw } from "vue";
 import type { Ref } from "vue";
 import type { Edges, Layouts, Nodes } from "v-network-graph";
 import { MqttClientState } from "@/types/mqtt.types";
 import type { AgvId } from "@/types/vda5050.types";
 import { Topic } from "@/types/mqtt.types";
+import { VDA5050Agv } from "@/controllers/vda5050-agv.controller";
 
 export interface MqttMessage {
   topic: string;
@@ -48,6 +49,9 @@ export const useMqttStore = defineStore("mqtt", () => {
   // Selected AGV
   const selectedAgv = ref<AgvId | null>(null);
 
+  // AGV Controllers Map: key is "manufacturer/serialNumber"
+  const agvControllers = ref<Map<string, VDA5050Agv>>(new Map());
+
   // Connection configuration
   const config = ref({
     brokerIp: "",
@@ -59,6 +63,9 @@ export const useMqttStore = defineStore("mqtt", () => {
     connectionType: "websocket" as "mqtt" | "websocket",
   });
 
+  // Flag to check if Electron IPC listener is registered
+  let electronIpcRegistered = false;
+
   // Computed properties
   const connected = computed(
     () => connectionState.value === MqttClientState.CONNECTED
@@ -69,6 +76,11 @@ export const useMqttStore = defineStore("mqtt", () => {
   const getAgvData = computed(() => (agvId: AgvId) => {
     const key = `${agvId.manufacturer}/${agvId.serialNumber}`;
     return agvDataMap.value.get(key);
+  });
+
+  const getAgvController = computed(() => (agvId: AgvId) => {
+    const key = `${agvId.manufacturer}/${agvId.serialNumber}`;
+    return agvControllers.value.get(key);
   });
 
   // Actions
@@ -90,7 +102,8 @@ export const useMqttStore = defineStore("mqtt", () => {
     }
   }
 
-  function addRobot(agvId: AgvId) {
+  function addRobot(agvId: AgvId, createController = false) {
+    const key = `${agvId.manufacturer}/${agvId.serialNumber}`;
     const exists = robotList.value.some(
       (robot) =>
         robot.serialNumber === agvId.serialNumber &&
@@ -100,6 +113,88 @@ export const useMqttStore = defineStore("mqtt", () => {
     if (!exists) {
       robotList.value.push(agvId);
     }
+
+    // Create controller if requested and doesn't exist
+    if (createController && !agvControllers.value.has(key)) {
+      createAgvController(agvId);
+    }
+  }
+
+  function createAgvController(agvId: AgvId): VDA5050Agv | null {
+    const key = `${agvId.manufacturer}/${agvId.serialNumber}`;
+
+    // Return existing controller if already created
+    if (agvControllers.value.has(key)) {
+      return (agvControllers.value.get(key) as unknown as VDA5050Agv) || null;
+    }
+
+    console.log(`Creating controller for AGV: ${key}`);
+
+    // Determine MQTT config based on connection type
+    const mqttConfig =
+      config.value.connectionType === "websocket"
+        ? {
+            host: config.value.brokerIp,
+            port: config.value.brokerPort,
+            username: config.value.username,
+            password: config.value.password,
+          }
+        : undefined;
+
+    const agv = new VDA5050Agv(
+      agvId.manufacturer,
+      agvId.serialNumber,
+      config.value.basepath,
+      mqttConfig
+    );
+
+    // Use markRaw to prevent Vue from proxying the controller instance
+    // This is necessary because the controller has internal refs that shouldn't be double-proxied
+    agvControllers.value.set(key, markRaw(agv) as any);
+
+    // Setup Electron IPC listener for this AGV if using MQTT connection type
+    const isElectronAvailable =
+      typeof window !== "undefined" && typeof window.electron !== "undefined";
+    if (config.value.connectionType === "mqtt" && isElectronAvailable) {
+      setupElectronIpcForAgv(agv);
+    }
+
+    return agv;
+  }
+
+  function setupElectronIpcForAgv(agv: VDA5050Agv): void {
+    // Register a global IPC listener if not already done
+    if (!electronIpcRegistered && window.electron?.ipcRenderer) {
+      window.electron.ipcRenderer.on("mqtt-message", (data: any) => {
+        // Route message to appropriate controller
+        const topic = data?.topic;
+        if (!topic) return;
+
+        agvControllers.value.forEach((controller) => {
+          try {
+            if (
+              controller?.agvId?.serialNumber &&
+              controller?.agvId?.manufacturer &&
+              topic.includes(controller.agvId.serialNumber) &&
+              topic.includes(controller.agvId.manufacturer)
+            ) {
+              controller.handleMqttMessage(topic, data.message);
+            }
+          } catch (error) {
+            console.error("Error handling MQTT message for controller:", error);
+          }
+        });
+      });
+      electronIpcRegistered = true;
+    }
+  }
+
+  function ensureControllerForRobot(agvId: AgvId): VDA5050Agv | null {
+    const key = `${agvId.manufacturer}/${agvId.serialNumber}`;
+    if (!agvControllers.value.has(key)) {
+      return createAgvController(agvId);
+    }
+    return (agvControllers.value.get(key) as unknown as VDA5050Agv) || null;
   }
 
   function removeRobot(agvId: AgvId) {
@@ -113,8 +208,16 @@ export const useMqttStore = defineStore("mqtt", () => {
       robotList.value.splice(index, 1);
     }
 
-    // Also remove from agvDataMap
     const key = `${agvId.manufacturer}/${agvId.serialNumber}`;
+
+    // Disconnect and remove controller
+    const controller = agvControllers.value.get(key);
+    if (controller) {
+      controller.disconnect();
+      agvControllers.value.delete(key);
+    }
+
+    // Also remove from agvDataMap
     agvDataMap.value.delete(key);
   }
 
@@ -204,6 +307,12 @@ export const useMqttStore = defineStore("mqtt", () => {
     robotList.value = [];
     agvDataMap.value.clear();
     selectedAgv.value = null;
+
+    // Disconnect and clear all controllers
+    agvControllers.value.forEach((controller) => {
+      controller.disconnect();
+    });
+    agvControllers.value.clear();
   }
 
   return {
@@ -212,6 +321,7 @@ export const useMqttStore = defineStore("mqtt", () => {
     messages,
     robotList,
     agvDataMap,
+    agvControllers,
     selectedAgv,
     config,
 
@@ -219,12 +329,15 @@ export const useMqttStore = defineStore("mqtt", () => {
     connected,
     agvList,
     getAgvData,
+    getAgvController,
 
     // Actions
     setConnectionState,
     addMessage,
     addRobot,
     removeRobot,
+    createAgvController,
+    ensureControllerForRobot,
     initializeAgvData,
     updateAgvData,
     updateAgvMessage,
