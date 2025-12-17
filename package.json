@@ -1,7 +1,7 @@
 {
   "name": "vda5050-visualizer",
   "author": "bekir.bostanci",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "scripts": {
     "dev": "vite --host --port 8082",
     "build:bundle": "vite build",
