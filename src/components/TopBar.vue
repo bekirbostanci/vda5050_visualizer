@@ -25,7 +25,6 @@ const props = defineProps<{
   showLeftSidebar?: boolean;
   showRightSidebar?: boolean;
   showJsonSidebar?: boolean;
-  viewMode?: "dashboard" | "visualizer";
   showHelp?: boolean;
 }>();
 
@@ -33,7 +32,6 @@ const emit = defineEmits<{
   toggleLeftSidebar: [];
   toggleRightSidebar: [];
   toggleJsonSidebar: [];
-  toggleView: [];
   toggleHelp: [];
 }>();
 
@@ -103,7 +101,7 @@ const openGitHub = () => {
       </MenubarMenu>
     </Menubar>
     <div class="flex items-center gap-2 px-2 shrink-0">
-      <DropdownMenu v-if="viewMode === 'dashboard'">
+      <DropdownMenu>
         <DropdownMenuTrigger as-child>
           <Button variant="ghost" size="icon" class="h-8 w-8 relative">
             <Icon
@@ -157,7 +155,6 @@ const openGitHub = () => {
         />
       </Button>
       <Button
-        v-if="viewMode === 'dashboard'"
         variant="ghost"
         size="icon"
         class="h-8 w-8"
@@ -171,22 +168,6 @@ const openGitHub = () => {
         <Icon
           icon="material-symbols:code"
           :class="showJsonSidebar ? 'opacity-100' : 'opacity-50'"
-          :height="18"
-        />
-      </Button>
-      <Button
-        variant="ghost"
-        size="icon"
-        class="h-8 w-8"
-        :title="
-          viewMode === 'dashboard'
-            ? 'Switch to Visualizer View'
-            : 'Switch to Dashboard View'
-        "
-        @click="$emit('toggleView')"
-      >
-        <Icon
-          :icon="viewMode === 'dashboard' ? 'ph:layout' : 'ph:code'"
           :height="18"
         />
       </Button>
