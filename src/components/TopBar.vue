@@ -16,6 +16,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import ConnectionModal from "@/components/ConnectionModal.vue";
 import SimulatorModal from "@/components/SimulatorModal.vue";
@@ -57,24 +58,28 @@ const openGitHub = () => {
 
 <template>
   <div class="flex items-center w-full border-b bg-background">
-    <Menubar class="flex-1 border-0">
-      <div class="flex items-center">
+    <Menubar class="flex-1 border-0 min-w-0">
+      <div class="flex items-center shrink-0">
         <img src="/bekir.svg" alt="logo" class="w-7 h-7" />
       </div>
       <MenubarMenu>
         <MenubarTrigger
-          class="font-normal"
+          class="font-normal text-sm px-2 md:px-3"
           @click="isConnectionModalOpen = true"
           >Connect</MenubarTrigger
         >
       </MenubarMenu>
       <MenubarMenu>
-        <MenubarTrigger class="font-normal" @click="isSimulatorModalOpen = true"
+        <MenubarTrigger
+          class="font-normal text-sm px-2 md:px-3"
+          @click="isSimulatorModalOpen = true"
           >Simulator</MenubarTrigger
         >
       </MenubarMenu>
       <MenubarMenu>
-        <MenubarTrigger class="font-normal">View</MenubarTrigger>
+        <MenubarTrigger class="font-normal text-sm px-2 md:px-3"
+          >View</MenubarTrigger
+        >
         <MenubarContent>
           <MenubarCheckboxItem
             :checked="settingsStore.showGrid"
@@ -85,7 +90,9 @@ const openGitHub = () => {
         </MenubarContent>
       </MenubarMenu>
       <MenubarMenu>
-        <MenubarTrigger class="font-normal">Help</MenubarTrigger>
+        <MenubarTrigger class="font-normal text-sm px-2 md:px-3"
+          >Help</MenubarTrigger
+        >
         <MenubarContent>
           <MenubarItem @click="emit('toggleHelp')">
             <Icon icon="ph:question" class="mr-2 h-4 w-4" />
@@ -100,7 +107,9 @@ const openGitHub = () => {
         </MenubarContent>
       </MenubarMenu>
     </Menubar>
-    <div class="flex items-center gap-2 px-2 shrink-0">
+
+    <!-- Desktop: Show all icon buttons -->
+    <div class="hidden md:flex items-center gap-2 px-2 shrink-0">
       <DropdownMenu>
         <DropdownMenuTrigger as-child>
           <Button variant="ghost" size="icon" class="h-8 w-8 relative">
@@ -172,24 +181,65 @@ const openGitHub = () => {
         />
       </Button>
     </div>
+
+    <!-- Mobile: Dropdown menu with all options -->
+    <div class="flex md:hidden items-center px-2 shrink-0">
+      <DropdownMenu>
+        <DropdownMenuTrigger as-child>
+          <Button variant="ghost" size="icon" class="h-8 w-8">
+            <Icon icon="ph:dots-three-vertical-bold" :height="20" />
+            <span class="sr-only">Menu</span>
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" class="w-52">
+          <DropdownMenuItem @click="$emit('toggleLeftSidebar')">
+            <Icon
+              icon="ph:sidebar-simple"
+              class="mr-2 h-4 w-4"
+              :class="showLeftSidebar ? 'opacity-100' : 'opacity-50'"
+            />
+            <span>{{ showLeftSidebar ? "Hide" : "Show" }} Left Sidebar</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem @click="$emit('toggleRightSidebar')">
+            <Icon
+              icon="ph:sidebar-simple"
+              class="mr-2 h-4 w-4 scale-x-[-1]"
+              :class="showRightSidebar ? 'opacity-100' : 'opacity-50'"
+            />
+            <span>{{ showRightSidebar ? "Hide" : "Show" }} AGV Details</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem @click="$emit('toggleJsonSidebar')">
+            <Icon
+              icon="material-symbols:code"
+              class="mr-2 h-4 w-4"
+              :class="showJsonSidebar ? 'opacity-100' : 'opacity-50'"
+            />
+            <span>{{ showJsonSidebar ? "Hide" : "Show" }} JSON Viewer</span>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem @click="mode = 'light'">
+            <Icon icon="radix-icons:sun" class="mr-2 h-4 w-4" />
+            <span>Light Mode</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem @click="mode = 'dark'">
+            <Icon icon="radix-icons:moon" class="mr-2 h-4 w-4" />
+            <span>Dark Mode</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem @click="mode = 'auto'">
+            <Icon icon="ph:monitor" class="mr-2 h-4 w-4" />
+            <span>System Theme</span>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+
     <ConnectionModal v-model:open="isConnectionModalOpen" />
     <SimulatorModal v-model:open="isSimulatorModalOpen" />
   </div>
 </template>
+
 <style scoped>
 #top-bar {
   z-index: 10;
-}
-
-@media (min-width: 768px) {
-  .hide-on-desktop {
-    display: none;
-  }
-}
-
-@media (max-width: 767px) {
-  .hide-on-mobile {
-    display: none;
-  }
 }
 </style>
