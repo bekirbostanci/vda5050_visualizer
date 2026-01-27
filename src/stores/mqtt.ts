@@ -3,6 +3,7 @@ import { ref, computed, markRaw } from "vue";
 import type { Ref } from "vue";
 import type { Edges, Layouts, Nodes } from "v-network-graph";
 import { MqttClientState } from "@/types/mqtt.types";
+import { isValidVDA5050Topic } from "@/utils/vda5050-topics";
 import type { AgvId } from "@/types/vda5050.types";
 import { Topic } from "@/types/mqtt.types";
 import { VDA5050Agv } from "@/controllers/vda5050-agv.controller";
@@ -170,20 +171,51 @@ export const useMqttStore = defineStore("mqtt", () => {
         const topic = data?.topic;
         if (!topic) return;
 
-        agvControllers.value.forEach((controller) => {
-          try {
-            if (
-              controller?.agvId?.serialNumber &&
-              controller?.agvId?.manufacturer &&
-              topic.includes(controller.agvId.serialNumber) &&
-              topic.includes(controller.agvId.manufacturer)
-            ) {
-              controller.handleMqttMessage(topic, data.message);
-            }
-          } catch (error) {
-            console.error("Error handling MQTT message for controller:", error);
+        // Check if this is a valid VDA5050 topic
+        if (isValidVDA5050Topic(topic)) {
+          // Extract AGV ID from topic and ensure robot exists
+          const parts = topic.split("/");
+          if (parts.length >= 4) {
+            const agvId: AgvId = {
+              manufacturer: parts[2],
+              serialNumber: parts[3],
+            };
+
+            // Ensure robot is added and controller exists
+            addRobot(agvId, true);
           }
-        });
+        }
+
+        // Route message to appropriate controller
+        // Extract AGV ID from topic to avoid substring matching issues (e.g., "s1" matching "s10")
+        const topicParts = topic.split("/");
+        const topicAgvId: AgvId | null =
+          topicParts.length >= 4
+            ? {
+                manufacturer: topicParts[2],
+                serialNumber: topicParts[3],
+              }
+            : null;
+
+        if (topicAgvId) {
+          agvControllers.value.forEach((controller) => {
+            try {
+              if (
+                controller?.agvId?.serialNumber &&
+                controller?.agvId?.manufacturer &&
+                controller.agvId.serialNumber === topicAgvId.serialNumber &&
+                controller.agvId.manufacturer === topicAgvId.manufacturer
+              ) {
+                controller.handleMqttMessage(topic, data.message);
+              }
+            } catch (error) {
+              console.error(
+                "Error handling MQTT message for controller:",
+                error
+              );
+            }
+          });
+        }
       });
       electronIpcRegistered = true;
     }

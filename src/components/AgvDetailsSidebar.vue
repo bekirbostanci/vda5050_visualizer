@@ -650,7 +650,7 @@ watch(selectedAgv, () => {
               class="flex items-center justify-between py-1.5 px-2 rounded-md cursor-pointer hover:bg-accent transition-colors min-w-0"
               @click="
                 showJson(
-                  `Instant Action ${index + 1}`,
+                  `Instant Action ${Number(index) + 1}`,
                   () => instantActionsArray[index]
                 )
               "
@@ -660,7 +660,7 @@ watch(selectedAgv, () => {
                   icon="material-symbols:flash-on"
                   class="w-4 h-4 text-muted-foreground flex-shrink-0"
                 />
-                <span class="text-sm truncate">Action {{ index + 1 }}</span>
+                <span class="text-sm truncate">Action {{ Number(index) + 1 }}</span>
               </div>
               <div class="flex items-center gap-1 min-w-0 flex-shrink">
                 <span

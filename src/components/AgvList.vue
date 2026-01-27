@@ -2,6 +2,7 @@
 import { ref, computed } from "vue";
 import { useVDA5050 } from "@/composables/useVDA5050";
 import SidebarAgvCard from "@/components/SidebarAgvCard.vue";
+import SidebarAgvListItem from "@/components/SidebarAgvListItem.vue";
 import { Input } from "@/components/ui/input";
 import {
   Card,
@@ -17,6 +18,7 @@ import ConnectionModal from "@/components/ConnectionModal.vue";
 const { robotList, selectedAgv, agvControllers } = useVDA5050();
 const filterText = ref("");
 const isConnectionModalOpen = ref(false);
+const viewMode = ref<"card" | "list">("card");
 
 const filteredRobots = computed(() => {
   if (!robotList.value) return [];
@@ -47,17 +49,66 @@ function getController(agv: any) {
 
 <template>
   <div class="flex flex-col h-full">
-    <div class="p-4 border-b flex items-center h-[68px]">
-      <Input v-model="filterText" placeholder="Filter Robots..." />
+    <div class="p-4 border-b flex items-center gap-2 h-[68px]">
+      <Input
+        v-model="filterText"
+        placeholder="Filter Robots..."
+        class="flex-1"
+      />
+      <div class="flex items-center gap-1 border rounded-lg p-1">
+        <button
+          @click="viewMode = 'card'"
+          :class="[
+            'p-2 rounded transition-colors',
+            viewMode === 'card'
+              ? 'bg-primary text-primary-foreground'
+              : 'hover:bg-muted',
+          ]"
+          title="Card View"
+        >
+          <Icon icon="ph:grid-four" class="h-4 w-4" />
+        </button>
+        <button
+          @click="viewMode = 'list'"
+          :class="[
+            'p-2 rounded transition-colors',
+            viewMode === 'list'
+              ? 'bg-primary text-primary-foreground'
+              : 'hover:bg-muted',
+          ]"
+          title="List View"
+        >
+          <Icon icon="ph:list" class="h-4 w-4" />
+        </button>
+      </div>
     </div>
-    <div class="flex-1 overflow-y-auto p-4 space-y-2 sidebar-content">
-      <template v-for="agv in filteredRobots" :key="agv.serialNumber">
-        <SidebarAgvCard
-          v-if="getController(agv)"
-          :controller="getController(agv) as any"
-          :is-selected="selectedAgv?.serialNumber === agv.serialNumber"
-          @select-agv="selectAgv(agv)"
-        />
+    <div
+      class="flex-1 overflow-y-auto p-4 sidebar-content"
+      :class="viewMode === 'card' ? 'space-y-2' : 'space-y-1'"
+    >
+      <!-- Card View -->
+      <template v-if="viewMode === 'card'">
+        <template v-for="agv in filteredRobots" :key="agv.serialNumber">
+          <SidebarAgvCard
+            v-if="getController(agv)"
+            :controller="getController(agv) as any"
+            :is-selected="selectedAgv?.serialNumber === agv.serialNumber"
+            @select-agv="selectAgv(agv)"
+          />
+        </template>
+      </template>
+
+      <!-- List View -->
+      <template v-else>
+        <template v-for="agv in filteredRobots" :key="agv.serialNumber">
+          <SidebarAgvListItem
+            v-if="getController(agv)"
+            :agv="agv"
+            :controller="getController(agv) as any"
+            :is-selected="selectedAgv?.serialNumber === agv.serialNumber"
+            @select-agv="selectAgv(agv)"
+          />
+        </template>
       </template>
       <div
         v-if="filteredRobots.length === 0"

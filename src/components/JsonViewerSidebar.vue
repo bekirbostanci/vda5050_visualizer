@@ -220,7 +220,6 @@ const copyJsonToClipboard = async () => {
 .dark .json-viewer-sidebar-content .vjs-tree-node:hover .vjs-key {
   color: hsl(var(--foreground)) !important;
 }
-
 .dark .json-viewer-sidebar-content .vjs-tree-node:hover .vjs-value {
   color: hsl(var(--foreground)) !important;
 }

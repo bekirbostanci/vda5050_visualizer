@@ -94,7 +94,7 @@ onMounted(() => {
   formData.value.interfaceName = interfaceName.value;
   formData.value.username = username.value;
   formData.value.password = password.value;
-  formData.value.connectionType = connectionType.value;
+  formData.value.connectionType = connectionType.value as "mqtt" | "websocket";
 });
 
 const handleConnect = async () => {

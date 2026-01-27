@@ -21,6 +21,15 @@ export enum Topic {
   Visualization = "visualization",
 }
 
+// Valid VDA5050 topic types (with leading slash for topic validation)
+export const VALID_TOPIC_TYPES = [
+  `/${Topic.State}`,
+  `/${Topic.Order}`,
+  `/${Topic.InstantActions}`,
+  `/${Topic.Visualization}`,
+  `/${Topic.Connection}`,
+] as const;
+
 export type MessageSubscriber = (topic: string, message: any) => void;
 
 export interface MqttConfig {

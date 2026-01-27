@@ -1,6 +1,10 @@
 import { ref, computed, toRaw } from "vue";
 import { VDA5050Visualizer } from "@/controllers/vda5050-visualizer.controller";
 import { MqttClientState } from "@/types/mqtt.types";
+import {
+  isValidVDA5050Topic,
+  buildVDA5050Topics,
+} from "@/utils/vda5050-topics";
 import { loadSavedConfig, saveConfig } from "@/types/mqtt-config";
 import mqtt from "mqtt";
 import { sharedMqttClient } from "@/utils/shared-mqtt-client";
@@ -160,13 +164,7 @@ export function useVDA5050() {
 
   function subscribeTopics() {
     const interfaceNameToUse = interfaceName.value || "+";
-    const topics = [
-      `${interfaceNameToUse}/+/+/+/connection`,
-      `${interfaceNameToUse}/+/+/+/instantActions`,
-      `${interfaceNameToUse}/+/+/+/order`,
-      `${interfaceNameToUse}/+/+/+/state`,
-      `${interfaceNameToUse}/+/+/+/visualization`,
-    ];
+    const topics = buildVDA5050Topics(interfaceNameToUse);
     websocketClient.value?.subscribe(topics, (err?: Error) => {
       if (err) console.error("WebSocket Subscription error:", err);
     });
@@ -177,9 +175,8 @@ export function useVDA5050() {
       const messageString = new TextDecoder().decode(message);
       const messageObject = JSON.parse(messageString);
 
-      // Handle connection messages for robot list
-      // Use store's addRobot with createController=true to create AGV controller
-      if (topic.includes("/connection") && vda5050Visualizer) {
+      // Check if this is a valid VDA5050 topic (state, order, instantActions, visualization, or connection)
+      if (isValidVDA5050Topic(topic) && vda5050Visualizer) {
         const agvId = extractAgvIdFromTopic(topic);
         if (agvId && !robotExists(agvId)) {
           vda5050Visualizer.robotList.value.push(agvId);

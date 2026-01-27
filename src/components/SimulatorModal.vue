@@ -36,9 +36,6 @@ import {
   simulatorAgvs,
   createSimulatorAgv,
   createRandomVdaOrder,
-  pauseSimulatorAgv,
-  resumeSimulatorAgv,
-  removeSimulatorAgv,
   clearAllSimulatorAgvs,
 } from "@/controllers/simulator.controller";
 

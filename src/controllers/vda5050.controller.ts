@@ -6,6 +6,7 @@ import {
   Topic,
   type MessageSubscriber,
 } from "../types/mqtt.types";
+import { buildVDA5050Topics } from "../utils/vda5050-topics";
 import mqtt from "mqtt";
 import { sharedMqttClient } from "../utils/shared-mqtt-client";
 import { useMqttStore } from "../stores/mqtt";
@@ -171,13 +172,7 @@ class VDA5050Controller implements IVDA5050Controller {
 
           // Subscribe to topics
           const interfaceNameToUse = interfaceName || "+";
-          const topics = [
-            `${interfaceNameToUse}/+/+/+/connection`,
-            `${interfaceNameToUse}/+/+/+/instantActions`,
-            `${interfaceNameToUse}/+/+/+/order`,
-            `${interfaceNameToUse}/+/+/+/state`,
-            `${interfaceNameToUse}/+/+/+/visualization`,
-          ];
+          const topics = buildVDA5050Topics(interfaceNameToUse);
 
           sharedMqttClient.subscribe(topics);
 
@@ -201,13 +196,7 @@ class VDA5050Controller implements IVDA5050Controller {
           clientId: `vda5050_client_${Math.random().toString(16).slice(2, 8)}`,
           username: username || undefined,
           password: password || undefined,
-          topics: [
-            `${interfaceNameToUse}/+/+/+/connection`,
-            `${interfaceNameToUse}/+/+/+/instantActions`,
-            `${interfaceNameToUse}/+/+/+/order`,
-            `${interfaceNameToUse}/+/+/+/state`,
-            `${interfaceNameToUse}/+/+/+/visualization`,
-          ],
+          topics: buildVDA5050Topics(interfaceNameToUse),
         };
 
         console.log("Connecting to MQTT with config:", {

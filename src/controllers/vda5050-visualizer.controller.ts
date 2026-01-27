@@ -5,6 +5,10 @@ import {
 } from "./vda5050.controller";
 import { ref } from "vue";
 import { MqttClientState } from "../types/mqtt.types";
+import {
+  isValidVDA5050Topic,
+  buildVDA5050Topics,
+} from "../utils/vda5050-topics";
 import mqtt from "mqtt";
 import { sharedMqttClient } from "../utils/shared-mqtt-client";
 import { useMqttStore } from "../stores/mqtt";
@@ -46,7 +50,8 @@ export class VDA5050Visualizer {
     this.mqttConfig = mqttConfig;
     if (mqttConfig.connectionType === "mqtt") {
       window.electron.ipcRenderer.on("mqtt-message", (data) => {
-        if (data.topic.includes("/connection")) {
+        // Check if this is a valid VDA5050 topic (state, order, instantActions, visualization, or connection)
+        if (isValidVDA5050Topic(data.topic)) {
           this.handleConnectionMessage(data.topic);
         }
       });
@@ -61,7 +66,8 @@ export class VDA5050Visualizer {
       // Subscribe to messages with the new unsubscribe function
       this.messageUnsubscriber = sharedMqttClient.subscribeToMessages(
         (topic, message) => {
-          if (topic.includes("/connection")) {
+          // Check if this is a valid VDA5050 topic (state, order, instantActions, visualization, or connection)
+          if (isValidVDA5050Topic(topic)) {
             this.handleConnectionMessage(topic);
           }
         }
@@ -123,13 +129,7 @@ export class VDA5050Visualizer {
 
         // Subscribe to connection topics
         const interfaceNameToUse = this.mqttConfig.interfaceName || "+";
-        const topics = [
-          `${interfaceNameToUse}/+/+/+/connection`,
-          `${interfaceNameToUse}/+/+/+/instantActions`,
-          `${interfaceNameToUse}/+/+/+/order`,
-          `${interfaceNameToUse}/+/+/+/state`,
-          `${interfaceNameToUse}/+/+/+/visualization`,
-        ];
+        const topics = buildVDA5050Topics(interfaceNameToUse);
 
         sharedMqttClient.subscribe(topics);
       } catch (error) {
