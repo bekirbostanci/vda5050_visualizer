@@ -660,7 +660,9 @@ watch(selectedAgv, () => {
                   icon="material-symbols:flash-on"
                   class="w-4 h-4 text-muted-foreground flex-shrink-0"
                 />
-                <span class="text-sm truncate">Action {{ Number(index) + 1 }}</span>
+                <span class="text-sm truncate"
+                  >Action {{ Number(index) + 1 }}</span
+                >
               </div>
               <div class="flex items-center gap-1 min-w-0 flex-shrink">
                 <span

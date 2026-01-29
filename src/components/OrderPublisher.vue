@@ -344,9 +344,14 @@ const generateRandomOrderAndPublish = () => {
     }
 
     const agvPosition = controller.stateInfo?.value?.agvPosition;
-    const initialPosition = agvPosition?.x != null && agvPosition?.y != null
-      ? { x: agvPosition.x, y: agvPosition.y, mapId: agvPosition?.mapId ?? "map_1" }
-      : { x: 0, y: 0, mapId: "map_1" };
+    const initialPosition =
+      agvPosition?.x != null && agvPosition?.y != null
+        ? {
+            x: agvPosition.x,
+            y: agvPosition.y,
+            mapId: agvPosition?.mapId ?? "map_1",
+          }
+        : { x: 0, y: 0, mapId: "map_1" };
 
     const endPoint = {
       x: Math.floor(Math.random() * 20 - 10),
