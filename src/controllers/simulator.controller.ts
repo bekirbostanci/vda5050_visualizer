@@ -10,6 +10,7 @@ import {
 } from "vda-5050-lib";
 import { ref, toRaw } from "vue";
 import type { Ref } from "vue";
+import { generateManhattanRoute } from "@/utils/manhattan-route";
 
 export const simulatorAgvs: Ref<VirtualAgvAdapter[]> = ref([]);
 
@@ -156,49 +157,4 @@ export function clearAllSimulatorAgvs(): void {
     agv.controller.stop();
   });
   simulatorAgvs.value = [];
-}
-
-type Point = { x: number; y: number };
-
-type Direction = "north" | "south" | "east" | "west";
-
-function generateManhattanRoute(start: Point, end: Point): Point[] {
-  const route: Point[] = [];
-  const current: Point = { ...start };
-
-  // While not at the destination, move towards the end point
-  while (current.x !== end.x || current.y !== end.y) {
-    const possibleMoves: Direction[] = [];
-
-    // Add valid moves towards the destination
-    if (current.x < end.x) possibleMoves.push("east");
-    if (current.x > end.x) possibleMoves.push("west");
-    if (current.y < end.y) possibleMoves.push("north");
-    if (current.y > end.y) possibleMoves.push("south");
-
-    // Choose a random valid move
-    const randomMove =
-      possibleMoves[Math.floor(Math.random() * possibleMoves.length)];
-
-    // Update current position based on the chosen move
-    switch (randomMove) {
-      case "east":
-        current.x += 1;
-        break;
-      case "west":
-        current.x -= 1;
-        break;
-      case "north":
-        current.y += 1;
-        break;
-      case "south":
-        current.y -= 1;
-        break;
-    }
-
-    // Add the new position to the route
-    route.push({ ...current });
-  }
-
-  return route;
 }

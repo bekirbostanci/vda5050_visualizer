@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Icon } from "@iconify/vue";
+import { useToast } from "@/components/ui/toast";
 import type { InstantActions, Action } from "vda-5050-lib";
 import { BlockingType as BlockingTypeEnum } from "@/types/vda5050.types";
 
@@ -123,6 +124,7 @@ const emit = defineEmits<{
 }>();
 
 const { agvControllers, interfaceName } = useVDA5050();
+const { toast } = useToast();
 
 const error = ref("");
 const expandedSections = ref<Set<string>>(new Set(["instantAction-basic"]));
@@ -200,7 +202,10 @@ const publishInstantActions = () => {
 
     controller.publishInstantActions(instantActions, unref(interfaceName));
     error.value = "";
-    alert("InstantActions published successfully!");
+    toast({
+      title: "InstantActions published",
+      description: "InstantActions published successfully!",
+    });
     emit("published");
   } catch (err: any) {
     error.value = `Failed to publish: ${err.message}`;

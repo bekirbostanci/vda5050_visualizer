@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Icon } from "@iconify/vue";
+import { useToast } from "@/components/ui/toast";
+import { generateManhattanRoute } from "@/utils/manhattan-route";
 import type { Order, Node, Edge, Action } from "vda-5050-lib";
 import { BlockingType as BlockingTypeEnum } from "@/types/vda5050.types";
 
@@ -123,6 +125,7 @@ const emit = defineEmits<{
 }>();
 
 const { agvControllers, interfaceName } = useVDA5050();
+const { toast } = useToast();
 
 const error = ref("");
 const expandedSections = ref<Set<string>>(new Set(["order-basic"]));
@@ -217,7 +220,10 @@ const publishOrder = () => {
 
     controller.publishOrder(order, unref(interfaceName));
     error.value = "";
-    alert("Order published successfully!");
+    toast({
+      title: "Order published",
+      description: "Order published successfully!",
+    });
     emit("published");
   } catch (err: any) {
     error.value = `Failed to publish: ${err.message}`;
@@ -325,6 +331,77 @@ const getActionDescription = (
   const action = predefinedActions.find((a) => a.value === actionType);
   return action && action.value !== "custom" ? action.description : undefined;
 };
+
+// Generate random order and publish directly (same flow as SimulatorModal random order)
+const generateRandomOrderAndPublish = () => {
+  try {
+    const key = `${props.agvId.manufacturer}/${props.agvId.serialNumber}`;
+    const controller = agvControllers.value.get(key);
+
+    if (!controller) {
+      error.value = "AGV controller not found";
+      return;
+    }
+
+    const agvPosition = controller.stateInfo?.value?.agvPosition;
+    const initialPosition = agvPosition?.x != null && agvPosition?.y != null
+      ? { x: agvPosition.x, y: agvPosition.y, mapId: agvPosition?.mapId ?? "map_1" }
+      : { x: 0, y: 0, mapId: "map_1" };
+
+    const endPoint = {
+      x: Math.floor(Math.random() * 20 - 10),
+      y: Math.round(Math.random() * 20 - 10),
+    };
+    const route = generateManhattanRoute(
+      { x: initialPosition.x, y: initialPosition.y },
+      endPoint
+    );
+
+    if (route.length < 3) {
+      generateRandomOrderAndPublish();
+      return;
+    }
+
+    const order: Order = {
+      headerId: orderForm.value.headerId,
+      manufacturer: orderForm.value.manufacturer,
+      serialNumber: orderForm.value.serialNumber,
+      timestamp: new Date().toISOString(),
+      version: orderForm.value.version,
+      orderId: `order_${Date.now()}`,
+      orderUpdateId: orderForm.value.orderUpdateId + 1,
+      nodes: route.map(({ x, y }, i) => ({
+        nodeId: (i + 1).toString(),
+        sequenceId: i * 2,
+        released: true,
+        actions: [],
+        nodePosition: {
+          x,
+          y,
+          mapId: initialPosition.mapId,
+        },
+      })),
+      edges: route.slice(1).map((_, i) => ({
+        edgeId: (i + 1).toString(),
+        released: true,
+        actions: [],
+        startNodeId: (i + 1).toString(),
+        endNodeId: (i + 2).toString(),
+        sequenceId: i * 2 + 1,
+      })),
+    };
+
+    controller.publishOrder(order, unref(interfaceName));
+    error.value = "";
+    toast({
+      title: "Order published",
+      description: "Random order published successfully!",
+    });
+    emit("published");
+  } catch (err: any) {
+    error.value = `Failed to publish random order: ${err.message}`;
+  }
+};
 </script>
 
 <template>
@@ -336,14 +413,25 @@ const getActionDescription = (
         <Icon icon="material-symbols:list-alt" class="w-4 h-4" />
         Create Order
       </div>
-      <Button
-        variant="ghost"
-        size="sm"
-        class="h-6 w-6 p-0"
-        @click="emit('close')"
-      >
-        <Icon icon="material-symbols:close" class="w-4 h-4" />
-      </Button>
+      <div class="flex items-center gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          class="h-7 text-xs"
+          @click="generateRandomOrderAndPublish"
+        >
+          <Icon icon="material-symbols:shuffle" class="w-3.5 h-3.5 mr-1" />
+          Generate Random
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          class="h-6 w-6 p-0"
+          @click="emit('close')"
+        >
+          <Icon icon="material-symbols:close" class="w-4 h-4" />
+        </Button>
+      </div>
     </div>
 
     <div
