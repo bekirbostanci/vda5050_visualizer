@@ -206,7 +206,6 @@ class VDA5050Controller implements IVDA5050Controller {
 
         this.mqttConfig.value = config;
         window.electron.ipcRenderer.send("connect-mqtt", config);
-        this.setupMqttListeners();
       } else {
         console.error("Invalid connection type:", connectionType);
         this.clientState.value = MqttClientState.OFFLINE;
