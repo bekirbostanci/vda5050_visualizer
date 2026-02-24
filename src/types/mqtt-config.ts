@@ -60,9 +60,7 @@ export function addOrUpdateConnection(
   const list = getSavedConnections();
   const id = connection.id ?? generateId();
   const name =
-    connection.name?.trim() ||
-    connection.brokerIp ||
-    "Unnamed connection";
+    connection.name?.trim() || connection.brokerIp || "Unnamed connection";
   const entry: SavedConnection = {
     ...connection,
     id,
@@ -143,10 +141,7 @@ export function saveConfig(config: MqttConfig): void {
   const activeId = getActiveConnectionId();
   const list = getSavedConnections();
   const existing = activeId ? list.find((c) => c.id === activeId) : null;
-  const name =
-    existing?.name ||
-    config.brokerIp ||
-    "Saved connection";
+  const name = existing?.name || config.brokerIp || "Saved connection";
   addOrUpdateConnection({
     ...config,
     id: activeId ?? undefined,
