@@ -20,7 +20,15 @@ import {
 } from "@/components/ui/select";
 import { Icon } from "@iconify/vue";
 import { useVDA5050 } from "@/composables/useVDA5050";
-import { loadSavedConfig } from "@/types/mqtt-config";
+import {
+  getSavedConnections,
+  addOrUpdateConnection,
+  removeConnection,
+  setActiveConnectionId,
+  getActiveConnectionId,
+  loadSavedConfig,
+  type SavedConnection,
+} from "@/types/mqtt-config";
 import { useMqttStore } from "@/stores/mqtt";
 import { MqttClientState } from "@/types/mqtt.types";
 import { sharedMqttClient } from "@/utils/shared-mqtt-client";
@@ -48,8 +56,15 @@ const {
 
 const mqttStore = useMqttStore();
 
+// Saved connections list (refresh when modal opens)
+const savedConnections = ref<SavedConnection[]>([]);
+/** SENTINEL_NEW = "New connection", "" = none/placeholder, otherwise saved connection id */
+const SENTINEL_NEW = "__new__";
+const selectedConnectionId = ref<string>("");
+
 // Local form state
 const formData = ref({
+  connectionName: "",
   brokerIp: "",
   brokerPort: "",
   basepath: "",
@@ -64,27 +79,72 @@ const showPassword = ref(false);
 const isConnecting = ref(false);
 const errorMessage = ref("");
 
-// Load saved config when modal opens
+function loadConnectionIntoForm(conn: SavedConnection | null) {
+  if (!conn) {
+    formData.value = {
+      connectionName: "",
+      brokerIp: "",
+      brokerPort: "",
+      basepath: "",
+      interfaceName: "",
+      username: "",
+      password: "",
+      connectionType: "websocket",
+      clientId: `mqtt_client_${Math.random().toString(16).slice(2, 8)}`,
+    };
+    return;
+  }
+  formData.value = {
+    connectionName: conn.name,
+    brokerIp: conn.brokerIp || "",
+    brokerPort: conn.brokerPort || "",
+    basepath: conn.basepath || "",
+    interfaceName: conn.interfaceName || "",
+    username: conn.username || "",
+    password: conn.password || "",
+    connectionType:
+      (conn.connectionType as "mqtt" | "websocket") || "websocket",
+    clientId: `mqtt_client_${Math.random().toString(16).slice(2, 8)}`,
+  };
+}
+
+// Load saved connections and form when modal opens
 watch(
   () => props.open,
   (isOpen) => {
     if (isOpen) {
-      const savedConfig = loadSavedConfig();
-      formData.value = {
-        brokerIp: savedConfig.brokerIp || "",
-        brokerPort: savedConfig.brokerPort || "",
-        basepath: savedConfig.basepath || "",
-        interfaceName: savedConfig.interfaceName || "",
-        username: savedConfig.username || "",
-        password: savedConfig.password || "",
-        connectionType:
-          (savedConfig.connectionType as "mqtt" | "websocket") || "websocket",
-        clientId: `mqtt_client_${Math.random().toString(16).slice(2, 8)}`,
-      };
+      savedConnections.value = getSavedConnections();
+      const activeId = getActiveConnectionId();
+      const active =
+        activeId && savedConnections.value.find((c) => c.id === activeId);
+      selectedConnectionId.value = active?.id ?? SENTINEL_NEW;
+      if (active) {
+        loadConnectionIntoForm(active);
+      } else {
+        const savedConfig = loadSavedConfig();
+        loadConnectionIntoForm({
+          id: "",
+          name: "",
+          ...savedConfig,
+        });
+      }
       errorMessage.value = "";
+      saveSuccessMessage.value = "";
     }
   }
 );
+
+// When user selects a different saved connection from dropdown, load it
+watch(selectedConnectionId, (id) => {
+  if (!props.open) return;
+  if (!id || id === SENTINEL_NEW) {
+    loadConnectionIntoForm(null);
+    formData.value.connectionName = "";
+    return;
+  }
+  const conn = savedConnections.value.find((c) => c.id === id);
+  if (conn) loadConnectionIntoForm(conn);
+});
 
 // Sync with composable values on mount
 onMounted(() => {
@@ -103,7 +163,7 @@ const handleConnect = async () => {
     errorMessage.value = "Broker IP/Host is required";
     return;
   }
-  if (!formData.value.brokerPort.trim()) {
+  if (!String(formData.value.brokerPort).trim()) {
     errorMessage.value = "Port is required";
     return;
   }
@@ -112,9 +172,34 @@ const handleConnect = async () => {
   isConnecting.value = true;
 
   try {
+    // Save current form as a connection (new or update) and set as active
+    const name =
+      formData.value.connectionName?.trim() ||
+      formData.value.brokerIp ||
+      "Unnamed connection";
+    const saved = addOrUpdateConnection({
+      id:
+        selectedConnectionId.value &&
+        selectedConnectionId.value !== "" &&
+        selectedConnectionId.value !== SENTINEL_NEW
+          ? selectedConnectionId.value
+          : undefined,
+      name,
+      brokerIp: formData.value.brokerIp.trim(),
+      brokerPort: String(formData.value.brokerPort).trim(),
+      basepath: formData.value.basepath.trim(),
+      interfaceName: formData.value.interfaceName.trim(),
+      username: formData.value.username.trim(),
+      password: formData.value.password.trim(),
+      connectionType: formData.value.connectionType,
+    });
+    setActiveConnectionId(saved.id);
+    selectedConnectionId.value = saved.id;
+    savedConnections.value = getSavedConnections();
+
     // Update composable values
     brokerIp.value = formData.value.brokerIp.trim();
-    brokerPort.value = formData.value.brokerPort.trim();
+    brokerPort.value = String(formData.value.brokerPort).trim();
     basepath.value = formData.value.basepath.trim();
     interfaceName.value = formData.value.interfaceName.trim();
     username.value = formData.value.username.trim();
@@ -136,6 +221,51 @@ const handleConnect = async () => {
     isConnecting.value = false;
   }
 };
+
+const handleDeleteConnection = () => {
+  if (!selectedConnectionId.value) return;
+  removeConnection(selectedConnectionId.value);
+  savedConnections.value = getSavedConnections();
+  selectedConnectionId.value = SENTINEL_NEW;
+  loadConnectionIntoForm(null);
+};
+
+const canDeleteConnection = computed(
+  () =>
+    selectedConnectionId.value !== "" &&
+    selectedConnectionId.value !== SENTINEL_NEW &&
+    savedConnections.value.length > 0
+);
+
+const saveSuccessMessage = ref("");
+
+function handleSave() {
+  const name =
+    formData.value.connectionName?.trim() ||
+    formData.value.brokerIp ||
+    "Unnamed connection";
+  const saved = addOrUpdateConnection({
+    id:
+      selectedConnectionId.value && selectedConnectionId.value !== SENTINEL_NEW
+        ? selectedConnectionId.value
+        : undefined,
+    name,
+    brokerIp: formData.value.brokerIp.trim(),
+    brokerPort: String(formData.value.brokerPort).trim(),
+    basepath: formData.value.basepath.trim(),
+    interfaceName: formData.value.interfaceName.trim(),
+    username: formData.value.username.trim(),
+    password: formData.value.password.trim(),
+    connectionType: formData.value.connectionType,
+  });
+  setActiveConnectionId(saved.id);
+  selectedConnectionId.value = saved.id;
+  savedConnections.value = getSavedConnections();
+  saveSuccessMessage.value = "Saved";
+  setTimeout(() => {
+    saveSuccessMessage.value = "";
+  }, 2000);
+}
 
 const handleDisconnect = () => {
   try {
@@ -184,6 +314,58 @@ const isConnected = computed(() => {
       </DialogHeader>
 
       <div class="grid gap-4 py-4">
+        <!-- Saved connection selector -->
+        <div class="grid gap-2">
+          <Label for="savedConnection">Saved connection</Label>
+          <div class="flex gap-2">
+            <Select v-model="selectedConnectionId">
+              <SelectTrigger id="savedConnection" class="flex-1">
+                <SelectValue placeholder="New connection">
+                  {{
+                    selectedConnectionId &&
+                    selectedConnectionId !== SENTINEL_NEW
+                      ? savedConnections.find(
+                          (c) => c.id === selectedConnectionId
+                        )?.name ?? "Select..."
+                      : "New connection"
+                  }}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem :value="SENTINEL_NEW">New connection</SelectItem>
+                <SelectItem
+                  v-for="conn in savedConnections"
+                  :key="conn.id"
+                  :value="conn.id"
+                >
+                  {{ conn.name }} ({{ conn.brokerIp }}:{{ conn.brokerPort }})
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            <Button
+              v-if="canDeleteConnection"
+              type="button"
+              variant="outline"
+              size="icon"
+              title="Delete this saved connection"
+              @click="handleDeleteConnection"
+            >
+              <Icon icon="ph:trash" class="h-4 w-4 text-destructive" />
+            </Button>
+          </div>
+        </div>
+
+        <!-- Connection name (for new or display name) -->
+        <div class="grid gap-2">
+          <Label for="connectionName">Connection name (optional)</Label>
+          <Input
+            id="connectionName"
+            v-model="formData.connectionName"
+            placeholder="e.g. Production, Dev local"
+            :disabled="isConnecting"
+          />
+        </div>
+
         <!-- Connection Type -->
         <div class="grid gap-2">
           <Label for="connectionType">Connection Type</Label>
@@ -316,13 +498,21 @@ const isConnected = computed(() => {
         </div>
       </div>
 
-      <DialogFooter>
+      <DialogFooter class="flex-wrap gap-2">
         <Button
           variant="outline"
           @click="emits('update:open', false)"
           :disabled="isConnecting"
         >
           Cancel
+        </Button>
+        <Button variant="outline" @click="handleSave" :disabled="isConnecting">
+          <Icon
+            v-if="saveSuccessMessage"
+            icon="ph:check"
+            class="mr-2 h-4 w-4"
+          />
+          {{ saveSuccessMessage || "Save" }}
         </Button>
         <Button
           v-if="isConnected"
