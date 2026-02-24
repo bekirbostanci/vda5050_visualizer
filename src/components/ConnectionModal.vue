@@ -135,9 +135,7 @@ watch(
   }
 );
 
-// When user selects a different saved connection from dropdown, load it
-watch(selectedConnectionId, (id) => {
-  if (!props.open) return;
+function onSelectedConnectionChange(id: string | null) {
   if (!id || id === SENTINEL_NEW) {
     loadConnectionIntoForm(null);
     formData.value.connectionName = "";
@@ -145,7 +143,7 @@ watch(selectedConnectionId, (id) => {
   }
   const conn = savedConnections.value.find((c) => c.id === id);
   if (conn) loadConnectionIntoForm(conn);
-});
+}
 
 // Sync with composable values on mount
 onMounted(() => {
@@ -319,7 +317,10 @@ const isConnected = computed(() => {
         <div class="grid gap-2">
           <Label for="savedConnection">Saved connection</Label>
           <div class="flex gap-2">
-            <Select v-model="selectedConnectionId">
+            <Select
+              v-model="selectedConnectionId"
+              @update:model-value="onSelectedConnectionChange"
+            >
               <SelectTrigger id="savedConnection" class="flex-1">
                 <SelectValue placeholder="New connection">
                   {{
