@@ -115,8 +115,9 @@ watch(
     if (isOpen) {
       savedConnections.value = getSavedConnections();
       const activeId = getActiveConnectionId();
-      const active =
-        activeId && savedConnections.value.find((c) => c.id === activeId);
+      const active = activeId
+        ? savedConnections.value.find((c) => c.id === activeId)
+        : undefined;
       selectedConnectionId.value = active?.id ?? SENTINEL_NEW;
       if (active) {
         loadConnectionIntoForm(active);
