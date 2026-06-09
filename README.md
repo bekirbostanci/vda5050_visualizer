@@ -1,6 +1,9 @@
 # VDA5050 Visualizer
 
-[![Build and Release Electron App](https://github.com/bekirbostanci/vda5050_visualizer/actions/workflows/build.yml/badge.svg)](https://github.com/bekirbostanci/vda5050_visualizer/actions/workflows/build.yml)
+[![Build macOS](https://github.com/bekirbostanci/vda5050_visualizer/actions/workflows/build-macos.yml/badge.svg)](https://github.com/bekirbostanci/vda5050_visualizer/actions/workflows/build-macos.yml)
+[![Build Windows](https://github.com/bekirbostanci/vda5050_visualizer/actions/workflows/build-windows.yml/badge.svg)](https://github.com/bekirbostanci/vda5050_visualizer/actions/workflows/build-windows.yml)
+[![Build Linux](https://github.com/bekirbostanci/vda5050_visualizer/actions/workflows/build-linux.yml/badge.svg)](https://github.com/bekirbostanci/vda5050_visualizer/actions/workflows/build-linux.yml)
+
 
 https://github.com/bekirbostanci/vda5050_visualizer/assets/26343575/06f22e56-1547-451b-97b9-870a715d525e
 
