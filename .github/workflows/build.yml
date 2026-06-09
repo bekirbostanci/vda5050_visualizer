@@ -1,0 +1,45 @@
+name: Build and Release Electron App
+
+on:
+  push:
+    tags:
+      - 'v*' # Trigger build only when a tag starting with v is pushed (e.g., v2.2.0)
+  workflow_dispatch: # Allows manual trigger from the GitHub Actions UI
+
+jobs:
+  build:
+    name: Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build and Publish
+        run: |
+          if [ "$RUNNER_OS" == "Linux" ]; then
+            # Use xvfb-run to prevent headless environment errors on Linux
+            xvfb-run --auto-servernum --server-args="-screen 0 1024x768x24" npm run electron:build -- --publish always
+          else
+            npm run electron:build -- --publish always
+          fi
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Skip Apple code signing on macOS CI if certificates are not set up to prevent build failure.
+          # The resulting macOS build will be unsigned, which users can run via right-click -> Open.
+          CSC_IDENTITY_AUTO_DISCOVERY: false
