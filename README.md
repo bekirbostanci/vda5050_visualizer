@@ -1,5 +1,7 @@
 # VDA5050 Visualizer
 
+[![Build and Release Electron App](https://github.com/bekirbostanci/vda5050_visualizer/actions/workflows/build.yml/badge.svg)](https://github.com/bekirbostanci/vda5050_visualizer/actions/workflows/build.yml)
+
 https://github.com/bekirbostanci/vda5050_visualizer/assets/26343575/06f22e56-1547-451b-97b9-870a715d525e
 
 A visualization tool for VDA5050 AGVs (Automated Guided Vehicles) that supports both WebSocket and Electron IPC MQTT connections.
