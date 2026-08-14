@@ -57,7 +57,7 @@
     "@rushstack/eslint-patch": "^1.1.4",
     "@types/jsdom": "^20.0.0",
     "@types/lodash": "^4.17.15",
-    "@types/node": "^22.13.7",
+    "@types/node": "^24.13.3",
     "@types/pngjs": "^6.0.1",
     "@types/randomcolor": "^0.5.9",
     "@types/uuid": "^8.3.4",
@@ -90,6 +90,9 @@
     "vue-tsc": "^0.40.7",
     "wait-on": "^8.0.2",
     "zod": "^3.23.8"
+  },
+  "engines": {
+    "node": ">=24"
   },
   "main": "electron/main.js",
   "build": {

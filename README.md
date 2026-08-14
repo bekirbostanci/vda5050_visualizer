@@ -103,7 +103,7 @@ The desktop application supports automatic updates through GitHub releases. When
 
 ### Prerequisites
 
-- Node.js 14+
+- Node.js 24+
 - npm or yarn
 
 ### Installation
