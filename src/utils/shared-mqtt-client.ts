@@ -268,6 +268,28 @@ class SharedMqttClient {
     });
   }
 
+  /**
+   * Unsubscribes and subscribes again so the broker re-sends retained messages.
+   * Subscribing to a topic that is already subscribed sends nothing.
+   */
+  public async resubscribe(topics: string[]): Promise<void> {
+    if (!this.client || !this.isConnected.value) {
+      throw new Error("MQTT client not connected");
+    }
+    const client = this.client;
+    await new Promise<void>((resolve, reject) =>
+      client.unsubscribe(topics, (error?: Error) =>
+        error ? reject(error) : resolve()
+      )
+    );
+    await new Promise<void>((resolve, reject) =>
+      client.subscribe(topics, (error?: Error | null) =>
+        error ? reject(error) : resolve()
+      )
+    );
+    topics.forEach((topic) => this.subscribedTopics.value.add(topic));
+  }
+
   public publish(topic: string, message: any): void {
     if (!this.client || !this.isConnected.value) {
       console.error("Cannot publish: MQTT client not connected");

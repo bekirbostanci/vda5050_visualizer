@@ -21,6 +21,7 @@ export interface AgvData {
   stateInfo: any | null;
   connectionInfo: any | null;
   visualizationInfo: any | null;
+  factsheetInfo: any | null;
   nodes: Nodes;
   edges: Edges;
   layouts: Layouts;
@@ -268,6 +269,7 @@ export const useMqttStore = defineStore("mqtt", () => {
         stateInfo: null,
         connectionInfo: null,
         visualizationInfo: null,
+        factsheetInfo: null,
         nodes: {},
         edges: {},
         layouts: { nodes: {} },
@@ -318,6 +320,9 @@ export const useMqttStore = defineStore("mqtt", () => {
         break;
       case Topic.Visualization:
         agvData.visualizationInfo = message;
+        break;
+      case Topic.Factsheet:
+        agvData.factsheetInfo = message;
         break;
     }
   }
