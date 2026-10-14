@@ -11,6 +11,7 @@ import { BlockingType as BlockingTypeEnum } from "@/types/vda5050.types";
 import ActionEditor from "@/components/ActionEditor.vue";
 import FactsheetStatus from "@/components/FactsheetStatus.vue";
 import { useFactsheet } from "@/composables/useFactsheet";
+import { instantActionsOf } from "@/utils/instant-actions";
 
 const props = defineProps<{
   agvId: { manufacturer: string; serialNumber: string };
@@ -48,10 +49,7 @@ const instantActionsForm = ref<{
 
 // Initialize form with existing instant actions if provided
 if (props.existingInstantActions) {
-  const existingActions =
-    props.existingInstantActions.instantActions ||
-    props.existingInstantActions.actions ||
-    [];
+  const existingActions = instantActionsOf(props.existingInstantActions) || [];
   instantActionsForm.value = {
     headerId: (props.existingInstantActions.headerId || 0) + 1,
     manufacturer:

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Icon } from "@iconify/vue";
 import OrderPublisher from "@/components/OrderPublisher.vue";
 import InstantActionPublisher from "@/components/InstantActionPublisher.vue";
+import { instantActionsOf } from "@/utils/instant-actions";
 
 const emit = defineEmits<{
   close: [];
@@ -53,9 +54,8 @@ const instantActionsInfo = computed(
   () => selectedAgvData.value?.instantActions
 );
 const instantActionsArray = computed(() => {
-  if (Array.isArray(instantActionsInfo.value?.instantActions)) {
-    return instantActionsInfo.value.instantActions;
-  }
+  const actions = instantActionsOf(instantActionsInfo.value);
+  if (actions) return actions;
   return instantActionsInfo.value ? [instantActionsInfo.value] : [];
 });
 const instantActionsCount = computed(() => instantActionsArray.value.length);
