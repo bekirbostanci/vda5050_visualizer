@@ -1,11 +1,9 @@
-import { ref } from "vue";
+import { ref, toRef } from "vue";
 import { useMqttStore } from "@/stores/mqtt";
+import { useLayoutStore } from "@/stores/layout";
 import type { AgvId } from "@/types/vda5050.types";
 
 const isOpen = ref(false);
-const showSidebarOffline = ref(false);
-const requestOpenLeftSidebar = ref(false);
-const requestOpenRightSidebar = ref(false);
 
 // Persistent editor state across opens and closes
 const orderJson = ref("");
@@ -23,24 +21,23 @@ export interface OfflineVisualizationPayload {
 
 export function useOfflineVisualizer() {
   const mqttStore = useMqttStore();
+  const layoutStore = useLayoutStore();
 
   const open = () => {
-    showSidebarOffline.value = true;
-    requestOpenLeftSidebar.value = true;
+    layoutStore.openOfflineSidebar();
   };
 
   const close = () => {
     isOpen.value = false;
-    showSidebarOffline.value = false;
+    layoutStore.closeOfflineSidebar();
   };
 
   const openSidebarOffline = () => {
-    showSidebarOffline.value = true;
-    requestOpenLeftSidebar.value = true;
+    layoutStore.openOfflineSidebar();
   };
 
   const closeSidebarOffline = () => {
-    showSidebarOffline.value = false;
+    layoutStore.closeOfflineSidebar();
   };
 
   const editRobot = (agvId: AgvId) => {
@@ -192,7 +189,7 @@ export function useOfflineVisualizer() {
     // 4. Optionally select the AGV and open right sidebar if requested
     if (payload.selectAgv) {
       mqttStore.setSelectedAgv(agvId);
-      requestOpenRightSidebar.value = true;
+      layoutStore.openRightSidebar();
     }
 
     return {
@@ -205,9 +202,7 @@ export function useOfflineVisualizer() {
     isOpen,
     open,
     close,
-    showSidebarOffline,
-    requestOpenLeftSidebar,
-    requestOpenRightSidebar,
+    showSidebarOffline: toRef(layoutStore, "showSidebarOffline"),
     openSidebarOffline,
     closeSidebarOffline,
     visualizeOffline,

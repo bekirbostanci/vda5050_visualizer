@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { setActivePinia, createPinia } from "pinia";
 import { useOfflineVisualizer } from "@/composables/useOfflineVisualizer";
 import { useMqttStore } from "@/stores/mqtt";
+import { useLayoutStore } from "@/stores/layout";
 
 describe("useOfflineVisualizer", () => {
   beforeEach(() => {
@@ -9,9 +10,9 @@ describe("useOfflineVisualizer", () => {
   });
 
   it("controls sidebar offline visualizer state", () => {
+    const layoutStore = useLayoutStore();
     const {
       showSidebarOffline,
-      requestOpenLeftSidebar,
       open,
       close,
       openSidebarOffline,
@@ -22,7 +23,7 @@ describe("useOfflineVisualizer", () => {
 
     open();
     expect(showSidebarOffline.value).toBe(true);
-    expect(requestOpenLeftSidebar.value).toBe(true);
+    expect(layoutStore.showLeftSidebar).toBe(true);
 
     close();
     expect(showSidebarOffline.value).toBe(false);
@@ -218,11 +219,12 @@ describe("useOfflineVisualizer", () => {
     });
   });
 
-  it("selects AGV and triggers requestOpenRightSidebar when selectAgv is true", () => {
-    const { visualizeOffline, requestOpenRightSidebar } = useOfflineVisualizer();
+  it("selects AGV and triggers layoutStore.showRightSidebar when selectAgv is true", () => {
+    const layoutStore = useLayoutStore();
+    const { visualizeOffline } = useOfflineVisualizer();
     const mqttStore = useMqttStore();
 
-    expect(requestOpenRightSidebar.value).toBe(false);
+    expect(layoutStore.showRightSidebar).toBe(false);
 
     visualizeOffline({
       state: {
@@ -238,6 +240,6 @@ describe("useOfflineVisualizer", () => {
       manufacturer: "FleetX",
       serialNumber: "bot_123",
     });
-    expect(requestOpenRightSidebar.value).toBe(true);
+    expect(layoutStore.showRightSidebar).toBe(true);
   });
 });
