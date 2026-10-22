@@ -5,9 +5,22 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Icon } from "@iconify/vue";
 import { useToast } from "@/components/ui/toast";
 import { generateManhattanRoute } from "@/utils/manhattan-route";
+import {
+  formatOrderJson,
+  orderToFormState,
+  parseOrderJson,
+  splitOrderJsonDocuments,
+} from "@/utils/order-json";
 import type { Order, Node, Edge, Action } from "vda-5050-lib";
 import { BlockingType as BlockingTypeEnum } from "@/types/vda5050.types";
 
@@ -128,6 +141,13 @@ const { agvControllers, interfaceName } = useVDA5050();
 const { toast } = useToast();
 
 const error = ref("");
+const jsonHint = ref("");
+const showJsonImport = ref(false);
+const orderJsonText = ref("");
+const jsonOrderCount = ref(1);
+const jsonDocuments = ref<string[]>([]);
+const selectedJsonOrderIndex = ref(0);
+const jsonFileInputRef = ref<HTMLInputElement | null>(null);
 const expandedSections = ref<Set<string>>(new Set(["order-basic"]));
 
 // Order form state
@@ -190,6 +210,167 @@ const buildOrderFromForm = (): Order => {
   }
 
   return order;
+};
+
+const applyJsonToForm = () => {
+  try {
+    const docs =
+      jsonDocuments.value.length > 0
+        ? jsonDocuments.value
+        : splitOrderJsonDocuments(orderJsonText.value);
+    if (docs.length === 0) {
+      error.value = "JSON is empty.";
+      return;
+    }
+
+    const index = Math.min(selectedJsonOrderIndex.value, docs.length - 1);
+    const { order, warnings } = parseOrderJson(docs[index], props.agvId);
+    orderForm.value = orderToFormState(order, props.agvId);
+    orderJsonText.value = formatOrderJson(order);
+    jsonDocuments.value = docs;
+    jsonOrderCount.value = docs.length;
+    selectedJsonOrderIndex.value = index;
+    error.value = "";
+    jsonHint.value = warnings.join(" ");
+
+    expandedSections.value = new Set([
+      "order-basic",
+      "order-nodes",
+      "order-edges",
+    ]);
+
+    toast({
+      title: "JSON applied",
+      description:
+        warnings.length > 0
+          ? `Loaded order "${order.orderId}" into the form (${warnings.length} warning(s)).`
+          : `Loaded order "${order.orderId}" into the form. You can review and edit below.`,
+    });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    error.value = message;
+    jsonHint.value = "";
+  }
+};
+
+const validateOrderJson = () => {
+  try {
+    const docs = splitOrderJsonDocuments(orderJsonText.value);
+    if (docs.length === 0) {
+      error.value = "JSON is empty.";
+      jsonHint.value = "";
+      return;
+    }
+
+    jsonDocuments.value = docs;
+    const parsed = docs.map((doc) => parseOrderJson(doc, props.agvId));
+    jsonOrderCount.value = docs.length;
+    selectedJsonOrderIndex.value = Math.min(
+      selectedJsonOrderIndex.value,
+      docs.length - 1
+    );
+
+    const { order, warnings } = parsed[selectedJsonOrderIndex.value];
+    error.value = "";
+    jsonHint.value = [
+      `Valid VDA5050 order: ${order.orderId} (${order.nodes?.length ?? 0} nodes, ${order.edges?.length ?? 0} edges).`,
+      docs.length > 1 ? `${docs.length} orders found in editor.` : "",
+      ...warnings,
+    ]
+      .filter(Boolean)
+      .join(" ");
+
+    toast({
+      title: "JSON valid",
+      description: `Order "${order.orderId}" is valid. Click "Apply to form" to load it.`,
+    });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    error.value = message;
+    jsonHint.value = "";
+  }
+};
+
+const formatOrderJsonEditor = () => {
+  try {
+    const docs = splitOrderJsonDocuments(orderJsonText.value);
+    if (docs.length === 0) {
+      error.value = "JSON is empty.";
+      return;
+    }
+
+    const index = Math.min(selectedJsonOrderIndex.value, docs.length - 1);
+    const { order } = parseOrderJson(docs[index], props.agvId);
+    orderJsonText.value = formatOrderJson(order);
+    error.value = "";
+    jsonHint.value = "JSON formatted.";
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    error.value = message;
+  }
+};
+
+const loadJsonFromFile = () => {
+  jsonFileInputRef.value?.click();
+};
+
+const onJsonFileSelected = async (event: Event) => {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  input.value = "";
+
+  if (!file) return;
+
+  try {
+    const text = await file.text();
+    const docs = splitOrderJsonDocuments(text);
+    jsonDocuments.value = docs;
+    jsonOrderCount.value = docs.length;
+    selectedJsonOrderIndex.value = 0;
+    orderJsonText.value = text;
+
+    if (docs.length === 1) {
+      const { order, warnings } = parseOrderJson(docs[0], props.agvId);
+      orderJsonText.value = formatOrderJson(order);
+      jsonHint.value = warnings.join(" ");
+    } else {
+      jsonHint.value = `Loaded ${docs.length} orders from ${file.name}. Select one and click "Apply to form".`;
+    }
+
+    showJsonImport.value = true;
+    error.value = "";
+
+    toast({
+      title: "File loaded",
+      description: `${file.name} (${docs.length} order${docs.length > 1 ? "s" : ""})`,
+    });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    error.value = `Failed to read file: ${message}`;
+  }
+};
+
+const selectJsonOrderByIndex = (index: number) => {
+  selectedJsonOrderIndex.value = index;
+  const docs =
+    jsonDocuments.value.length > 0
+      ? jsonDocuments.value
+      : splitOrderJsonDocuments(orderJsonText.value);
+
+  if (!docs[index]) return;
+
+  try {
+    const { order } = parseOrderJson(docs[index], props.agvId);
+    orderJsonText.value = formatOrderJson(order);
+    jsonHint.value = `Showing order ${index + 1} of ${docs.length}: ${order.orderId}`;
+  } catch {
+    orderJsonText.value = docs[index];
+    jsonHint.value = `Showing raw document ${index + 1} of ${docs.length}.`;
+  }
+};
+
+const toggleJsonImport = () => {
+  showJsonImport.value = !showJsonImport.value;
 };
 
 // Publish Order
@@ -423,6 +604,15 @@ const generateRandomOrderAndPublish = () => {
           variant="outline"
           size="sm"
           class="h-7 text-xs"
+          @click="toggleJsonImport"
+        >
+          <Icon icon="material-symbols:data-object" class="w-3.5 h-3.5 mr-1" />
+          {{ showJsonImport ? "Hide JSON" : "Import JSON" }}
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          class="h-7 text-xs"
           @click="generateRandomOrderAndPublish"
         >
           <Icon icon="material-symbols:shuffle" class="w-3.5 h-3.5 mr-1" />
@@ -446,8 +636,110 @@ const generateRandomOrderAndPublish = () => {
       {{ error }}
     </div>
 
+    <div
+      v-if="jsonHint && !error"
+      class="text-sm text-muted-foreground bg-muted/50 p-2 rounded"
+    >
+      {{ jsonHint }}
+    </div>
+
+    <input
+      ref="jsonFileInputRef"
+      type="file"
+      accept=".json,.txt,application/json,text/plain"
+      class="hidden"
+      @change="onJsonFileSelected"
+    />
+
+    <div
+      v-if="showJsonImport"
+      class="border rounded-lg p-4 space-y-3 bg-muted/20"
+    >
+      <div class="flex items-center justify-between mb-1">
+        <h3 class="font-semibold text-sm">Import from JSON</h3>
+        <span class="text-xs text-muted-foreground">
+          Apply loads data into the form below
+        </span>
+      </div>
+
+      <div class="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            class="h-7 text-xs"
+            @click="loadJsonFromFile"
+          >
+            <Icon icon="material-symbols:upload-file" class="w-3.5 h-3.5 mr-1" />
+            Load file
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            class="h-7 text-xs"
+            @click="validateOrderJson"
+          >
+            <Icon
+              icon="material-symbols:check-circle-outline"
+              class="w-3.5 h-3.5 mr-1"
+            />
+            Validate
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            class="h-7 text-xs"
+            @click="formatOrderJsonEditor"
+          >
+            <Icon icon="material-symbols:data-object" class="w-3.5 h-3.5 mr-1" />
+            Format
+          </Button>
+          <Button
+            size="sm"
+            class="h-7 text-xs"
+            @click="applyJsonToForm"
+          >
+            <Icon icon="material-symbols:input" class="w-3.5 h-3.5 mr-1" />
+            Apply to form
+          </Button>
+        </div>
+
+        <div v-if="jsonOrderCount > 1" class="flex items-center gap-2">
+          <Label class="text-xs shrink-0">Order in file</Label>
+          <Select
+            :model-value="String(selectedJsonOrderIndex)"
+            @update:model-value="(v) => selectJsonOrderByIndex(Number(v))"
+          >
+            <SelectTrigger class="h-8 text-xs flex-1">
+              <SelectValue placeholder="Select order" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem
+                v-for="i in jsonOrderCount"
+                :key="i - 1"
+                :value="String(i - 1)"
+              >
+                Order {{ i }} / {{ jsonOrderCount }}
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div>
+          <Label class="text-xs text-muted-foreground">
+            Paste VDA5050 order JSON (e.g. from VdaOrders/*.txt). Multiple orders
+            separated by lines of = are supported.
+          </Label>
+          <Textarea
+            v-model="orderJsonText"
+            class="mt-2 font-mono text-xs min-h-[160px]"
+            spellcheck="false"
+            placeholder='{ "orderId": "PATH_ALPHA", "orderUpdateId": 0, "nodes": [...], "edges": [...] }'
+          />
+        </div>
+
+    </div>
+
     <div class="space-y-4">
-      <!-- Basic Information -->
       <div class="border rounded-lg p-4 space-y-3">
         <div
           class="flex items-center justify-between cursor-pointer"
