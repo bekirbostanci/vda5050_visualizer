@@ -21,6 +21,7 @@ import {
 import ConnectionModal from "@/components/ConnectionModal.vue";
 import SimulatorModal from "@/components/SimulatorModal.vue";
 import { useSettingsStore } from "@/stores/settings";
+import { useOfflineVisualizer } from "@/composables/useOfflineVisualizer";
 
 const props = defineProps<{
   showLeftSidebar?: boolean;
@@ -50,6 +51,7 @@ const settingsStore = useSettingsStore();
 
 const isConnectionModalOpen = ref(false);
 const isSimulatorModalOpen = ref(false);
+const { open: openOfflineVisualizer } = useOfflineVisualizer();
 
 const openGitHub = () => {
   window.open("https://github.com/bekirbostanci/vda5050_visualizer", "_blank");
@@ -67,6 +69,13 @@ const openGitHub = () => {
           class="font-normal text-sm px-2 md:px-3"
           @click="isConnectionModalOpen = true"
           >Connect</MenubarTrigger
+        >
+      </MenubarMenu>
+      <MenubarMenu>
+        <MenubarTrigger
+          class="font-normal text-sm px-2 md:px-3"
+          @click="openOfflineVisualizer"
+          >Offline Mode</MenubarTrigger
         >
       </MenubarMenu>
       <MenubarMenu>
@@ -215,6 +224,11 @@ const openGitHub = () => {
               :class="showJsonSidebar ? 'opacity-100' : 'opacity-50'"
             />
             <span>{{ showJsonSidebar ? "Hide" : "Show" }} JSON Viewer</span>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem @click="openOfflineVisualizer">
+            <Icon icon="ph:cloud-slash" class="mr-2 h-4 w-4" />
+            <span>Offline Mode</span>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem @click="mode = 'light'">

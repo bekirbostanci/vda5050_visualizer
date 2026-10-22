@@ -10,6 +10,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Icon } from "@iconify/vue";
+import { useOfflineVisualizer } from "@/composables/useOfflineVisualizer";
 
 const {
   brokerIp,
@@ -18,10 +19,12 @@ const {
   updateBroker,
   isElectronAvailable,
 } = useVDA5050();
+
+const { open: openOfflineVisualizer } = useOfflineVisualizer();
 </script>
 
 <template>
-  <div class="flex items-center gap-2 p-2 w-full overflow-x-auto">
+  <div class="flex items-center gap-2 p-2 w-full overflow-x-auto justify-between">
     <div class="flex items-center gap-2 min-w-fit">
       <Input v-model="brokerIp" placeholder="Broker IP" class="w-32 h-8" />
       <Input v-model="brokerPort" placeholder="Port" class="w-20 h-8" />
@@ -39,6 +42,19 @@ const {
       <Button @click="updateBroker" size="sm" variant="outline" class="h-8">
         <Icon icon="ph:plug" class="mr-2 h-4 w-4" />
         Connect
+      </Button>
+
+      <div class="h-4 w-px bg-border mx-1" />
+
+      <Button
+        @click="openOfflineVisualizer"
+        size="sm"
+        variant="secondary"
+        class="h-8 gap-1.5 font-medium shadow-xs"
+        title="Directly visualize Order or State messages without requiring an MQTT broker"
+      >
+        <Icon icon="ph:cloud-slash-bold" class="h-4 w-4 text-primary" />
+        <span>Offline Mode</span>
       </Button>
     </div>
   </div>

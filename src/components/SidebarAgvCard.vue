@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import { Icon } from "@iconify/vue";
 import { VDA5050Agv } from "@/controllers/vda5050-agv.controller";
 import { ConnectionState } from "@/types/vda5050.types";
 import { useMqttStore } from "@/stores/mqtt";
 import { useVDA5050 } from "@/composables/useVDA5050";
+import { useOfflineVisualizer } from "@/composables/useOfflineVisualizer";
 
 const props = defineProps<{
   controller: VDA5050Agv;
@@ -23,18 +25,22 @@ const agvData = computed(() => mqttStore.getAgvData(agvId));
 
 // Computed properties for display - read from Pinia store
 const position = computed(() => {
-  const pos = agvData.value?.visualizationInfo?.agvPosition;
+  const pos =
+    agvData.value?.visualizationInfo?.agvPosition ||
+    agvData.value?.stateInfo?.agvPosition;
   return pos
     ? {
-        x: pos.x.toFixed(2),
-        y: pos.y.toFixed(2),
-        theta: pos.theta.toFixed(2),
+        x: Number(pos.x).toFixed(2),
+        y: Number(pos.y).toFixed(2),
+        theta: Number(pos.theta ?? 0).toFixed(2),
       }
     : null;
 });
 
 const velocity = computed(() => {
-  const vel = agvData.value?.visualizationInfo?.velocity;
+  const vel =
+    agvData.value?.visualizationInfo?.velocity ||
+    agvData.value?.stateInfo?.velocity;
   return vel
     ? {
         vx: (Math.round(vel.vx * 100) / 100).toFixed(2),
@@ -45,7 +51,9 @@ const velocity = computed(() => {
 });
 
 const connectionState = computed(
-  () => agvData.value?.connectionInfo?.connectionState
+  () =>
+    agvData.value?.connectionInfo?.connectionState ||
+    (agvData.value?.stateInfo ? ConnectionState.ONLINE : ConnectionState.OFFLINE)
 );
 const operatingMode = computed(() => agvData.value?.stateInfo?.operatingMode);
 const mapId = computed(() => agvData.value?.stateInfo?.agvPosition?.mapId);
@@ -268,6 +276,13 @@ const handleAcknowledge = (event: Event) => {
   console.log("Acknowledge clicked for", agvId);
 };
 
+const { editRobot } = useOfflineVisualizer();
+
+const handleEditOffline = (event: Event) => {
+  event.stopPropagation();
+  editRobot(agvId);
+};
+
 const handleViewDetails = (event: Event) => {
   event.stopPropagation();
   // Always open the details sidebar by setting the selected AGV
@@ -424,6 +439,14 @@ const handleViewDetails = (event: Event) => {
           </p>
         </div>
         <div class="flex gap-2">
+          <button
+            @click="handleEditOffline"
+            class="px-2.5 py-1 rounded-lg border border-primary/40 hover:bg-primary/10 text-primary transition text-xs font-medium flex items-center gap-1 shadow-2xs"
+            title="Edit Order/State messages in Offline Mode"
+          >
+            <Icon icon="ph:pencil-simple-bold" class="w-3.5 h-3.5" />
+            Edit
+          </button>
           <button
             @click="handleViewDetails"
             class="px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 transition text-white text-xs"

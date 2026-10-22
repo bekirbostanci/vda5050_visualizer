@@ -4,6 +4,7 @@ import { Icon } from "@iconify/vue";
 import { useMqttStore } from "@/stores/mqtt";
 import { ConnectionState } from "@/types/vda5050.types";
 import { VDA5050Agv } from "@/controllers/vda5050-agv.controller";
+import { useOfflineVisualizer } from "@/composables/useOfflineVisualizer";
 
 const props = defineProps<{
   agv: {
@@ -102,6 +103,13 @@ const stateHeaderId = computed(() => getStateHeaderId());
 const stateBadgeClass = computed(() =>
   getStateBadgeClass(orderState.value || connectionState.value)
 );
+
+const { editRobot } = useOfflineVisualizer();
+
+const handleEditOffline = (e: Event) => {
+  e.stopPropagation();
+  editRobot(props.agv);
+};
 </script>
 
 <template>
@@ -167,7 +175,7 @@ const stateBadgeClass = computed(() =>
     </div>
 
     <!-- Right Side: Status Badge and Action Icon -->
-    <div class="flex-shrink-0 flex items-center gap-3">
+    <div class="flex-shrink-0 flex items-center gap-2">
       <span
         :class="[
           'px-2 py-0.5 rounded-full text-xs font-medium',
@@ -176,6 +184,13 @@ const stateBadgeClass = computed(() =>
       >
         {{ orderState || connectionState }}
       </span>
+      <button
+        @click="handleEditOffline"
+        class="p-1 hover:bg-muted rounded text-muted-foreground hover:text-primary transition"
+        title="Edit Order/State in Offline Mode"
+      >
+        <Icon icon="ph:pencil-simple-bold" class="h-3.5 w-3.5" />
+      </button>
       <Icon icon="ph:caret-right" class="h-4 w-4 text-muted-foreground" />
     </div>
   </div>

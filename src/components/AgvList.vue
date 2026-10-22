@@ -3,6 +3,7 @@ import { ref, computed } from "vue";
 import { useVDA5050 } from "@/composables/useVDA5050";
 import SidebarAgvCard from "@/components/SidebarAgvCard.vue";
 import SidebarAgvListItem from "@/components/SidebarAgvListItem.vue";
+import SidebarOfflineVisualizer from "@/components/SidebarOfflineVisualizer.vue";
 import { Input } from "@/components/ui/input";
 import {
   Card,
@@ -14,8 +15,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { Icon } from "@iconify/vue";
 import ConnectionModal from "@/components/ConnectionModal.vue";
+import { useOfflineVisualizer } from "@/composables/useOfflineVisualizer";
 
 const { robotList, selectedAgv, agvControllers } = useVDA5050();
+const { showSidebarOffline, openSidebarOffline, closeSidebarOffline } =
+  useOfflineVisualizer();
 const filterText = ref("");
 const isConnectionModalOpen = ref(false);
 const viewMode = ref<"card" | "list">("card");
@@ -48,7 +52,11 @@ function getController(agv: any) {
 </script>
 
 <template>
-  <div class="flex flex-col h-full">
+  <SidebarOfflineVisualizer
+    v-if="showSidebarOffline"
+    @close="closeSidebarOffline"
+  />
+  <div v-else class="flex flex-col h-full">
     <div class="p-4 border-b flex items-center gap-2 h-[68px]">
       <Input
         v-model="filterText"
@@ -129,10 +137,30 @@ function getController(agv: any) {
               Once connected, robots will appear in this list.
             </CardDescription>
           </CardHeader>
-          <CardContent class="pt-0">
+          <CardContent class="pt-0 space-y-2.5">
             <Button class="w-full" @click="isConnectionModalOpen = true">
               <Icon icon="ph:plug" class="mr-2 h-4 w-4" />
               Connect Broker
+            </Button>
+
+            <div class="relative my-2 flex items-center justify-center">
+              <div class="absolute inset-0 flex items-center">
+                <div class="w-full border-t border-border/60" />
+              </div>
+              <div
+                class="relative bg-muted/70 px-2 text-[10px] uppercase tracking-wider text-muted-foreground rounded"
+              >
+                or
+              </div>
+            </div>
+
+            <Button
+              variant="outline"
+              class="w-full gap-2 border-primary/30 hover:border-primary hover:bg-primary/5 text-xs font-medium"
+              @click="openSidebarOffline"
+            >
+              <Icon icon="ph:cloud-slash-bold" class="h-4 w-4 text-primary" />
+              Offline Mode
             </Button>
           </CardContent>
         </Card>

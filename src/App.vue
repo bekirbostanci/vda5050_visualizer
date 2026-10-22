@@ -15,11 +15,37 @@ import {
 import NetworkGraph from "@/components/NetworkGraph.vue";
 import HelpPage from "@/components/HelpPage.vue";
 import { useVDA5050 } from "@/composables/useVDA5050";
+import { useOfflineVisualizer } from "@/composables/useOfflineVisualizer";
 
 const showLeftSidebar = ref(true);
 const showRightSidebar = ref(false);
 const showJsonSidebar = ref(false);
 const showHelp = ref(false);
+
+const { requestOpenLeftSidebar, requestOpenRightSidebar, showSidebarOffline } =
+  useOfflineVisualizer();
+
+watch(requestOpenLeftSidebar, (shouldOpen) => {
+  if (shouldOpen) {
+    showLeftSidebar.value = true;
+    requestOpenLeftSidebar.value = false;
+  }
+});
+
+watch(requestOpenRightSidebar, (shouldOpen) => {
+  if (shouldOpen) {
+    showRightSidebar.value = true;
+    showJsonSidebar.value = false;
+    requestOpenRightSidebar.value = false;
+  }
+});
+
+watch(showSidebarOffline, (isOpen) => {
+  if (isOpen) {
+    showJsonSidebar.value = false;
+    showRightSidebar.value = false;
+  }
+});
 
 // JSON viewer state - store getter function for reactive updates
 const jsonViewerData = ref<{ title: string; getData: () => any } | null>(null);
@@ -30,7 +56,7 @@ const { selectedAgv } = useVDA5050();
 watch(
   selectedAgv,
   (newAgv) => {
-    if (newAgv) {
+    if (newAgv && !showSidebarOffline.value) {
       showRightSidebar.value = true;
     }
   },
