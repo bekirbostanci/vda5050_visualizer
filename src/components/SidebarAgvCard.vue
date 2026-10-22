@@ -23,12 +23,16 @@ const agvData = computed(() => mqttStore.getAgvData(agvId));
 
 // Computed properties for display - read from Pinia store
 const position = computed(() => {
-  const pos = agvData.value?.visualizationInfo?.agvPosition;
+  const pos =
+    agvData.value?.visualizationInfo?.agvPosition ??
+    agvData.value?.visualizationInfo?.mobileRobotPosition ??
+    agvData.value?.stateInfo?.agvPosition ??
+    agvData.value?.stateInfo?.mobileRobotPosition;
   return pos
     ? {
         x: pos.x.toFixed(2),
         y: pos.y.toFixed(2),
-        theta: pos.theta.toFixed(2),
+        theta: pos.theta !== undefined ? pos.theta.toFixed(2) : "0.00",
       }
     : null;
 });
@@ -48,7 +52,11 @@ const connectionState = computed(
   () => agvData.value?.connectionInfo?.connectionState
 );
 const operatingMode = computed(() => agvData.value?.stateInfo?.operatingMode);
-const mapId = computed(() => agvData.value?.stateInfo?.agvPosition?.mapId);
+const mapId = computed(
+  () =>
+    agvData.value?.stateInfo?.agvPosition?.mapId ??
+    agvData.value?.stateInfo?.mobileRobotPosition?.mapId
+);
 const timestamp = computed(() => agvData.value?.visualizationInfo?.timestamp);
 
 // Order information
@@ -216,9 +224,10 @@ const batteryPercent = computed(() => {
   if (battery?.batteryCharge !== undefined) {
     return Math.round(battery.batteryCharge);
   }
-  if (battery?.batteryVoltage !== undefined) {
-    // Estimate from voltage if charge not available
-    return null; // Could add voltage-based estimation if needed
+  const powerSupply = agvData.value?.stateInfo?.powerSupply;
+  if (powerSupply?.stateOfCharge !== undefined) {
+    const soc = powerSupply.stateOfCharge;
+    return Math.round(soc <= 1 && soc > 0 ? soc * 100 : soc);
   }
   return null;
 });

@@ -347,6 +347,7 @@ watch(selectedAgv, () => {
                 showJson(
                   'Battery State',
                   () =>
+                    stateInfo.powerSupply ||
                     stateInfo.batteryState || {
                       batteryLevel: stateInfo.batteryLevel,
                     }
@@ -367,7 +368,17 @@ watch(selectedAgv, () => {
                   >{{ stateInfo.batteryLevel }}%</span
                 >
                 <span
+                  v-else-if="stateInfo.powerSupply?.stateOfCharge !== undefined"
+                  class="text-sm font-medium truncate max-w-[120px]"
+                  >{{ Math.round(stateInfo.powerSupply.stateOfCharge <= 1 && stateInfo.powerSupply.stateOfCharge > 0 ? stateInfo.powerSupply.stateOfCharge * 100 : stateInfo.powerSupply.stateOfCharge) }}%</span
+                >
+                <span
                   v-else-if="stateInfo.batteryState"
+                  class="text-sm font-medium truncate max-w-[120px]"
+                  >View</span
+                >
+                <span
+                  v-else-if="stateInfo.powerSupply"
                   class="text-sm font-medium truncate max-w-[120px]"
                   >View</span
                 >
@@ -387,7 +398,13 @@ watch(selectedAgv, () => {
             <div
               class="flex items-center justify-between py-1.5 px-2 rounded-md cursor-pointer hover:bg-accent transition-colors min-w-0"
               @click="
-                showJson('AGV Position', () => stateInfo.agvPosition || {})
+                showJson(
+                  'AGV Position',
+                  () =>
+                    stateInfo.agvPosition ||
+                    stateInfo.mobileRobotPosition ||
+                    {}
+                )
               "
             >
               <div class="flex items-center gap-2 min-w-0 flex-shrink">
@@ -400,16 +417,16 @@ watch(selectedAgv, () => {
               <div class="flex items-center gap-1 min-w-0 flex-shrink">
                 <span
                   v-if="
-                    stateInfo.agvPosition &&
-                    stateInfo.agvPosition.x !== undefined &&
-                    stateInfo.agvPosition.y !== undefined
+                    (stateInfo.agvPosition || stateInfo.mobileRobotPosition) &&
+                    (stateInfo.agvPosition || stateInfo.mobileRobotPosition).x !== undefined &&
+                    (stateInfo.agvPosition || stateInfo.mobileRobotPosition).y !== undefined
                   "
                   class="text-sm font-medium truncate max-w-[180px]"
                 >
-                  ({{ stateInfo.agvPosition.x.toFixed(2) }},
-                  {{ stateInfo.agvPosition.y.toFixed(2)
-                  }}<span v-if="stateInfo.agvPosition.theta !== undefined"
-                    >, {{ stateInfo.agvPosition.theta.toFixed(2) }}°</span
+                  ({{ (stateInfo.agvPosition || stateInfo.mobileRobotPosition).x.toFixed(2) }},
+                  {{ (stateInfo.agvPosition || stateInfo.mobileRobotPosition).y.toFixed(2)
+                  }}<span v-if="(stateInfo.agvPosition || stateInfo.mobileRobotPosition).theta !== undefined"
+                    >, {{ (stateInfo.agvPosition || stateInfo.mobileRobotPosition).theta.toFixed(2) }}°</span
                   >)
                 </span>
                 <span
