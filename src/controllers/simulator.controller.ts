@@ -72,8 +72,9 @@ export async function createSimulatorAgv(
 export async function createRandomVdaOrder(
   virtualAgvAdapter: VirtualAgvAdapter
 ): Promise<void> {
+  const currentState: any = virtualAgvAdapter.controller.currentState;
   const initialPosition = toRaw(
-    virtualAgvAdapter.controller.currentState.agvPosition
+    currentState?.agvPosition || currentState?.mobileRobotPosition
   );
   if (!initialPosition) {
     return;

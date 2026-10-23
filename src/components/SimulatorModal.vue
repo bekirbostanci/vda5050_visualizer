@@ -59,7 +59,7 @@ const form = ref({
   mqttAddress: "localhost",
   mqttPort: "14520",
   vdaInterface: "uagv",
-  vdaVersion: "2.0.0" as "2.0.0" | "1.1.0",
+  vdaVersion: "2.0.0" as "3.0.0" | "2.1.0" | "2.0.0" | "1.1.0",
   vehicleName: "sim_robot_",
   vehicleCount: 1,
   vehicleMapId: "map1",
@@ -94,10 +94,11 @@ function createClientOptions(): ClientOptions {
 
 // Create simulators
 async function handleCreateSimulators() {
-  if (form.value.vdaVersion !== "2.0.0" && form.value.vdaVersion !== "1.1.0") {
+  const validVersions = ["3.0.0", "2.1.0", "2.0.0", "1.1.0"];
+  if (!validVersions.includes(form.value.vdaVersion)) {
     toast({
       title: "Error",
-      description: "VDA Version must be 2.0.0 or 1.1.0",
+      description: "VDA Version must be 3.0.0, 2.1.0, 2.0.0, or 1.1.0",
       variant: "destructive",
     });
     return;
@@ -331,6 +332,8 @@ const hasSimulators = computed(() => simulatorAgvs.value.length > 0);
                       <SelectValue :placeholder="form.vdaVersion" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="3.0.0">3.0.0</SelectItem>
+                      <SelectItem value="2.1.0">2.1.0</SelectItem>
                       <SelectItem value="2.0.0">2.0.0</SelectItem>
                       <SelectItem value="1.1.0">1.1.0</SelectItem>
                     </SelectContent>

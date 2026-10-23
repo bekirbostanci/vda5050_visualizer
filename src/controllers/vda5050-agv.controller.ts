@@ -270,15 +270,17 @@ export class VDA5050Agv implements IVDA5050Agv {
 
   private handleStateMessage(state: any): void {
     this.stateInfo.value = state;
-    if (state.agvPosition?.x != null && state.agvPosition?.y != null) {
-      this.updateAgvPosition(state.agvPosition);
+    const pos = state.agvPosition ?? state.mobileRobotPosition;
+    if (pos?.x != null && pos?.y != null) {
+      this.updateAgvPosition(pos);
     }
   }
 
   private handleVisualizationMessage(vis: any): void {
     this.visualizationInfo.value = vis;
-    if (vis.agvPosition?.x != null && vis.agvPosition?.y != null) {
-      this.updateAgvPosition(vis.agvPosition);
+    const pos = vis.agvPosition ?? vis.mobileRobotPosition;
+    if (pos?.x != null && pos?.y != null) {
+      this.updateAgvPosition(pos);
     }
   }
 

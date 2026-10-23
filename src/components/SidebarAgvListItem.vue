@@ -55,6 +55,11 @@ function getBatteryPercent() {
   if (battery?.batteryCharge !== undefined) {
     return Math.round(battery.batteryCharge);
   }
+  const powerSupply = agvData?.stateInfo?.powerSupply;
+  if (powerSupply?.stateOfCharge !== undefined) {
+    const soc = powerSupply.stateOfCharge;
+    return Math.round(soc <= 1 && soc > 0 ? soc * 100 : soc);
+  }
   return null;
 }
 

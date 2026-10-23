@@ -343,7 +343,8 @@ const generateRandomOrderAndPublish = () => {
       return;
     }
 
-    const agvPosition = controller.stateInfo?.value?.agvPosition;
+    const state = controller.stateInfo?.value;
+    const agvPosition = state?.agvPosition ?? state?.mobileRobotPosition;
     const initialPosition =
       agvPosition?.x != null && agvPosition?.y != null
         ? {
