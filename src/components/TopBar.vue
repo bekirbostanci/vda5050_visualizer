@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from "vue";
+import { storeToRefs } from "pinia";
 import {
   Menubar,
   MenubarContent,
@@ -21,20 +22,7 @@ import {
 import ConnectionModal from "@/components/ConnectionModal.vue";
 import SimulatorModal from "@/components/SimulatorModal.vue";
 import { useSettingsStore } from "@/stores/settings";
-
-const props = defineProps<{
-  showLeftSidebar?: boolean;
-  showRightSidebar?: boolean;
-  showJsonSidebar?: boolean;
-  showHelp?: boolean;
-}>();
-
-const emit = defineEmits<{
-  toggleLeftSidebar: [];
-  toggleRightSidebar: [];
-  toggleJsonSidebar: [];
-  toggleHelp: [];
-}>();
+import { useLayoutStore } from "@/stores/layout";
 
 // Pass { disableTransition: false } to enable transitions
 const mode = useColorMode({
@@ -47,6 +35,9 @@ const mode = useColorMode({
 });
 
 const settingsStore = useSettingsStore();
+const layoutStore = useLayoutStore();
+const { showLeftSidebar, showRightSidebar, showJsonSidebar, showHelp } =
+  storeToRefs(layoutStore);
 
 const isConnectionModalOpen = ref(false);
 const isSimulatorModalOpen = ref(false);
@@ -67,6 +58,13 @@ const openGitHub = () => {
           class="font-normal text-sm px-2 md:px-3"
           @click="isConnectionModalOpen = true"
           >Connect</MenubarTrigger
+        >
+      </MenubarMenu>
+      <MenubarMenu>
+        <MenubarTrigger
+          class="font-normal text-sm px-2 md:px-3"
+          @click="layoutStore.openOfflineSidebar"
+          >Offline Mode</MenubarTrigger
         >
       </MenubarMenu>
       <MenubarMenu>
@@ -94,10 +92,10 @@ const openGitHub = () => {
           >Help</MenubarTrigger
         >
         <MenubarContent>
-          <MenubarItem @click="emit('toggleHelp')">
+          <MenubarItem @click="layoutStore.toggleHelp()">
             <Icon icon="ph:question" class="mr-2 h-4 w-4" />
-            <span :class="{ 'font-semibold': props.showHelp }">
-              {{ props.showHelp ? "Hide Help Page" : "Show Help Page" }}
+            <span :class="{ 'font-semibold': showHelp }">
+              {{ showHelp ? "Hide Help Page" : "Show Help Page" }}
             </span>
           </MenubarItem>
           <MenubarItem @click="openGitHub">
@@ -135,7 +133,7 @@ const openGitHub = () => {
         size="icon"
         class="h-8 w-8"
         :title="showLeftSidebar ? 'Hide Left Sidebar' : 'Show Left Sidebar'"
-        @click="$emit('toggleLeftSidebar')"
+        @click="layoutStore.toggleLeftSidebar()"
       >
         <Icon
           icon="ph:sidebar-simple"
@@ -152,7 +150,7 @@ const openGitHub = () => {
             ? 'Hide AGV Details Sidebar'
             : 'Show AGV Details Sidebar'
         "
-        @click="$emit('toggleRightSidebar')"
+        @click="layoutStore.toggleRightSidebar()"
       >
         <Icon
           icon="ph:sidebar-simple"
@@ -172,7 +170,7 @@ const openGitHub = () => {
             ? 'Hide JSON Viewer Sidebar'
             : 'Show JSON Viewer Sidebar'
         "
-        @click="$emit('toggleJsonSidebar')"
+        @click="layoutStore.toggleJsonSidebar()"
       >
         <Icon
           icon="material-symbols:code"
@@ -192,7 +190,7 @@ const openGitHub = () => {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" class="w-52">
-          <DropdownMenuItem @click="$emit('toggleLeftSidebar')">
+          <DropdownMenuItem @click="layoutStore.toggleLeftSidebar()">
             <Icon
               icon="ph:sidebar-simple"
               class="mr-2 h-4 w-4"
@@ -200,7 +198,7 @@ const openGitHub = () => {
             />
             <span>{{ showLeftSidebar ? "Hide" : "Show" }} Left Sidebar</span>
           </DropdownMenuItem>
-          <DropdownMenuItem @click="$emit('toggleRightSidebar')">
+          <DropdownMenuItem @click="layoutStore.toggleRightSidebar()">
             <Icon
               icon="ph:sidebar-simple"
               class="mr-2 h-4 w-4 scale-x-[-1]"
@@ -208,13 +206,18 @@ const openGitHub = () => {
             />
             <span>{{ showRightSidebar ? "Hide" : "Show" }} AGV Details</span>
           </DropdownMenuItem>
-          <DropdownMenuItem @click="$emit('toggleJsonSidebar')">
+          <DropdownMenuItem @click="layoutStore.toggleJsonSidebar()">
             <Icon
               icon="material-symbols:code"
               class="mr-2 h-4 w-4"
               :class="showJsonSidebar ? 'opacity-100' : 'opacity-50'"
             />
             <span>{{ showJsonSidebar ? "Hide" : "Show" }} JSON Viewer</span>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem @click="layoutStore.openOfflineSidebar">
+            <Icon icon="ph:cloud-slash" class="mr-2 h-4 w-4" />
+            <span>Offline Mode</span>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem @click="mode = 'light'">

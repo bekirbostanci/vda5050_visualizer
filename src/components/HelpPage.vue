@@ -524,6 +524,27 @@ allow_anonymous true</code></pre>
           </CardHeader>
           <CardContent class="space-y-4">
             <div>
+              <h3 class="font-semibold mb-2">Offline Mode</h3>
+              <p class="mb-2">Directly visualize VDA 5050 Order and State messages without requiring an active MQTT broker:</p>
+              <ul class="list-disc list-inside space-y-1 ml-4">
+                <li>
+                  Click <strong>"Offline Mode"</strong> in the sidebar, connection toolbar, or top bar menu
+                </li>
+                <li>
+                  Paste a VDA 5050 Order JSON to visualize routes, nodes, edges, and actions directly
+                </li>
+                <li>
+                  Paste a VDA 5050 State JSON to inspect AGV positions, operating modes, loads, and battery
+                </li>
+                <li>
+                  Use <strong>"Sample"</strong> or <strong>"Both"</strong> to quickly preview synchronized routes and positions
+                </li>
+              </ul>
+            </div>
+
+            <Separator />
+
+            <div>
               <h3 class="font-semibold mb-2">Theme Settings</h3>
               <p class="mb-2">Switch between light and dark themes:</p>
               <ul class="list-disc list-inside space-y-1 ml-4">

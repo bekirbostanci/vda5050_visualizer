@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, unref, watch } from "vue";
 import { useVDA5050 } from "@/composables/useVDA5050";
+import { useOfflineVisualizer } from "@/composables/useOfflineVisualizer";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@iconify/vue";
 import OrderPublisher from "@/components/OrderPublisher.vue";
@@ -12,6 +13,7 @@ const emit = defineEmits<{
 }>();
 
 const { selectedAgv, agvControllers, interfaceName } = useVDA5050();
+const { showSidebarOffline } = useOfflineVisualizer();
 
 const selectedAgvData = computed(() => {
   if (!selectedAgv.value) return null;
@@ -124,7 +126,8 @@ watch(
     if (
       newStateInfo &&
       selectedAgv.value !== oldSelectedAgv &&
-      !publisherMode.value
+      !publisherMode.value &&
+      !showSidebarOffline.value
     ) {
       showJson("State Message", () => stateInfo.value);
     }

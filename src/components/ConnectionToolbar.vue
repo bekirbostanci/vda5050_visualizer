@@ -21,7 +21,7 @@ const {
 </script>
 
 <template>
-  <div class="flex items-center gap-2 p-2 w-full overflow-x-auto">
+  <div class="flex items-center gap-2 p-2 w-full overflow-x-auto justify-between">
     <div class="flex items-center gap-2 min-w-fit">
       <Input v-model="brokerIp" placeholder="Broker IP" class="w-32 h-8" />
       <Input v-model="brokerPort" placeholder="Port" class="w-20 h-8" />

@@ -24,6 +24,9 @@ import { loadSavedConfig } from "@/types/mqtt-config";
 import { useMqttStore } from "@/stores/mqtt";
 import { MqttClientState } from "@/types/mqtt.types";
 import { sharedMqttClient } from "@/utils/shared-mqtt-client";
+import { useOfflineVisualizer } from "@/composables/useOfflineVisualizer";
+
+const { open: openOfflineVisualizer } = useOfflineVisualizer();
 
 const props = defineProps<{
   open: boolean;
@@ -316,30 +319,41 @@ const isConnected = computed(() => {
         </div>
       </div>
 
-      <DialogFooter>
+      <DialogFooter class="flex sm:justify-between items-center w-full">
         <Button
-          variant="outline"
-          @click="emits('update:open', false)"
-          :disabled="isConnecting"
+          variant="ghost"
+          size="sm"
+          class="text-xs text-muted-foreground mr-auto gap-1.5 h-8"
+          @click="openOfflineVisualizer(); emits('update:open', false)"
         >
-          Cancel
+          <Icon icon="ph:cloud-slash-bold" class="h-3.5 w-3.5 text-primary" />
+          Offline Mode
         </Button>
-        <Button
-          v-if="isConnected"
-          variant="destructive"
-          @click="handleDisconnect"
-          :disabled="isConnecting"
-        >
-          Disconnect
-        </Button>
-        <Button v-else @click="handleConnect" :disabled="isConnecting">
-          <Icon
-            v-if="isConnecting"
-            icon="ph:spinner"
-            class="mr-2 h-4 w-4 animate-spin"
-          />
-          {{ isConnecting ? "Connecting..." : "Connect" }}
-        </Button>
+        <div class="flex items-center gap-2">
+          <Button
+            variant="outline"
+            @click="emits('update:open', false)"
+            :disabled="isConnecting"
+          >
+            Cancel
+          </Button>
+          <Button
+            v-if="isConnected"
+            variant="destructive"
+            @click="handleDisconnect"
+            :disabled="isConnecting"
+          >
+            Disconnect
+          </Button>
+          <Button v-else @click="handleConnect" :disabled="isConnecting">
+            <Icon
+              v-if="isConnecting"
+              icon="ph:spinner"
+              class="mr-2 h-4 w-4 animate-spin"
+            />
+            {{ isConnecting ? "Connecting..." : "Connect" }}
+          </Button>
+        </div>
       </DialogFooter>
     </DialogContent>
   </Dialog>

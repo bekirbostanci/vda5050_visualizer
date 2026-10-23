@@ -295,6 +295,16 @@ export class VDA5050Agv implements IVDA5050Agv {
     this.addNodes(order.nodes || []);
     this.addRobot();
     this.addEdges(order.edges || []);
+
+    // Re-apply robot position from state or visualization, or default to the first node
+    const pos =
+      this.visualizationInfo.value?.agvPosition ||
+      this.stateInfo.value?.agvPosition;
+    if (pos?.x != null && pos?.y != null) {
+      this.updateAgvPosition(pos);
+    } else if (order.nodes?.length > 0 && order.nodes[0]?.nodePosition) {
+      this.updateAgvPosition(order.nodes[0].nodePosition);
+    }
   }
 
   private addNodes(nodes: any[]): void {
