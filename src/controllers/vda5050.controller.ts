@@ -276,6 +276,7 @@ class VDA5050Controller implements IVDA5050Controller {
       `${interfaceNameToUse}/${manufacturer}/${serialNumber}/${Topic.Order}`,
       `${interfaceNameToUse}/${manufacturer}/${serialNumber}/${Topic.State}`,
       `${interfaceNameToUse}/${manufacturer}/${serialNumber}/${Topic.Visualization}`,
+      `${interfaceNameToUse}/${manufacturer}/${serialNumber}/${Topic.Factsheet}`,
     ];
 
     // Store AGV instance with credentials

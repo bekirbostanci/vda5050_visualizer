@@ -138,6 +138,12 @@ The purpose of this package is to view and visualize vda5050 messages more quick
 - Displaying data from the master controller to the robot and from the robot to the master controller
 - Display of raw json data
 
+### Factsheet Actions
+
+The order and instant action editors take their action types from the AGV factsheet (`protocolFeatures.agvActions`). Instant actions list the actions with the `INSTANT` scope, node and edge actions the ones with the `NODE` and `EDGE` scope. Selecting an action adds its required parameters and limits the blocking type to the allowed ones. Parameter values are converted by `valueDataType` (e.g. `FLOAT` → number, `OBJECT` → JSON object) and invalid values are marked. Optional parameters can be added with one click, and custom action types and free-form parameters are still possible.
+
+**Load Factsheet** subscribes to the factsheet topic again, so the broker sends the retained factsheet (VDA5050 2.1.0, 6.15). If none arrives within 2 s, it sends a `factsheetRequest` instant action and waits 5 s. Without a factsheet the editors offer the standard VDA5050 actions. A factsheet that arrives wrapped as `{"data": "<json>"}` (e.g. a string message forwarded by a bridge) is accepted and marked in the editor.
+
 ### Updates
 
 - Actions are listing on the path

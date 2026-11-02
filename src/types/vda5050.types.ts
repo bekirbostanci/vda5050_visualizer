@@ -39,6 +39,7 @@ export interface IVDA5050Agv {
   readonly stateInfo: Ref<any>;
   readonly connectionInfo: Ref<any>;
   readonly visualizationInfo: Ref<any>;
+  readonly factsheetInfo: Ref<any>;
   readonly nodes: Ref<Nodes>;
   readonly edges: Ref<Edges>;
   readonly layouts: Ref<Layouts>;

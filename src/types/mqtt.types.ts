@@ -19,6 +19,7 @@ export enum Topic {
   Order = "order",
   State = "state",
   Visualization = "visualization",
+  Factsheet = "factsheet",
 }
 
 // Valid VDA5050 topic types (with leading slash for topic validation)
@@ -28,6 +29,7 @@ export const VALID_TOPIC_TYPES = [
   `/${Topic.InstantActions}`,
   `/${Topic.Visualization}`,
   `/${Topic.Connection}`,
+  `/${Topic.Factsheet}`,
 ] as const;
 
 export type MessageSubscriber = (topic: string, message: any) => void;

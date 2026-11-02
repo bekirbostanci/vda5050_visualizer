@@ -5,6 +5,7 @@ import type { IVDA5050Agv, ColorSchema } from "../types/vda5050.types";
 import { Topic } from "../types/mqtt.types";
 import mqtt from "mqtt";
 import { sharedMqttClient } from "../utils/shared-mqtt-client";
+import { toInstantActionsMessage } from "../utils/instant-actions";
 import { useMqttStore } from "../stores/mqtt";
 import type { Order, InstantActions } from "vda-5050-lib";
 
@@ -15,6 +16,7 @@ export class VDA5050Agv implements IVDA5050Agv {
   public readonly stateInfo = ref<any>();
   public readonly connectionInfo = ref<any>();
   public readonly visualizationInfo = ref<any>();
+  public readonly factsheetInfo = ref<any>();
   public readonly nodes = ref<Nodes>({});
   public readonly edges = ref<Edges>({});
   public readonly layouts = ref<Layouts>({ nodes: {} });
@@ -61,6 +63,7 @@ export class VDA5050Agv implements IVDA5050Agv {
       `${this.mqttTopic}/${Topic.State}`,
       `${this.mqttTopic}/${Topic.Connection}`,
       `${this.mqttTopic}/${Topic.Visualization}`,
+      `${this.mqttTopic}/${Topic.Factsheet}`,
     ];
 
     // If using WebSocket, use the shared MQTT client
@@ -189,6 +192,11 @@ export class VDA5050Agv implements IVDA5050Agv {
         // Sync to store
         this.syncToStore();
       },
+      [Topic.Factsheet]: (msg) => {
+        this.factsheetInfo.value = msg;
+        // Sync to store
+        this.syncToStore();
+      },
     };
 
     handlers[topicType]?.(message);
@@ -203,6 +211,7 @@ export class VDA5050Agv implements IVDA5050Agv {
         stateInfo: this.stateInfo.value,
         connectionInfo: this.connectionInfo.value,
         visualizationInfo: this.visualizationInfo.value,
+        factsheetInfo: this.factsheetInfo.value,
         nodes: this.nodes.value,
         edges: this.edges.value,
         layouts: this.layouts.value,
@@ -423,20 +432,17 @@ export class VDA5050Agv implements IVDA5050Agv {
       ? `v${instantActions.version.split(".")[0]}`
       : "v2";
     const topic = `${actualInterfaceName}/${majorVersion}/${this.agvId.manufacturer}/${this.agvId.serialNumber}/${Topic.InstantActions}`;
+    const message = toInstantActionsMessage(instantActions);
 
     if (sharedMqttClient.connected) {
-      sharedMqttClient.publish(topic, instantActions);
-      console.log("InstantActions published:", topic, instantActions);
+      sharedMqttClient.publish(topic, message);
+      console.log("InstantActions published:", topic, message);
     } else if (window.electron?.ipcRenderer) {
       window.electron.ipcRenderer.send("publish-message", {
         topic,
-        message: JSON.stringify(instantActions),
+        message: JSON.stringify(message),
       });
-      console.log(
-        "InstantActions published via Electron:",
-        topic,
-        instantActions
-      );
+      console.log("InstantActions published via Electron:", topic, message);
     } else {
       console.error("Cannot publish instantActions: MQTT client not connected");
       throw new Error("MQTT client not connected");
