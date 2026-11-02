@@ -5,8 +5,21 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Icon } from "@iconify/vue";
 import { useToast } from "@/components/ui/toast";
+import {
+  formatInstantActionsJson,
+  instantActionsToFormState,
+  parseInstantActionsJson,
+  splitInstantActionJsonDocuments,
+} from "@/utils/instant-action-json";
 import type { InstantActions, Action } from "vda-5050-lib";
 import { BlockingType as BlockingTypeEnum } from "@/types/vda5050.types";
 
@@ -127,6 +140,13 @@ const { agvControllers, interfaceName } = useVDA5050();
 const { toast } = useToast();
 
 const error = ref("");
+const jsonHint = ref("");
+const showJsonImport = ref(false);
+const instantActionsJsonText = ref("");
+const jsonDocumentCount = ref(1);
+const jsonDocuments = ref<string[]>([]);
+const selectedJsonDocumentIndex = ref(0);
+const jsonFileInputRef = ref<HTMLInputElement | null>(null);
 const expandedSections = ref<Set<string>>(new Set(["instantAction-basic"]));
 
 // InstantActions form state
@@ -174,6 +194,179 @@ const buildInstantActionsFromForm = (): InstantActions => {
     version: instantActionsForm.value.version,
     instantActions: instantActionsForm.value.instantActions,
   };
+};
+
+const applyJsonToForm = () => {
+  try {
+    const docs =
+      jsonDocuments.value.length > 0
+        ? jsonDocuments.value
+        : splitInstantActionJsonDocuments(instantActionsJsonText.value);
+    if (docs.length === 0) {
+      error.value = "JSON is empty.";
+      return;
+    }
+
+    const index = Math.min(selectedJsonDocumentIndex.value, docs.length - 1);
+    const { instantActions, warnings } = parseInstantActionsJson(
+      docs[index],
+      props.agvId
+    );
+    instantActionsForm.value = instantActionsToFormState(
+      instantActions,
+      props.agvId
+    );
+    instantActionsJsonText.value = formatInstantActionsJson(instantActions);
+    jsonDocuments.value = docs;
+    jsonDocumentCount.value = docs.length;
+    selectedJsonDocumentIndex.value = index;
+    error.value = "";
+    jsonHint.value = warnings.join(" ");
+
+    expandedSections.value = new Set([
+      "instantAction-basic",
+      "instantAction-actions",
+    ]);
+
+    const actionCount = instantActions.instantActions?.length ?? 0;
+    toast({
+      title: "JSON applied",
+      description:
+        warnings.length > 0
+          ? `Loaded ${actionCount} action(s) (${warnings.length} warning(s)). Review and edit below.`
+          : `Loaded ${actionCount} action(s) into the form. You can review and edit below.`,
+    });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    error.value = message;
+    jsonHint.value = "";
+  }
+};
+
+const validateInstantActionsJson = () => {
+  try {
+    const docs = splitInstantActionJsonDocuments(instantActionsJsonText.value);
+    if (docs.length === 0) {
+      error.value = "JSON is empty.";
+      jsonHint.value = "";
+      return;
+    }
+
+    jsonDocuments.value = docs;
+    const parsed = docs.map((doc) => parseInstantActionsJson(doc, props.agvId));
+    jsonDocumentCount.value = docs.length;
+    selectedJsonDocumentIndex.value = Math.min(
+      selectedJsonDocumentIndex.value,
+      docs.length - 1
+    );
+
+    const { instantActions, warnings } =
+      parsed[selectedJsonDocumentIndex.value];
+    const actionCount = instantActions.instantActions?.length ?? 0;
+    error.value = "";
+    jsonHint.value = [
+      `Valid VDA5050 instantActions (${actionCount} action${actionCount === 1 ? "" : "s"}).`,
+      docs.length > 1 ? `${docs.length} documents found in editor.` : "",
+      ...warnings,
+    ]
+      .filter(Boolean)
+      .join(" ");
+
+    toast({
+      title: "JSON valid",
+      description: `InstantActions message is valid. Click "Apply to form" to load it.`,
+    });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    error.value = message;
+    jsonHint.value = "";
+  }
+};
+
+const formatInstantActionsJsonEditor = () => {
+  try {
+    const docs = splitInstantActionJsonDocuments(instantActionsJsonText.value);
+    if (docs.length === 0) {
+      error.value = "JSON is empty.";
+      return;
+    }
+
+    const index = Math.min(selectedJsonDocumentIndex.value, docs.length - 1);
+    const { instantActions } = parseInstantActionsJson(docs[index], props.agvId);
+    instantActionsJsonText.value = formatInstantActionsJson(instantActions);
+    error.value = "";
+    jsonHint.value = "JSON formatted.";
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    error.value = message;
+  }
+};
+
+const loadJsonFromFile = () => {
+  jsonFileInputRef.value?.click();
+};
+
+const onJsonFileSelected = async (event: Event) => {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  input.value = "";
+
+  if (!file) return;
+
+  try {
+    const text = await file.text();
+    const docs = splitInstantActionJsonDocuments(text);
+    jsonDocuments.value = docs;
+    jsonDocumentCount.value = docs.length;
+    selectedJsonDocumentIndex.value = 0;
+    instantActionsJsonText.value = text;
+
+    if (docs.length === 1) {
+      const { instantActions, warnings } = parseInstantActionsJson(
+        docs[0],
+        props.agvId
+      );
+      instantActionsJsonText.value = formatInstantActionsJson(instantActions);
+      jsonHint.value = warnings.join(" ");
+    } else {
+      jsonHint.value = `Loaded ${docs.length} documents from ${file.name}. Select one and click "Apply to form".`;
+    }
+
+    showJsonImport.value = true;
+    error.value = "";
+
+    toast({
+      title: "File loaded",
+      description: `${file.name} (${docs.length} document${docs.length > 1 ? "s" : ""})`,
+    });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    error.value = `Failed to read file: ${message}`;
+  }
+};
+
+const selectJsonDocumentByIndex = (index: number) => {
+  selectedJsonDocumentIndex.value = index;
+  const docs =
+    jsonDocuments.value.length > 0
+      ? jsonDocuments.value
+      : splitInstantActionJsonDocuments(instantActionsJsonText.value);
+
+  if (!docs[index]) return;
+
+  try {
+    const { instantActions } = parseInstantActionsJson(docs[index], props.agvId);
+    instantActionsJsonText.value = formatInstantActionsJson(instantActions);
+    const actionCount = instantActions.instantActions?.length ?? 0;
+    jsonHint.value = `Showing document ${index + 1} of ${docs.length} (${actionCount} action${actionCount === 1 ? "" : "s"}).`;
+  } catch {
+    instantActionsJsonText.value = docs[index];
+    jsonHint.value = `Showing raw document ${index + 1} of ${docs.length}.`;
+  }
+};
+
+const toggleJsonImport = () => {
+  showJsonImport.value = !showJsonImport.value;
 };
 
 // Publish InstantActions
@@ -277,14 +470,25 @@ const getActionDescription = (
         <Icon icon="material-symbols:flash-on" class="w-4 h-4" />
         Create Instant Action
       </div>
-      <Button
-        variant="ghost"
-        size="sm"
-        class="h-6 w-6 p-0"
-        @click="emit('close')"
-      >
-        <Icon icon="material-symbols:close" class="w-4 h-4" />
-      </Button>
+      <div class="flex items-center gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          class="h-7 text-xs"
+          @click="toggleJsonImport"
+        >
+          <Icon icon="material-symbols:data-object" class="w-3.5 h-3.5 mr-1" />
+          {{ showJsonImport ? "Hide JSON" : "Import JSON" }}
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          class="h-6 w-6 p-0"
+          @click="emit('close')"
+        >
+          <Icon icon="material-symbols:close" class="w-4 h-4" />
+        </Button>
+      </div>
     </div>
 
     <div
@@ -292,6 +496,104 @@ const getActionDescription = (
       class="text-sm text-red-500 bg-red-50 dark:bg-red-950 p-2 rounded"
     >
       {{ error }}
+    </div>
+
+    <div
+      v-if="jsonHint && !error"
+      class="text-sm text-muted-foreground bg-muted/50 p-2 rounded"
+    >
+      {{ jsonHint }}
+    </div>
+
+    <input
+      ref="jsonFileInputRef"
+      type="file"
+      accept=".json,.txt,application/json,text/plain"
+      class="hidden"
+      @change="onJsonFileSelected"
+    />
+
+    <div
+      v-if="showJsonImport"
+      class="border rounded-lg p-4 space-y-3 bg-muted/20"
+    >
+      <div class="flex items-center justify-between mb-1">
+        <h3 class="font-semibold text-sm">Import from JSON</h3>
+        <span class="text-xs text-muted-foreground">
+          Apply loads data into the form below
+        </span>
+      </div>
+
+      <div class="flex flex-wrap gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          class="h-7 text-xs"
+          @click="loadJsonFromFile"
+        >
+          <Icon icon="material-symbols:upload-file" class="w-3.5 h-3.5 mr-1" />
+          Load file
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          class="h-7 text-xs"
+          @click="validateInstantActionsJson"
+        >
+          <Icon
+            icon="material-symbols:check-circle-outline"
+            class="w-3.5 h-3.5 mr-1"
+          />
+          Validate
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          class="h-7 text-xs"
+          @click="formatInstantActionsJsonEditor"
+        >
+          <Icon icon="material-symbols:data-object" class="w-3.5 h-3.5 mr-1" />
+          Format
+        </Button>
+        <Button size="sm" class="h-7 text-xs" @click="applyJsonToForm">
+          <Icon icon="material-symbols:input" class="w-3.5 h-3.5 mr-1" />
+          Apply to form
+        </Button>
+      </div>
+
+      <div v-if="jsonDocumentCount > 1" class="flex items-center gap-2">
+        <Label class="text-xs shrink-0">Document in file</Label>
+        <Select
+          :model-value="String(selectedJsonDocumentIndex)"
+          @update:model-value="(v) => selectJsonDocumentByIndex(Number(v))"
+        >
+          <SelectTrigger class="h-8 text-xs flex-1">
+            <SelectValue placeholder="Select document" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem
+              v-for="i in jsonDocumentCount"
+              :key="i - 1"
+              :value="String(i - 1)"
+            >
+              Document {{ i }} / {{ jsonDocumentCount }}
+            </SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div>
+        <Label class="text-xs text-muted-foreground">
+          Paste VDA5050 instantActions JSON. Multiple documents separated by
+          lines of = are supported.
+        </Label>
+        <Textarea
+          v-model="instantActionsJsonText"
+          class="mt-2 font-mono text-xs min-h-[160px]"
+          spellcheck="false"
+          placeholder='{ "headerId": 1, "version": "2.0.0", "instantActions": [{ "actionId": "a1", "actionType": "stateRequest", "blockingType": "NONE" }] }'
+        />
+      </div>
     </div>
 
     <div class="space-y-4">
